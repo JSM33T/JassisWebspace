@@ -69,7 +69,7 @@ jobs:
             --remove-orphans \
             --wait \
             --wait-timeout 180 \
-            --dotnet worker
+            dotnet worker
 
           echo "[dotnet] Deploy verified by compose --wait ✅"
           docker compose -p jassspace ps
