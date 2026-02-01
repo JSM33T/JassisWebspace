@@ -186,7 +186,7 @@ export const authService = {
      * GET /auth/me
      * Get current authenticated user information (requires auth)
      */
-    async getCurrentUser(token: string): Promise<UserInfo> {
+    async getCurrentUser(token?: string): Promise<UserInfo> {
         return get<UserInfo>('/auth/me', { token });
     },
 

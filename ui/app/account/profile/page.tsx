@@ -50,7 +50,7 @@ const itemVariants = {
 
 export default function ProfilePage() {
     const [isMounted, setIsMounted] = useState(false);
-    const { user, setUser, isInitialized } = useUser();
+    const { user, setUser, updateUser, isInitialized } = useUser();
 
     const [isEditing, setIsEditing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -64,6 +64,35 @@ export default function ProfilePage() {
 
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
+
+    // Fetch fresh profile data on mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            if (!isMounted) return;
+            try {
+                const userInfo = await authService.getCurrentUser();
+                if (userInfo) {
+                    updateUser({
+                        id: userInfo.id,
+                        firstName: userInfo.firstName || "",
+                        lastName: userInfo.lastName || "",
+                        username: userInfo.username || "",
+                        email: userInfo.email,
+                        avatarUrl: userInfo.avatarUrl || undefined,
+                        coverUrl: userInfo.coverUrl || undefined,
+                        bio: userInfo.bio || undefined,
+                        role: userInfo.roles?.[0] || 'user',
+                        preferences: userInfo.preferences || undefined,
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch fresh profile", error);
+                // Optionally handle error, e.g. if 401, context might handle logout
+            }
+        };
+
+        fetchProfile();
+    }, [isMounted, updateUser]);
 
     const handleEditToggle = () => {
         if (isEditing) {
