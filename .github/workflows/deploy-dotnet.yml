@@ -60,7 +60,9 @@ jobs:
             git clean -fd -e logs/
             git pull --ff-only
 
-            DOCKER_BUILDKIT=1 docker compose -p jassspace up -d --build --remove-orphans dotnet worker
+            echo "[dotnet] Rebuilding and bringing up service with health wait..."
+            DOCKER_BUILDKIT=1 docker compose -p jassspace up -d --build --remove-orphans --wait --wait-timeout 180 dotnet worker
+            echo "[dotnet] Deploy verified by compose --wait ✅"
             docker compose -p jassspace ps
           '" || echo '[dotnet] Build or deploy failed'
 
