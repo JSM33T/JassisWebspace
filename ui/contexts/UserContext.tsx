@@ -129,7 +129,8 @@ export function UserProvider({ children }: UserProviderProps) {
                                     });
 
                                     if (userResponse.ok) {
-                                        const userData = await userResponse.json();
+                                        const response = await userResponse.json();
+                                        const userData = response.data || response;
                                         const restoredUser: User = {
                                             id: userData.id,
                                             firstName: userData.firstName || '',
@@ -182,7 +183,8 @@ export function UserProvider({ children }: UserProviderProps) {
                         });
 
                         if (response.ok) {
-                            const userData = await response.json();
+                            const jsonResponse = await response.json();
+                            const userData = jsonResponse.data || jsonResponse;
                             const restoredUser: User = {
                                 id: userData.id,
                                 firstName: userData.firstName || '',
@@ -229,7 +231,8 @@ export function UserProvider({ children }: UserProviderProps) {
                                 });
 
                                 if (userResponse.ok) {
-                                    const userData = await userResponse.json();
+                                    const response = await userResponse.json();
+                                    const userData = response.data || response;
                                     const restoredUser: User = {
                                         id: userData.id,
                                         firstName: userData.firstName || '',
@@ -278,7 +281,8 @@ export function UserProvider({ children }: UserProviderProps) {
                                 });
 
                                 if (userResponse.ok) {
-                                    const userData = await userResponse.json();
+                                    const response = await userResponse.json();
+                                    const userData = response.data || response;
                                     const restoredUser: User = {
                                         id: userData.id,
                                         firstName: userData.firstName || '',
