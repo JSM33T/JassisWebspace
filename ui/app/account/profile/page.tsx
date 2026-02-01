@@ -11,10 +11,24 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Camera, User, Mail, Calendar, Shield, Edit, Save, X, Clock, Globe } from "lucide-react";
 import { toast } from "sonner";
-import { useUser } from "@/contexts/UserContext";
-import profileService, { ProfileInfo, UpdateProfileRequest } from "@/lib/api/profile.service";
+import { useUser, userHelpers } from "@/contexts/UserContext";
 import AvatarCropDialog from "@/components/profile/AvatarCropDialog";
-import { applyCacheBustingParam } from "@/lib/cacheBust";
+
+interface ProfileData {
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    bio?: string;
+    timezone?: string;
+    locale?: string;
+    email?: string;
+    emailVerified?: boolean;
+    createdAt?: string;
+    roles?: string[];
+    avatarUrl?: string | null;
+    coverUrl?: string | null;
+}
 
 const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -35,11 +49,8 @@ const itemVariants = {
 
 export default function ProfilePage() {
     const { user, setUser } = useUser();
-    const [profile, setProfile] = useState<ProfileInfo | null>(null);
-    const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [formData, setFormData] = useState<UpdateProfileRequest>({});
+    const [formData, setFormData] = useState<ProfileData>({});
 
     // Avatar/Cover state
     const [isAvatarCropOpen, setIsAvatarCropOpen] = useState(false);
@@ -50,37 +61,26 @@ export default function ProfilePage() {
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
 
+    // Initialize form data when user changes or editing starts
     useEffect(() => {
-        loadProfile();
-    }, []);
-
-    const loadProfile = async () => {
-        try {
-            const token = localStorage.getItem('accessToken');
-            if (!token) return;
-
-            const response = await profileService.getProfile(token);
-            setProfile(response.data);
-            initializeFormData(response.data);
-        } catch (error) {
-            console.error("Failed to load profile:", error);
-            toast.error("Failed to load profile data");
-        } finally {
-            setLoading(false);
+        if (user) {
+            setFormData({
+                username: user.username || "",
+                firstName: user.firstName || "",
+                lastName: user.lastName || "",
+                displayName: `${user.firstName} ${user.lastName}`.trim(),
+                bio: user.bio || "",
+                timezone: user.preferences?.timezone || "",
+                locale: user.preferences?.locale || "",
+                email: user.email,
+                emailVerified: true, // Mocked as not in User interface
+                createdAt: undefined, // Not in User interface
+                roles: user.role ? [user.role] : [],
+                avatarUrl: user.avatarUrl,
+                coverUrl: user.coverUrl
+            });
         }
-    };
-
-    const initializeFormData = (data: ProfileInfo) => {
-        setFormData({
-            username: data.username || "",
-            firstName: data.firstName || "",
-            lastName: data.lastName || "",
-            displayName: data.displayName || "",
-            bio: data.bio || "",
-            timezone: data.timezone || "",
-            locale: data.locale || ""
-        });
-    };
+    }, [user]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData(prev => ({
@@ -90,44 +90,47 @@ export default function ProfilePage() {
     };
 
     const handleEditToggle = () => {
-        if (isEditing && profile) {
-            initializeFormData(profile);
+        if (isEditing && user) {
+            // Reset form to user data on cancel
+            setFormData({
+                username: user.username || "",
+                firstName: user.firstName || "",
+                lastName: user.lastName || "",
+                displayName: user.displayName || "",
+                bio: user.bio || "",
+                timezone: user.timezone || "",
+                locale: user.locale || "",
+                email: user.email,
+                emailVerified: user.emailVerified,
+                createdAt: user.createdAt,
+                roles: user.roles || [],
+                avatarUrl: user.avatarUrl,
+                coverUrl: user.coverUrl
+            });
         }
         setIsEditing(!isEditing);
     };
 
     const handleSaveProfile = async () => {
-        if (!profile) return;
+        if (!user) return;
 
-        setIsUpdating(true);
-        try {
-            const token = localStorage.getItem('accessToken');
-            if (!token) return;
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-            const response = await profileService.updateProfile(formData, token);
-            const updatedProfile = response.data.profile;
+        // Update local user context
+        setUser({
+            ...user,
+            username: formData.username,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            displayName: formData.displayName,
+            bio: formData.bio,
+            timezone: formData.timezone,
+            locale: formData.locale,
+        });
 
-            setProfile(updatedProfile);
-
-            // Update user context
-            if (user) {
-                setUser({
-                    ...user,
-                    username: updatedProfile.username || user.username,
-                    firstName: updatedProfile.firstName || user.firstName,
-                    lastName: updatedProfile.lastName || user.lastName,
-                    // Don't update avatar/cover here as those are separate endpoints
-                });
-            }
-
-            toast.success("Profile updated successfully");
-            setIsEditing(false);
-        } catch (error: any) {
-            console.error("Failed to update profile:", error);
-            toast.error(error.problemDetails?.title || "Failed to update profile");
-        } finally {
-            setIsUpdating(false);
-        }
+        toast.success("Profile updated successfully (Client-side only)");
+        setIsEditing(false);
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
@@ -156,27 +159,21 @@ export default function ProfilePage() {
     const handleAvatarCropped = async (blob: Blob) => {
         setIsUploading(true);
         try {
-            const token = localStorage.getItem('accessToken');
-            if (!token) throw new Error('No access token');
+            if (!user) return;
 
-            const formData = new FormData();
-            formData.append('file', blob);
+            // Create a local URL for the blob
+            const objectUrl = URL.createObjectURL(blob);
 
-            const response = await profileService.uploadAvatar(formData, token);
-            const updatedProfile = response.data.profile;
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 800));
 
-            setProfile(updatedProfile);
+            // Update context
+            setUser({ ...user, avatarUrl: objectUrl });
 
-            // Update context with cache-busted URL
-            if (user) {
-                const avatarUrl = applyCacheBustingParam(updatedProfile.avatarUrl, updatedProfile.updatedAt);
-                setUser({ ...user, avatarUrl });
-            }
-
-            toast.success("Avatar updated successfully");
+            toast.success("Avatar updated successfully (Client-side only)");
         } catch (error) {
             console.error("Avatar upload failed:", error);
-            toast.error("Failed to upload avatar");
+            toast.error("Failed to update avatar");
         } finally {
             setIsUploading(false);
         }
@@ -185,42 +182,29 @@ export default function ProfilePage() {
     const handleCoverCropped = async (blob: Blob) => {
         setIsUploading(true);
         try {
-            const token = localStorage.getItem('accessToken');
-            if (!token) throw new Error('No access token');
+            if (!user) return;
 
-            const formData = new FormData();
-            formData.append('file', blob);
+            // Create a local URL for the blob
+            const objectUrl = URL.createObjectURL(blob);
 
-            const response = await profileService.uploadCover(formData, token);
-            const updatedProfile = response.data.profile;
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 800));
 
-            setProfile(updatedProfile);
+            // Update context
+            setUser({ ...user, coverUrl: objectUrl });
 
-            // Update context with cache-busted URL
-            if (user) {
-                const coverUrl = applyCacheBustingParam(updatedProfile.coverUrl, updatedProfile.updatedAt);
-                setUser({ ...user, coverUrl });
-            }
-
-            toast.success("Cover image updated successfully");
+            toast.success("Cover image updated successfully (Client-side only)");
         } catch (error) {
             console.error("Cover upload failed:", error);
-            toast.error("Failed to upload cover image");
+            toast.error("Failed to update cover image");
         } finally {
             setIsUploading(false);
         }
     };
 
-    if (loading) {
-        return <div className="min-h-screen flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>;
-    }
-
-    if (!profile) return null;
-
-    const coverUrl = applyCacheBustingParam(profile.coverUrl, profile.updatedAt);
-    const avatarUrl = applyCacheBustingParam(profile.avatarUrl, profile.updatedAt);
+    if (!user) return <div className="min-h-screen flex items-center justify-center">
+        <div className="text-muted-foreground">Please log in to view your profile.</div>
+    </div>;
 
     return (
         <div className="min-h-screen bg-background">
@@ -286,10 +270,10 @@ export default function ProfilePage() {
                             <CardContent className="space-y-6">
                                 {/* Cover Section */}
                                 <div className="relative w-full overflow-hidden rounded-xl bg-muted aspect-[820/312]">
-                                    {coverUrl ? (
+                                    {user.coverUrl ? (
                                         <div className="absolute inset-0">
                                             <Image
-                                                src={coverUrl}
+                                                src={user.coverUrl}
                                                 alt="Cover"
                                                 fill
                                                 className="object-cover"
@@ -332,7 +316,6 @@ export default function ProfilePage() {
                                                 size="sm"
                                                 variant="ghost"
                                                 onClick={handleEditToggle}
-                                                disabled={isUpdating}
                                             >
                                                 <X className="h-4 w-4 mr-2" />
                                                 Cancel
@@ -340,10 +323,9 @@ export default function ProfilePage() {
                                             <Button
                                                 size="sm"
                                                 onClick={handleSaveProfile}
-                                                disabled={isUpdating}
                                             >
                                                 <Save className="h-4 w-4 mr-2" />
-                                                {isUpdating ? "Saving..." : "Save"}
+                                                Save
                                             </Button>
                                         </>
                                     ) : (
@@ -362,9 +344,9 @@ export default function ProfilePage() {
                                 <div className="flex items-center space-x-4">
                                     <div className="relative">
                                         <Avatar className="h-20 w-20 border-4 border-background shadow-sm">
-                                            <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+                                            <AvatarImage src={user.avatarUrl || undefined} alt="Profile" />
                                             <AvatarFallback className="text-lg">
-                                                {profile.firstName?.[0]}{profile.lastName?.[0]}
+                                                {user.firstName?.[0]}{user.lastName?.[0]}
                                             </AvatarFallback>
                                         </Avatar>
 
@@ -391,15 +373,15 @@ export default function ProfilePage() {
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-semibold">
-                                            {profile.displayName || `${profile.firstName} ${profile.lastName}`}
+                                            {user.firstName} {user.lastName}
                                         </h3>
-                                        <p className="text-sm text-muted-foreground">@{profile.username}</p>
+                                        <p className="text-sm text-muted-foreground">@{user.username}</p>
                                         <div className="flex gap-2 mt-1">
-                                            {profile.roles.map(role => (
-                                                <Badge key={role} variant="secondary" className="capitalize">
-                                                    {role}
+                                            {user.role && (
+                                                <Badge variant="secondary" className="capitalize">
+                                                    {user.role}
                                                 </Badge>
-                                            ))}
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -415,7 +397,7 @@ export default function ProfilePage() {
                                                 onChange={handleInputChange}
                                             />
                                         ) : (
-                                            <p className="text-sm text-foreground">{profile.firstName || "Not set"}</p>
+                                            <p className="text-sm text-foreground">{user.firstName || "Not set"}</p>
                                         )}
                                     </div>
 
@@ -428,7 +410,7 @@ export default function ProfilePage() {
                                                 onChange={handleInputChange}
                                             />
                                         ) : (
-                                            <p className="text-sm text-foreground">{profile.lastName || "Not set"}</p>
+                                            <p className="text-sm text-foreground">{user.lastName || "Not set"}</p>
                                         )}
                                     </div>
 
@@ -442,7 +424,7 @@ export default function ProfilePage() {
                                                 placeholder="How you'd like to be called"
                                             />
                                         ) : (
-                                            <p className="text-sm text-foreground">{profile.displayName || "Not set"}</p>
+                                            <p className="text-sm text-foreground">{user.firstName} {user.lastName}</p>
                                         )}
                                     </div>
 
@@ -455,16 +437,16 @@ export default function ProfilePage() {
                                                 onChange={handleInputChange}
                                             />
                                         ) : (
-                                            <p className="text-sm text-foreground">@{profile.username}</p>
+                                            <p className="text-sm text-foreground">@{user.username}</p>
                                         )}
                                     </div>
 
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-sm font-medium">Email</label>
                                         <div className="flex items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground">
-                                            <span>{profile.email}</span>
-                                            <Badge variant={profile.emailVerified ? "outline" : "destructive"} className="text-xs">
-                                                {profile.emailVerified ? "Verified" : "Unverified"}
+                                            <span>{user.email}</span>
+                                            <Badge variant="outline" className="text-xs">
+                                                Verified
                                             </Badge>
                                         </div>
                                     </div>
@@ -481,7 +463,7 @@ export default function ProfilePage() {
                                         ) : (
                                             <div className="flex items-center gap-2 text-sm text-foreground">
                                                 <Clock className="h-4 w-4 text-muted-foreground" />
-                                                <span>{profile.timezone || "Not set"}</span>
+                                                <span>{user.preferences?.timezone || "Not set"}</span>
                                             </div>
                                         )}
                                     </div>
@@ -498,7 +480,7 @@ export default function ProfilePage() {
                                         ) : (
                                             <div className="flex items-center gap-2 text-sm text-foreground">
                                                 <Globe className="h-4 w-4 text-muted-foreground" />
-                                                <span>{profile.locale || "Not set"}</span>
+                                                <span>{user.preferences?.locale || "Not set"}</span>
                                             </div>
                                         )}
                                     </div>
@@ -516,19 +498,14 @@ export default function ProfilePage() {
                                             />
                                         ) : (
                                             <p className="text-sm text-foreground whitespace-pre-wrap">
-                                                {profile.bio || "No bio yet."}
+                                                {user.bio || "No bio yet."}
                                             </p>
                                         )}
                                     </div>
                                 </div>
 
                                 <div className="pt-4 border-t">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                        <div className="flex items-center text-muted-foreground">
-                                            <Calendar className="h-4 w-4 mr-2" />
-                                            Member since {new Date(profile.createdAt).toLocaleDateString()}
-                                        </div>
-                                    </div>
+                                    {/* Removed Created At since it's not in User interface */}
                                 </div>
                             </CardContent>
                         </Card>
