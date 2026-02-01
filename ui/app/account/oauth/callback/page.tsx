@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 import authService from "@/lib/api/auth.service";
 import Link from "next/link";
+import { useUser } from "@/contexts/UserContext";
 
 type CallbackState = "loading" | "success" | "error";
 
@@ -18,6 +19,7 @@ export default function OAuthCallbackPage() {
     const [error, setError] = useState<string>("");
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { setUser } = useUser();
 
     useEffect(() => {
         const handleCallback = async () => {
@@ -44,8 +46,20 @@ export default function OAuthCallbackPage() {
                     try {
                         const userData = await authService.getCurrentUser(token);
 
-                        // Store user data in localStorage (you may want to use a proper state management solution)
-                        localStorage.setItem('user', JSON.stringify(userData));
+                        // Set user in context
+                        setUser({
+                            id: userData.id,
+                            firstName: userData.firstName || '',
+                            lastName: userData.lastName || '',
+                            username: userData.username || '',
+                            email: userData.email,
+                            avatarUrl: userData.avatarUrl || undefined,
+                            login: true,
+                            expiry: expiresAt,
+                            tierId: (userData as any).tierId,
+                            tierName: (userData as any).tierName,
+                            role: userData.roles?.[0] || 'user',
+                        });
 
                         setState("success");
                         toast.success("Successfully logged in!");
