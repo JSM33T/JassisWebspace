@@ -5,6 +5,8 @@ import { Navbar } from "@/components/navbar";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/contexts/UserContext";
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -21,13 +23,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased`}>
-        <UserProvider>
-          <Navbar />
-          {children}
-          <Toaster position="bottom-right" richColors />
-        </UserProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <UserProvider>
+            <Navbar />
+            {children}
+            <Toaster position="bottom-right" richColors />
+          </UserProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -33,6 +33,7 @@ import {
 import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
+import { ModeToggle } from '@/components/mode-toggle';
 
 export function Navbar() {
     const { user, logout, isAuthenticated } = useUser();
@@ -84,7 +85,7 @@ export function Navbar() {
 
         return (
             <Badge className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground border-border/60">
-                {tierName === 'free' ? 'Free' : tierLabel}
+                {tierName === 'Free' ? 'Free' : tierLabel}
             </Badge>
         );
     };
@@ -116,6 +117,7 @@ export function Navbar() {
 
                         {/* Right Side */}
                         <div className="hidden md:flex items-center space-x-4">
+                            <ModeToggle />
                             {isAuthenticated ? (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
