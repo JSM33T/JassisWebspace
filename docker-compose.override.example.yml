@@ -23,7 +23,7 @@ services:
       # Ensure Kestrel inside the container listens on 8080
       - ASPNETCORE_URLS=http://0.0.0.0:8080
     ports:
-      # Map host port 5001 -> container port 8080 (host will call http://localhost:5000)
+      # Map host port 5001 -> container port 8080 (host will call http://localhost:5001)
       - "5001:8080"
     # Optional: healthcheck for readiness/liveness
     # healthcheck:

@@ -1,7 +1,7 @@
 import { ApiResponse, ApiError, ProblemDetails, RequestConfig } from './types';
 
 const DEFAULT_CONFIG: RequestConfig = {
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+    baseUrl: process.env.NEXT_PUBLIC_API_URL,
     timeout: 30000,
     credentials: 'include',
     headers: {
