@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { ArrowLeft, Shield, Smartphone, Laptop, LogOut, Lock, KeyRound, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
-import { authService } from "@/lib/api/auth.service";
+import { authService, SessionInfo } from "@/lib/api/auth.service";
 import { ApiError } from "@/lib/api/types";
 
 const containerVariants = {
@@ -29,19 +29,23 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
-interface Session {
-    id: string;
-    deviceType: string;
-    deviceName: string;
-    lastActive: string;
-    isCurrent: boolean;
-    ipAddress?: string;
-    location?: string;
+function getDeviceName(userAgent: string): string {
+    if (userAgent.includes("Windows")) return "Windows PC";
+    if (userAgent.includes("Macintosh")) return "Mac";
+    if (userAgent.includes("Linux")) return "Linux PC";
+    if (userAgent.includes("iPhone")) return "iPhone";
+    if (userAgent.includes("Android")) return "Android Device";
+    return "Unknown Device";
+}
+
+function isMobile(userAgent: string): boolean {
+    return /Mobile|Android|iPhone/i.test(userAgent);
 }
 
 export default function SecurityPage() {
     const { user } = useUser();
     const [isLoading, setIsLoading] = useState(false);
+    const [sessions, setSessions] = useState<SessionInfo[]>([]);
 
     // Password Change State
     const [passwordData, setPasswordData] = useState({
@@ -49,27 +53,6 @@ export default function SecurityPage() {
         newPassword: "",
         confirmPassword: ""
     });
-
-    const [sessions, setSessions] = useState<Session[]>([
-        {
-            id: '1',
-            deviceType: 'Browser',
-            deviceName: 'Chrome on Windows',
-            lastActive: new Date().toISOString(),
-            isCurrent: true,
-            ipAddress: '127.0.0.1',
-            location: 'Localhost'
-        },
-        {
-            id: '2',
-            deviceType: 'Mobile',
-            deviceName: 'Safari on iPhone',
-            lastActive: new Date(Date.now() - 86400000).toISOString(),
-            isCurrent: false,
-            ipAddress: '192.168.1.5',
-            location: 'New York, USA'
-        }
-    ]);
 
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -123,13 +106,31 @@ export default function SecurityPage() {
         }
     };
 
+    useEffect(() => {
+        const fetchSessions = async () => {
+            try {
+                const activeSessions = await authService.getActiveSessions();
+                setSessions(activeSessions);
+            } catch (error) {
+                console.error("Failed to fetch sessions:", error);
+                // toast.error("Failed to load active sessions"); // Optional: don't spam toasts on load
+            }
+        };
+
+        if (user) {
+            fetchSessions();
+        }
+    }, [user]);
+
+
+
     const handleRevokeSession = async (sessionId: string) => {
         try {
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await authService.revokeSession(sessionId);
             setSessions(prev => prev.filter(s => s.id !== sessionId));
             toast.success("Session revoked successfully");
         } catch (error) {
+            console.error("Revoke error:", error);
             toast.error("Failed to revoke session");
         }
     };
@@ -244,49 +245,52 @@ export default function SecurityPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {sessions.map((session) => (
-                                    <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border bg-card text-card-foreground shadow-sm gap-4 transition-all hover:bg-muted/50">
-                                        <div className="flex items-start sm:items-center space-x-4">
-                                            <div className="p-2 bg-primary/10 rounded-full mt-1 sm:mt-0">
-                                                {session.deviceType === 'Mobile' ? (
-                                                    <Smartphone className="h-5 w-5 text-primary" />
-                                                ) : (
-                                                    <Laptop className="h-5 w-5 text-primary" />
-                                                )}
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <p className="font-medium">{session.deviceName}</p>
-                                                    {session.isCurrent && (
-                                                        <span className="text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full ring-1 ring-green-600/20">Current</span>
+                                {sessions.map((session) => {
+                                    const deviceName = getDeviceName(session.userAgent);
+                                    const mobile = isMobile(session.userAgent);
+
+                                    return (
+                                        <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border bg-card text-card-foreground shadow-sm gap-4 transition-all hover:bg-muted/50">
+                                            <div className="flex items-start sm:items-center space-x-4">
+                                                <div className="p-2 bg-primary/10 rounded-full mt-1 sm:mt-0">
+                                                    {mobile ? (
+                                                        <Smartphone className="h-5 w-5 text-primary" />
+                                                    ) : (
+                                                        <Laptop className="h-5 w-5 text-primary" />
                                                     )}
                                                 </div>
-                                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                                                    <span className="flex items-center gap-1">
-                                                        {session.location || 'Unknown Location'}
-                                                    </span>
-                                                    <span className="hidden sm:inline">•</span>
-                                                    <span>{session.ipAddress}</span>
-                                                    <span className="hidden sm:inline">•</span>
-                                                    <span className="flex items-center gap-1">
-                                                        Last active: {new Date(session.lastActive).toLocaleDateString()}
-                                                    </span>
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-medium">{deviceName}</p>
+                                                        {session.isCurrentSession && (
+                                                            <span className="text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full ring-1 ring-green-600/20">Current</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                                        <span className="flex items-center gap-1">
+                                                            {session.ipAddress}
+                                                        </span>
+                                                        <span className="hidden sm:inline">•</span>
+                                                        <span className="flex items-center gap-1">
+                                                            Last active: {new Date(session.lastSeenAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            {!session.isCurrentSession && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 self-end sm:self-auto"
+                                                    onClick={() => handleRevokeSession(session.id)}
+                                                >
+                                                    <LogOut className="h-4 w-4 mr-2" />
+                                                    Revoke
+                                                </Button>
+                                            )}
                                         </div>
-                                        {!session.isCurrent && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-destructive hover:text-destructive hover:bg-destructive/10 self-end sm:self-auto"
-                                                onClick={() => handleRevokeSession(session.id)}
-                                            >
-                                                <LogOut className="h-4 w-4 mr-2" />
-                                                Revoke
-                                            </Button>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
 
                                 {sessions.length === 0 && (
                                     <div className="text-center py-8 text-muted-foreground">

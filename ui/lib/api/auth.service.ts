@@ -1,4 +1,4 @@
-import { get, post } from './client';
+import { get, post, del } from './client';
 
 // ============================================================================
 // Request DTOs (matching .NET API)
@@ -108,6 +108,20 @@ export interface AvailabilityResponse {
     available: boolean;
     valid: boolean;
     message: string;
+}
+
+export interface SessionInfo {
+    id: string;
+    authMethod: string;
+    ipAddress: string;
+    userAgent: string;
+    createdAt: string;
+    lastSeenAt: string;
+    isCurrentSession: boolean;
+}
+
+export interface SessionsResponse {
+    sessions: SessionInfo[];
 }
 
 // ============================================================================
@@ -246,6 +260,23 @@ export const authService = {
     getGitHubLoginUrl(baseUrl?: string): string {
         const base = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
         return `${base}/auth/github/login`;
+    },
+
+    /**
+     * GET /profile/sessions
+     * Get active sessions for current user (requires auth)
+     */
+    async getActiveSessions(): Promise<SessionInfo[]> {
+        const response = await get<SessionsResponse>('/profile/sessions');
+        return response.sessions;
+    },
+
+    /**
+     * POST /profile/sessions/{id}/logout
+     * Revoke a specific session (requires auth)
+     */
+    async revokeSession(id: string): Promise<void> {
+        return post<void>(`/profile/sessions/${id}/logout`);
     },
 };
 
