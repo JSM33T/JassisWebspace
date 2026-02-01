@@ -38,31 +38,34 @@ jobs:
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
           SERVICE_NAME: nextjs
         run: |
-          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s "$REMOTE_DIR" <<'EOF'
+          # Passing variables as arguments $1 and $2
+          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s "$REMOTE_DIR" "$SERVICE_NAME" <<'EOF'
           set -euo pipefail
 
-            REMOTE_DIR="$1"
+          # Assigning arguments to local variables
+          REMOTE_DIR="$1"
+          SERVICE_NAME="$2"
 
           LOCKFILE="${REMOTE_DIR}/.deploy.lock"
           exec 9>"$LOCKFILE"
 
-          echo "[nextjs] Waiting for exclusive lock: $LOCKFILE"
+          echo "[$SERVICE_NAME] Waiting for exclusive lock: $LOCKFILE"
           if ! flock -w 600 9; then
-            echo "[nextjs] ERROR: Could not acquire deploy lock within 10 minutes." >&2
+            echo "[$SERVICE_NAME] ERROR: Could not acquire deploy lock within 10 minutes." >&2
             exit 1
           fi
-          echo "[nextjs] Lock acquired at $(date -Is)"
+          echo "[$SERVICE_NAME] Lock acquired at $(date -Is)"
 
-          trap 'echo "[nextjs] Releasing lock"; flock -u 9' EXIT
+          trap 'echo "[$SERVICE_NAME] Releasing lock"; flock -u 9' EXIT
 
           cd "$REMOTE_DIR"
           git fetch --all --prune
           git checkout -f main || git switch -f main
-          git reset --hard
+          git reset --hard origin/main
           git clean -fd -e logs/
           git pull --ff-only
 
-          echo "[nextjs] Rebuilding and bringing up service with health wait..."
+          echo "[$SERVICE_NAME] Rebuilding and bringing up service with health wait..."
           DOCKER_BUILDKIT=1 docker compose -p jassspace up -d \
             --build \
             --remove-orphans \
@@ -70,7 +73,7 @@ jobs:
             --wait-timeout 180 \
             "$SERVICE_NAME"
 
-          echo "[nextjs] Deploy verified by compose --wait ✅"
+          echo "[$SERVICE_NAME] Deploy verified by compose --wait ✅"
           EOF
 
       - name: Show recent service logs (shared lock)
@@ -82,16 +85,21 @@ jobs:
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
           SERVICE_NAME: nextjs
         run: |
-          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s <<'EOF'
+          # Passing variables as arguments $1 and $2
+          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s "$REMOTE_DIR" "$SERVICE_NAME" <<'EOF'
           set -euo pipefail
+
+          REMOTE_DIR="$1"
+          SERVICE_NAME="$2"
 
           LOCKFILE="${REMOTE_DIR}/.deploy.lock"
           exec 9>"$LOCKFILE"
 
           if flock -s -w 120 9; then
             cd "$REMOTE_DIR"
+            echo "--- Showing logs for $SERVICE_NAME ---"
             docker compose -p jassspace logs "$SERVICE_NAME" --since=5m || true
           else
-            echo "[nextjs] Skipping logs: could not acquire shared lock within 2 minutes" >&2
+            echo "[$SERVICE_NAME] Skipping logs: could not acquire shared lock within 2 minutes" >&2
           fi
           EOF
