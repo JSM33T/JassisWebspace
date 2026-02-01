@@ -3,10 +3,10 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
-import { ArrowLeft, Settings as SettingsIcon, Bell, Shield, Smartphone, Eye, Lock } from "lucide-react";
+import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -92,122 +92,12 @@ export default function PreferencesPage() {
                                         <p className="text-xs text-muted-foreground">Choose between light and dark mode</p>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <span className="text-sm capitalize">{theme}</span>
+                                        <span className="text-sm capitalize">{theme === 'system' ? 'System' : theme}</span>
                                         <Switch
                                             checked={theme === 'dark'}
                                             onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
                                         />
                                     </div>
-                                </div>
-
-                                {/* Language */}
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="text-sm font-medium">Language</label>
-                                        <p className="text-xs text-muted-foreground">Select your preferred language</p>
-                                    </div>
-                                    <Badge variant="outline">English</Badge>
-                                </div>
-
-                                {/* Time Zone */}
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="text-sm font-medium">Time Zone</label>
-                                        <p className="text-xs text-muted-foreground">Your current time zone</p>
-                                    </div>
-                                    <Badge variant="outline">UTC</Badge>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Notifications */}
-                    <motion.div variants={itemVariants}>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center">
-                                    <Bell className="h-5 w-5 mr-2" />
-                                    Notifications
-                                </CardTitle>
-                                <CardDescription>
-                                    Configure how you receive notifications
-                                    <span className="ml-2 text-xs text-muted-foreground">(Coming soon)</span>
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6 opacity-50 pointer-events-none" role="group" aria-disabled="true">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="text-sm font-medium">Email Notifications</label>
-                                        <p className="text-xs text-muted-foreground">Receive updates via email</p>
-                                    </div>
-                                    <Switch defaultChecked />
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="text-sm font-medium">Push Notifications</label>
-                                        <p className="text-xs text-muted-foreground">Get notified on your device</p>
-                                    </div>
-                                    <Switch defaultChecked />
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="text-sm font-medium">Marketing Emails</label>
-                                        <p className="text-xs text-muted-foreground">Receive promotional content</p>
-                                    </div>
-                                    <Switch />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Privacy & Security */}
-                    <motion.div variants={itemVariants}>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center">
-                                    <Shield className="h-5 w-5 mr-2" />
-                                    Privacy & Security
-                                </CardTitle>
-                                <CardDescription>
-                                    Control your privacy and security settings
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="flex items-center justify-between opacity-50 pointer-events-none">
-                                    <div>
-                                        <label className="text-sm font-medium">Two-Factor Authentication</label>
-                                        <p className="text-xs text-muted-foreground">Add an extra layer of security</p>
-                                    </div>
-                                    <Button variant="outline" size="sm">
-                                        <Smartphone className="h-4 w-4 mr-2" />
-                                        Setup
-                                    </Button>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="text-sm font-medium">Login Activity</label>
-                                        <p className="text-xs text-muted-foreground">View recent login sessions</p>
-                                    </div>
-                                    <Link href="/account/security">
-                                        <Button variant="ghost" size="sm">
-                                            <Eye className="h-4 w-4 mr-2" />
-                                            View
-                                        </Button>
-                                    </Link>
-                                </div>
-
-                                <div className="flex items-center justify-between opacity-50 pointer-events-none">
-                                    <div>
-                                        <label className="text-sm font-medium">Change Password</label>
-                                        <p className="text-xs text-muted-foreground">Update your account password</p>
-                                    </div>
-                                    <Button variant="outline" size="sm">
-                                        <Lock className="h-4 w-4 mr-2" />
-                                        Change
-                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
