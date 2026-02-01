@@ -26,7 +26,7 @@ export default function RootLayout({
         <UserProvider>
           <Navbar />
           {children}
-          <Toaster position="top-center" richColors />
+          <Toaster position="bottom-right" richColors />
         </UserProvider>
       </body>
     </html>

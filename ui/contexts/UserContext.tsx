@@ -169,8 +169,11 @@ export function UserProvider({ children }: UserProviderProps) {
                     console.log('✅ User data restored from localStorage');
                 }
                 setIsInitialized(true);
-            } else if (storedToken || storedRefreshToken) {
-                // Token exists but no user data - try to restore session
+            } else {
+                // No user data - attempt proactive session restoration
+                // This handles cases where localStorage was cleared but refresh token cookie exists
+                console.log('🔄 No user data found, attempting proactive session restore...');
+
                 try {
                     // First try with access token if available
                     if (storedToken) {
@@ -250,18 +253,68 @@ export function UserProvider({ children }: UserProviderProps) {
                         }
                     }
 
-                    // All restoration attempts failed, clear tokens
+                    // If we have neither token, try session restore anyway (for HTTP-only cookie scenario)
+                    if (!storedToken && !storedRefreshToken) {
+                        console.log('🔄 No tokens found, attempting session restore via cookies...');
+                        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ refreshToken: '' })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const newAccessToken = data.data?.accessToken || data.accessToken;
+                            const newRefreshToken = data.data?.refreshToken || data.refreshToken;
+
+                            if (newAccessToken) {
+                                localStorage.setItem('accessToken', newAccessToken);
+                                if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
+
+                                // Fetch user data
+                                const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+                                    headers: { 'Authorization': `Bearer ${newAccessToken}` }
+                                });
+
+                                if (userResponse.ok) {
+                                    const userData = await userResponse.json();
+                                    const restoredUser: User = {
+                                        id: userData.id,
+                                        firstName: userData.firstName || '',
+                                        lastName: userData.lastName || '',
+                                        username: userData.username || '',
+                                        email: userData.email,
+                                        avatarUrl: userData.avatarUrl,
+                                        login: true,
+                                        tierId: (userData as any).tierId,
+                                        tierName: (userData as any).tierName,
+                                        role: userData.roles?.[0] || 'user'
+                                    };
+
+                                    setUser(restoredUser);
+                                    userStorage.save(restoredUser);
+                                    console.log('✅ Session restored from HTTP-only cookie');
+                                    setIsInitialized(true);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    // All restoration attempts failed
+                    console.log('❌ Session restoration failed');
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('refreshToken');
+                    setUser(null);
                 } catch (error) {
-                    console.error('Error restoring session:', error);
+                    console.error('Error during session restoration:', error);
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('refreshToken');
+                    setUser(null);
                 }
-                setIsInitialized(true);
-            } else {
-                // No user data and no token
-                setUser(null);
+
+                // CRITICAL: Only set initialized AFTER session restoration completes
                 setIsInitialized(true);
             }
         };
