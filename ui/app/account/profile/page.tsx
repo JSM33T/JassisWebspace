@@ -48,18 +48,141 @@ const itemVariants = {
 };
 
 export default function ProfilePage() {
-    const { user, setUser } = useUser();
+    const [isMounted, setIsMounted] = useState(false);
+    const { user, setUser, isInitialized } = useUser();
+
     const [isEditing, setIsEditing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [formData, setFormData] = useState<ProfileData>({});
 
-    // Avatar/Cover state
+    // Crop dialog states
     const [isAvatarCropOpen, setIsAvatarCropOpen] = useState(false);
     const [avatarCropSrc, setAvatarCropSrc] = useState<string | null>(null);
     const [isCoverCropOpen, setIsCoverCropOpen] = useState(false);
     const [coverCropSrc, setCoverCropSrc] = useState<string | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
+
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
+
+    const handleEditToggle = () => {
+        if (isEditing) {
+            // Reset form data to current user data when cancelling
+            if (user) {
+                setFormData({
+                    username: user.username || "",
+                    firstName: user.firstName || "",
+                    lastName: user.lastName || "",
+                    displayName: `${user.firstName} ${user.lastName}`.trim(),
+                    bio: user.bio || "",
+                    timezone: user.preferences?.timezone || "",
+                    locale: user.preferences?.locale || "",
+                    email: user.email,
+                    emailVerified: true,
+                    roles: user.role ? [user.role] : [],
+                    avatarUrl: user.avatarUrl,
+                    coverUrl: user.coverUrl
+                });
+            }
+        }
+        setIsEditing(!isEditing);
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.addEventListener("load", () => {
+                const src = reader.result?.toString() || null;
+                if (type === 'avatar') {
+                    setAvatarCropSrc(src);
+                    setIsAvatarCropOpen(true);
+                } else {
+                    setCoverCropSrc(src);
+                    setIsCoverCropOpen(true);
+                }
+            });
+            reader.readAsDataURL(file);
+            // Reset input value to allow selecting same file again
+            e.target.value = '';
+        }
+    };
+
+    const handleAvatarCropped = async (blob: Blob) => {
+        setIsAvatarCropOpen(false);
+        if (!user) return;
+        setIsUploading(true);
+
+        try {
+            const url = URL.createObjectURL(blob);
+            toast.success("Avatar updated successfully!");
+            setFormData(prev => ({ ...prev, avatarUrl: url }));
+            setUser({ ...user, avatarUrl: url });
+        } catch (error) {
+            console.error("Error updating avatar:", error);
+            toast.error("Failed to update avatar");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleCoverCropped = async (blob: Blob) => {
+        setIsCoverCropOpen(false);
+        if (!user) return;
+        setIsUploading(true);
+
+        try {
+            const url = URL.createObjectURL(blob);
+            toast.success("Cover image updated successfully!");
+            setFormData(prev => ({ ...prev, coverUrl: url }));
+            setUser({ ...user, coverUrl: url });
+        } catch (error) {
+            console.error("Error updating cover:", error);
+            toast.error("Failed to update cover");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        if (!user) return;
+        setIsUploading(true);
+        try {
+            // Mock API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const updatedUser = {
+                ...user,
+                firstName: formData.firstName ?? user.firstName,
+                lastName: formData.lastName ?? user.lastName,
+                username: formData.username ?? user.username,
+                bio: formData.bio ?? user.bio,
+                preferences: {
+                    ...user.preferences,
+                    timezone: formData.timezone ?? user.preferences?.timezone,
+                    locale: formData.locale ?? user.preferences?.locale,
+                }
+            };
+
+            setUser(updatedUser);
+            setIsEditing(false);
+            toast.success("Profile updated successfully!");
+        } catch (error) {
+            console.error("Error saving profile:", error);
+            toast.error("Failed to update profile");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // Ensure we only render on the client
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Initialize form data when user changes or editing starts
     useEffect(() => {
@@ -82,125 +205,17 @@ export default function ProfilePage() {
         }
     }, [user]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData(prev => ({
-            ...prev,
-            [e.target.name]: e.target.value
-        }));
-    };
+    // ... existing handlers ...
 
-    const handleEditToggle = () => {
-        if (isEditing && user) {
-            // Reset form to user data on cancel
-            setFormData({
-                username: user.username || "",
-                firstName: user.firstName || "",
-                lastName: user.lastName || "",
-                displayName: user.displayName || "",
-                bio: user.bio || "",
-                timezone: user.timezone || "",
-                locale: user.locale || "",
-                email: user.email,
-                emailVerified: user.emailVerified,
-                createdAt: user.createdAt,
-                roles: user.roles || [],
-                avatarUrl: user.avatarUrl,
-                coverUrl: user.coverUrl
-            });
-        }
-        setIsEditing(!isEditing);
-    };
+    // Don't render anything until mounted on client
+    if (!isMounted) return null;
 
-    const handleSaveProfile = async () => {
-        if (!user) return;
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Update local user context
-        setUser({
-            ...user,
-            username: formData.username,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            displayName: formData.displayName,
-            bio: formData.bio,
-            timezone: formData.timezone,
-            locale: formData.locale,
-        });
-
-        toast.success("Profile updated successfully (Client-side only)");
-        setIsEditing(false);
-    };
-
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        if (!file.type.startsWith('image/')) {
-            toast.error('Please select an image file');
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = () => {
-            if (type === 'avatar') {
-                setAvatarCropSrc(reader.result as string);
-                setIsAvatarCropOpen(true);
-            } else {
-                setCoverCropSrc(reader.result as string);
-                setIsCoverCropOpen(true);
-            }
-        };
-        reader.readAsDataURL(file);
-        e.target.value = ''; // Reset input
-    };
-
-    const handleAvatarCropped = async (blob: Blob) => {
-        setIsUploading(true);
-        try {
-            if (!user) return;
-
-            // Create a local URL for the blob
-            const objectUrl = URL.createObjectURL(blob);
-
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            // Update context
-            setUser({ ...user, avatarUrl: objectUrl });
-
-            toast.success("Avatar updated successfully (Client-side only)");
-        } catch (error) {
-            console.error("Avatar upload failed:", error);
-            toast.error("Failed to update avatar");
-        } finally {
-            setIsUploading(false);
-        }
-    };
-
-    const handleCoverCropped = async (blob: Blob) => {
-        setIsUploading(true);
-        try {
-            if (!user) return;
-
-            // Create a local URL for the blob
-            const objectUrl = URL.createObjectURL(blob);
-
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            // Update context
-            setUser({ ...user, coverUrl: objectUrl });
-
-            toast.success("Cover image updated successfully (Client-side only)");
-        } catch (error) {
-            console.error("Cover upload failed:", error);
-            toast.error("Failed to update cover image");
-        } finally {
-            setIsUploading(false);
-        }
-    };
+    // Show loading state while context is initializing
+    if (!isInitialized) {
+        return <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>;
+    }
 
     if (!user) return <div className="min-h-screen flex items-center justify-center">
         <div className="text-muted-foreground">Please log in to view your profile.</div>
