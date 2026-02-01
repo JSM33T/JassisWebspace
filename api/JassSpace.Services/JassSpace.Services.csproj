@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JassSpace.Contracts\JassSpace.Contracts.csproj" />
+    <ProjectReference Include="..\JassSpace.Repositories\JassSpace.Repositories.csproj" />
+    <ProjectReference Include="..\JassSpace.Data\JassSpace.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.1" />
+  </ItemGroup>
+
+</Project>

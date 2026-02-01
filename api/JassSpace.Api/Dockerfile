@@ -1,0 +1,50 @@
+# syntax=docker/dockerfile:1.6
+
+# Make SDK version available to any FROM below
+ARG DOTNET_SDK_VERSION=10.0.101   # set once; or 10.0.101 if you keep global.json pinned
+
+# Base runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+ARG APP_UID=64198
+WORKDIR /app
+EXPOSE 8080
+EXPOSE 8081
+
+USER root
+RUN mkdir -p /app/logs/dotnet /app/cache \
+    && chown -R ${APP_UID}:${APP_UID} /app/logs /app/cache
+USER ${APP_UID}
+
+# Build
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_SDK_VERSION} AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+
+# Copy global.json first so the resolver picks the right SDK (and cache works)
+COPY global.json ./
+
+# Restore
+COPY JassSpace.Api/JassSpace.Api.csproj JassSpace.Api/
+RUN dotnet restore JassSpace.Api/JassSpace.Api.csproj
+
+# Copy the rest and build
+COPY . .
+WORKDIR /src/JassSpace.Api
+RUN dotnet build JassSpace.Api.csproj -c $BUILD_CONFIGURATION -o /app/build
+
+# Publish
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src/JassSpace.Api
+RUN dotnet publish JassSpace.Api.csproj -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# Final
+FROM base AS final
+ARG APP_UID=64198
+USER root
+RUN mkdir -p /app/logs/dotnet && chown -R ${APP_UID}:${APP_UID} /app/logs
+USER ${APP_UID}
+
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "JassSpace.Api.dll"]

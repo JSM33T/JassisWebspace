@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>85d52bc4-b72b-4ff7-98d1-6a0ab6971fca</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		  <PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.IdentityModel.Abstractions" Version="8.15.0" />
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+
+
+		<!-- Core Serilog integration with ASP.NET Core -->
+		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+
+		<!-- Read settings from appsettings.json -->
+		<PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
+
+		<!-- Console sink -->
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+
+		<!-- File sink (optional, enable in config) -->
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+
+		<!-- Enrichers (for structured context) -->
+		<PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+		<PackageReference Include="Serilog.Enrichers.Process" Version="3.0.0" />
+		<PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+
+		<!-- Exception details as structured properties -->
+		<PackageReference Include="Serilog.Exceptions" Version="8.4.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\JassSpace.Contracts\JassSpace.Contracts.csproj" />
+		<ProjectReference Include="..\JassSpace.Entities\JassSpace.Entities.csproj" />
+		<ProjectReference Include="..\JassSpace.Infra\JassSpace.Infra.csproj" />
+		<ProjectReference Include="..\JassSpace.Repositories\JassSpace.Repositories.csproj" />
+		<ProjectReference Include="..\JassSpace.Services\JassSpace.Services.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="logs\" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,22 @@
+using System;
+
+namespace JassSpace.Contracts.Responses;
+
+public record LinkClickCountResponse(Guid LinkId, long Clicks);
+
+public record AnalyticsEventResponse(
+    Guid Id,
+    DateTimeOffset At,
+    string? Fingerprint,
+    double? Latitude,
+    double? Longitude,
+    double? Accuracy,
+    string? UserAgent);
+
+public record GeographicDistributionItem(
+    string Country,
+    string City,
+    long Count,
+    double Percentage = 0,
+    double? Latitude = null,
+    double? Longitude = null);
