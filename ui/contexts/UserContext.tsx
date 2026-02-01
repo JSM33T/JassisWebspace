@@ -98,11 +98,65 @@ export function UserProvider({ children }: UserProviderProps) {
         const initializeUser = async () => {
             const storedUser = userStorage.load();
             const storedToken = localStorage.getItem('accessToken');
+            const storedRefreshToken = localStorage.getItem('refreshToken');
 
             if (storedUser) {
                 // We have user data - check if it's still valid
                 if (storedUser.expiry && new Date() > storedUser.expiry) {
-                    // User session has expired completely, clear everything
+                    // Session expired - try to refresh if we have refresh token
+                    if (storedRefreshToken) {
+                        console.log('🔄 Session expired, attempting token refresh...');
+                        try {
+                            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ refreshToken: storedRefreshToken })
+                            });
+
+                            if (response.ok) {
+                                const data = await response.json();
+                                const newAccessToken = data.data?.accessToken || data.accessToken;
+                                const newRefreshToken = data.data?.refreshToken || data.refreshToken;
+
+                                if (newAccessToken) {
+                                    localStorage.setItem('accessToken', newAccessToken);
+                                    if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
+
+                                    // Fetch fresh user data
+                                    const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+                                        headers: { 'Authorization': `Bearer ${newAccessToken}` }
+                                    });
+
+                                    if (userResponse.ok) {
+                                        const userData = await userResponse.json();
+                                        const restoredUser: User = {
+                                            id: userData.id,
+                                            firstName: userData.firstName || '',
+                                            lastName: userData.lastName || '',
+                                            username: userData.username || '',
+                                            email: userData.email,
+                                            avatarUrl: userData.avatarUrl,
+                                            login: true,
+                                            tierId: (userData as any).tierId,
+                                            tierName: (userData as any).tierName,
+                                            role: userData.roles?.[0] || 'user'
+                                        };
+
+                                        setUser(restoredUser);
+                                        userStorage.save(restoredUser);
+                                        console.log('✅ Session restored from refresh token');
+                                        setIsInitialized(true);
+                                        return;
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Token refresh failed:', error);
+                        }
+                    }
+
+                    // Refresh failed, clear everything
                     userStorage.clear();
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('refreshToken');
@@ -115,38 +169,90 @@ export function UserProvider({ children }: UserProviderProps) {
                     console.log('✅ User data restored from localStorage');
                 }
                 setIsInitialized(true);
-            } else if (storedToken) {
-                // Token exists but no user data - try to fetch user info
+            } else if (storedToken || storedRefreshToken) {
+                // Token exists but no user data - try to restore session
                 try {
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
-                        headers: {
-                            'Authorization': `Bearer ${storedToken}`
+                    // First try with access token if available
+                    if (storedToken) {
+                        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+                            headers: { 'Authorization': `Bearer ${storedToken}` }
+                        });
+
+                        if (response.ok) {
+                            const userData = await response.json();
+                            const restoredUser: User = {
+                                id: userData.id,
+                                firstName: userData.firstName || '',
+                                lastName: userData.lastName || '',
+                                username: userData.username || '',
+                                email: userData.email,
+                                avatarUrl: userData.avatarUrl,
+                                login: true,
+                                tierId: (userData as any).tierId,
+                                tierName: (userData as any).tierName,
+                                role: userData.roles?.[0] || 'user'
+                            };
+
+                            setUser(restoredUser);
+                            userStorage.save(restoredUser);
+                            console.log('✅ User session restored from access token');
+                            setIsInitialized(true);
+                            return;
                         }
-                    });
-
-                    if (response.ok) {
-                        const userData = await response.json();
-                        const restoredUser: User = {
-                            id: userData.id,
-                            firstName: userData.firstName || '',
-                            lastName: userData.lastName || '',
-                            username: userData.username || '',
-                            email: userData.email || '',
-                            avatarUrl: userData.avatarUrl,
-                            login: true,
-                            tierId: userData.tierId,
-                            tierName: userData.tierName,
-                            role: userData.roles?.[0] || 'user'
-                        };
-
-                        setUser(restoredUser);
-                        userStorage.save(restoredUser);
-                        console.log('✅ User session restored from token');
-                    } else {
-                        // Token is invalid, clear it
-                        localStorage.removeItem('accessToken');
-                        localStorage.removeItem('refreshToken');
                     }
+
+                    // Access token failed or doesn't exist, try refresh token
+                    if (storedRefreshToken) {
+                        console.log('🔄 Attempting session restore from refresh token...');
+                        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ refreshToken: storedRefreshToken })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const newAccessToken = data.data?.accessToken || data.accessToken;
+                            const newRefreshToken = data.data?.refreshToken || data.refreshToken;
+
+                            if (newAccessToken) {
+                                localStorage.setItem('accessToken', newAccessToken);
+                                if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
+
+                                // Fetch user data with new token
+                                const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+                                    headers: { 'Authorization': `Bearer ${newAccessToken}` }
+                                });
+
+                                if (userResponse.ok) {
+                                    const userData = await userResponse.json();
+                                    const restoredUser: User = {
+                                        id: userData.id,
+                                        firstName: userData.firstName || '',
+                                        lastName: userData.lastName || '',
+                                        username: userData.username || '',
+                                        email: userData.email,
+                                        avatarUrl: userData.avatarUrl,
+                                        login: true,
+                                        tierId: (userData as any).tierId,
+                                        tierName: (userData as any).tierName,
+                                        role: userData.roles?.[0] || 'user'
+                                    };
+
+                                    setUser(restoredUser);
+                                    userStorage.save(restoredUser);
+                                    console.log('✅ Session restored from refresh token');
+                                    setIsInitialized(true);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    // All restoration attempts failed, clear tokens
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('refreshToken');
                 } catch (error) {
                     console.error('Error restoring session:', error);
                     localStorage.removeItem('accessToken');
@@ -228,6 +334,49 @@ export function UserProvider({ children }: UserProviderProps) {
         isTokenExpired,
         isInitialized,
     };
+
+    // Listen for session restoration events from API client
+    useEffect(() => {
+        const handleSessionRestored = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            if (customEvent.detail) {
+                const restoredUser = customEvent.detail;
+                setUser(restoredUser);
+                userStorage.save(restoredUser);
+                console.log('✅ User session restored from API client event');
+            }
+        };
+
+        const handleAuthLogout = () => {
+            console.log('🔴 Auth logout event received from API client');
+            setUser(null);
+            userStorage.clear();
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('user');
+            }
+        };
+
+        const handleAuthRefreshed = () => {
+            console.log('✅ Token refreshed by API client');
+            // Token was refreshed, session is still valid
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('userSessionRestored', handleSessionRestored);
+            window.addEventListener('auth:logout', handleAuthLogout);
+            window.addEventListener('auth:refreshed', handleAuthRefreshed);
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('userSessionRestored', handleSessionRestored);
+                window.removeEventListener('auth:logout', handleAuthLogout);
+                window.removeEventListener('auth:refreshed', handleAuthRefreshed);
+            }
+        };
+    }, []);
 
     // Show loading state while initializing
     if (!isInitialized) {
