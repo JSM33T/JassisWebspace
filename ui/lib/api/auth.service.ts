@@ -49,6 +49,18 @@ export interface SetPasswordRequest {
     newPassword: string;
 }
 
+export interface UpdateProfileRequest {
+    username?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    displayName?: string | null;
+    bio?: string | null;
+    avatarUrl?: string | null;
+    coverUrl?: string | null;
+    timezone?: string | null;
+    locale?: string | null;
+}
+
 // ============================================================================
 // Response DTOs (matching .NET API)
 // ============================================================================
@@ -68,12 +80,26 @@ export interface UserInfo {
     username?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    displayName?: string | null;
+    bio?: string | null;
     avatarUrl?: string | null;
     coverUrl?: string | null;
+    timezone?: string | null;
+    locale?: string | null;
     createdAt: string;
     roles: string[];
     authMethod?: string | null;
     activeTier?: UserTierInfo | null;
+    preferences?: {
+        timezone?: string | null;
+        locale?: string | null;
+    } | null;
+}
+
+export interface ProfileUpdateResponse {
+    message: string;
+    updatedAt: string;
+    profile: UserInfo;
 }
 
 export interface AuthResponse {
@@ -285,6 +311,34 @@ export const authService = {
      */
     async revokeAllOtherSessions(): Promise<void> {
         return post<void>('/profile/sessions/logout-all');
+    },
+
+    /**
+     * POST /profile
+     * Update user profile information
+     */
+    async updateProfile(request: UpdateProfileRequest): Promise<ProfileUpdateResponse> {
+        return post<ProfileUpdateResponse, UpdateProfileRequest>('/profile', request);
+    },
+
+    /**
+     * POST /media/avatar
+     * Upload avatar image
+     */
+    async uploadAvatar(file: Blob): Promise<ProfileUpdateResponse> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return post<ProfileUpdateResponse, FormData>('/media/avatar', formData);
+    },
+
+    /**
+     * POST /media/cover
+     * Upload cover image
+     */
+    async uploadCover(file: Blob): Promise<ProfileUpdateResponse> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return post<ProfileUpdateResponse, FormData>('/media/cover', formData);
     },
 };
 

@@ -190,7 +190,13 @@ async function request<T>(endpoint: string, config: RequestConfig = {}, isRetry:
     const baseUrl = mergedConfig.baseUrl!.replace(/\/$/, '');
     const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const url = `${baseUrl}${path}`;
+
     const headers = createHeaders(mergedConfig);
+
+    // If body is FormData, ensure no Content-Type header exists (browser will set it with boundary)
+    if (mergedConfig.body instanceof FormData && headers.has('Content-Type')) {
+        headers.delete('Content-Type');
+    }
 
     try {
         const response = await fetchWithTimeout(url, {
@@ -267,18 +273,28 @@ export async function get<T>(endpoint: string, config: RequestConfig = {}): Prom
 }
 
 export async function post<T, D = any>(endpoint: string, data?: D, config: RequestConfig = {}): Promise<T> {
+    const isFormData = data instanceof FormData;
     return request<T>(endpoint, {
         ...config,
         method: 'POST',
-        body: data ? JSON.stringify(data) : undefined,
+        body: isFormData ? (data as any) : (data ? JSON.stringify(data) : undefined),
+        headers: {
+            ...config.headers,
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        }
     });
 }
 
 export async function put<T, D = any>(endpoint: string, data?: D, config: RequestConfig = {}): Promise<T> {
+    const isFormData = data instanceof FormData;
     return request<T>(endpoint, {
         ...config,
         method: 'PUT',
-        body: data ? JSON.stringify(data) : undefined,
+        body: isFormData ? (data as any) : (data ? JSON.stringify(data) : undefined),
+        headers: {
+            ...config.headers,
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        }
     });
 }
 

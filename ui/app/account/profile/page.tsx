@@ -12,6 +12,7 @@ import Image from "next/image";
 import { ArrowLeft, Camera, User, Mail, Calendar, Shield, Edit, Save, X, Clock, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useUser, userHelpers } from "@/contexts/UserContext";
+import authService from "@/lib/api/auth.service";
 import AvatarCropDialog from "@/components/profile/AvatarCropDialog";
 
 interface ProfileData {
@@ -118,10 +119,33 @@ export default function ProfilePage() {
         setIsUploading(true);
 
         try {
-            const url = URL.createObjectURL(blob);
+            const response = await authService.uploadAvatar(blob);
             toast.success("Avatar updated successfully!");
-            setFormData(prev => ({ ...prev, avatarUrl: url }));
-            setUser({ ...user, avatarUrl: url });
+
+            // Validate response.profile before updating
+            if (response.profile) {
+                // Update form data with new URL
+                setFormData(prev => ({ ...prev, avatarUrl: response.profile.avatarUrl }));
+
+                // Update global user context - merging response with existing persistent state
+                setUser({
+                    ...user,
+                    ...response.profile,
+                    // Ensure non-nullable fields are handled
+                    firstName: response.profile.firstName || "",
+                    lastName: response.profile.lastName || "",
+                    username: response.profile.username || "",
+                    // Handle nullable fields
+                    avatarUrl: response.profile.avatarUrl || undefined,
+                    coverUrl: response.profile.coverUrl || undefined,
+                    bio: response.profile.bio || undefined,
+                    preferences: response.profile.preferences || undefined,
+                    // Ensure these are preserved/mapped correctly
+                    role: response.profile.roles?.[0] || user.role,
+                    login: user.login,
+                    expiry: user.expiry
+                });
+            }
         } catch (error) {
             console.error("Error updating avatar:", error);
             toast.error("Failed to update avatar");
@@ -136,10 +160,32 @@ export default function ProfilePage() {
         setIsUploading(true);
 
         try {
-            const url = URL.createObjectURL(blob);
+            const response = await authService.uploadCover(blob);
             toast.success("Cover image updated successfully!");
-            setFormData(prev => ({ ...prev, coverUrl: url }));
-            setUser({ ...user, coverUrl: url });
+
+            // Validate response.profile before updating
+            if (response.profile) {
+                // Update form data
+                setFormData(prev => ({ ...prev, coverUrl: response.profile.coverUrl }));
+
+                // Update global user context
+                setUser({
+                    ...user,
+                    ...response.profile,
+                    // Ensure non-nullable fields are handled
+                    firstName: response.profile.firstName || "",
+                    lastName: response.profile.lastName || "",
+                    username: response.profile.username || "",
+                    // Handle nullable fields
+                    avatarUrl: response.profile.avatarUrl || undefined,
+                    coverUrl: response.profile.coverUrl || undefined,
+                    bio: response.profile.bio || undefined,
+                    preferences: response.profile.preferences || undefined,
+                    role: response.profile.roles?.[0] || user.role,
+                    login: user.login,
+                    expiry: user.expiry
+                });
+            }
         } catch (error) {
             console.error("Error updating cover:", error);
             toast.error("Failed to update cover");
@@ -152,23 +198,37 @@ export default function ProfilePage() {
         if (!user) return;
         setIsUploading(true);
         try {
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const updatedUser = {
-                ...user,
-                firstName: formData.firstName ?? user.firstName,
-                lastName: formData.lastName ?? user.lastName,
-                username: formData.username ?? user.username,
-                bio: formData.bio ?? user.bio,
-                preferences: {
-                    ...user.preferences,
-                    timezone: formData.timezone ?? user.preferences?.timezone,
-                    locale: formData.locale ?? user.preferences?.locale,
-                }
+            const updateRequest = {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                username: formData.username,
+                displayName: formData.displayName,
+                bio: formData.bio,
+                timezone: formData.timezone,
+                locale: formData.locale,
+                // Do not send avatarUrl/coverUrl here as they are updated via separate endpoints
             };
 
-            setUser(updatedUser);
+            const response = await authService.updateProfile(updateRequest);
+
+            if (response.profile) {
+                setUser({
+                    ...user,
+                    ...response.profile,
+                    // Ensure non-nullable fields are handled
+                    firstName: response.profile.firstName || "",
+                    lastName: response.profile.lastName || "",
+                    username: response.profile.username || "",
+                    // Handle nullable fields
+                    avatarUrl: response.profile.avatarUrl || undefined,
+                    coverUrl: response.profile.coverUrl || undefined,
+                    bio: response.profile.bio || undefined,
+                    preferences: response.profile.preferences || undefined,
+                    role: response.profile.roles?.[0] || user.role,
+                    login: user.login,
+                    expiry: user.expiry
+                });
+            }
             setIsEditing(false);
             toast.success("Profile updated successfully!");
         } catch (error) {
@@ -178,6 +238,7 @@ export default function ProfilePage() {
             setIsUploading(false);
         }
     };
+
 
     // Ensure we only render on the client
     useEffect(() => {
