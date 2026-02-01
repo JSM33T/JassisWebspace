@@ -38,8 +38,10 @@ jobs:
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
           SERVICE_NAME: nextjs
         run: |
-          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s <<'EOF'
+          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s "$REMOTE_DIR" <<'EOF'
           set -euo pipefail
+
+            REMOTE_DIR="$1"
 
           LOCKFILE="${REMOTE_DIR}/.deploy.lock"
           exec 9>"$LOCKFILE"
