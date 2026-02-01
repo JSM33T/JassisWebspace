@@ -266,7 +266,7 @@ export const authService = {
      * Initiate Google OAuth flow
      */
     getGoogleLoginUrl(baseUrl?: string): string {
-        const base = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const base = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
         return `${base}/auth/google/login`;
     },
 
@@ -275,7 +275,7 @@ export const authService = {
      * Initiate GitHub OAuth flow
      */
     getGitHubLoginUrl(baseUrl?: string): string {
-        const base = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const base = baseUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
         return `${base}/auth/github/login`;
     },
 

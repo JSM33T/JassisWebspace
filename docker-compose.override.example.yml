@@ -23,8 +23,8 @@ services:
       # Ensure Kestrel inside the container listens on 8080
       - ASPNETCORE_URLS=http://0.0.0.0:8080
     ports:
-      # Map host port 5000 -> container port 8080 (host will call http://localhost:5000)
-      - "5000:8080"
+      # Map host port 5001 -> container port 8080 (host will call http://localhost:5000)
+      - "5001:8080"
     # Optional: healthcheck for readiness/liveness
     # healthcheck:
     #   test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]   # add a /health endpoint
@@ -32,9 +32,9 @@ services:
     #   timeout: 3s
     #   retries: 5
 
-  # =========================
-  # Next.js (Frontend)
-  # =========================
+    # =========================
+    # Next.js (Frontend)
+    # =========================
   nextjs:
     # Lightweight Node image; perfect for dev `npm run dev`
     image: node:18-alpine
@@ -62,10 +62,10 @@ services:
     #   dotnet:
     #     condition: service_started
 
-# =========================
-# (Optional) Shared network
-# =========================
-# By default, Compose creates a network; uncomment to name it explicitly
-# networks:
-#   default:
-#     name: linqyard_dev_net
+    # =========================
+    # (Optional) Shared network
+    # =========================
+    # By default, Compose creates a network; uncomment to name it explicitly
+    # networks:
+    #   default:
+    #     name: linqyard_dev_net
