@@ -39,7 +39,6 @@ if (!string.IsNullOrWhiteSpace(connectionString))
 
     builder.Services.AddScoped<IUserRepository, UserRepository>();
     builder.Services.AddScoped<AccountCleanupService>();
-    builder.Services.AddScoped<TierDowngradeService>();
 }
 
 // Register hosted services

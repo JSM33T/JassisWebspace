@@ -16,10 +16,6 @@ public class JassSpaceDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
-    public DbSet<Tier> Tiers { get; set; }
-    public DbSet<UserTier> UserTiers { get; set; }
-    public DbSet<TierBillingCycle> TierBillingCycles { get; set; }
-    public DbSet<Coupon> Coupons { get; set; }
     public DbSet<ExternalLogin> ExternalLogins { get; set; }
     public DbSet<OtpCode> OtpCodes { get; set; }
     public DbSet<Session> Sessions { get; set; }
@@ -41,10 +37,6 @@ public class JassSpaceDbContext : DbContext
         ConfigureUserEntity(modelBuilder);
         ConfigureRoleEntity(modelBuilder);
         ConfigureUserRoleEntity(modelBuilder);
-        ConfigureTierEntity(modelBuilder);
-        ConfigureUserTierEntity(modelBuilder);
-        ConfigureTierBillingCycleEntity(modelBuilder);
-        ConfigureCouponEntity(modelBuilder);
         ConfigureExternalLoginEntity(modelBuilder);
         ConfigureOtpCodeEntity(modelBuilder);
         ConfigureSessionEntity(modelBuilder);
@@ -56,10 +48,7 @@ public class JassSpaceDbContext : DbContext
         ConfigureAppConfigEntity(modelBuilder);        
 
         SeedRoles(modelBuilder);
-        SeedTiers(modelBuilder);
         SeedAppConfigs(modelBuilder);
-        SeedTierBillingCycles(modelBuilder);
-        SeedCoupons(modelBuilder);
     }
 
     private void ConfigureUserEntity(ModelBuilder modelBuilder)
@@ -113,10 +102,6 @@ public class JassSpaceDbContext : DbContext
               .HasForeignKey(al => al.UserId)
               .OnDelete(DeleteBehavior.SetNull);
 
-        entity.HasMany(u => u.UserTiers)
-              .WithOne(ut => ut.User)
-              .HasForeignKey(ut => ut.UserId)
-              .OnDelete(DeleteBehavior.Cascade);
     }
 
     private void ConfigureRoleEntity(ModelBuilder modelBuilder)
@@ -142,96 +127,6 @@ public class JassSpaceDbContext : DbContext
 
         // Composite primary key
         entity.HasKey(e => new { e.UserId, e.RoleId });
-    }
-
-    private void ConfigureTierEntity(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<Tier>();
-
-        // Primary key
-        entity.HasKey(e => e.Id);
-
-        entity.HasIndex(e => e.Name).IsUnique();
-
-        entity.Property(e => e.Name)
-              .HasColumnType("citext")
-              .HasMaxLength(64);
-
-        entity.Property(e => e.Currency)
-              .HasMaxLength(3)
-              .HasDefaultValue("INR");
-
-        entity.HasMany(t => t.UserTiers)
-              .WithOne(ut => ut.Tier)
-              .HasForeignKey(ut => ut.TierId)
-              .OnDelete(DeleteBehavior.Restrict);
-
-        entity.HasMany(t => t.BillingCycles)
-              .WithOne(bc => bc.Tier)
-              .HasForeignKey(bc => bc.TierId)
-              .OnDelete(DeleteBehavior.Cascade);
-
-        entity.HasMany(t => t.Coupons)
-              .WithOne(c => c.Tier)
-              .HasForeignKey(c => c.TierId)
-              .OnDelete(DeleteBehavior.SetNull);
-    }
-
-    private void ConfigureTierBillingCycleEntity(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<TierBillingCycle>();
-
-        entity.HasIndex(e => new { e.TierId, e.BillingPeriod }).IsUnique();
-
-        entity.Property(e => e.BillingPeriod)
-              .HasColumnType("citext")
-              .HasMaxLength(64);
-
-        entity.Property(e => e.Description)
-              .HasMaxLength(256);
-
-        entity.Property(e => e.Amount)
-              .HasDefaultValue(0);
-
-        entity.Property(e => e.DurationMonths)
-              .HasDefaultValue(1);
-
-        entity.Property(e => e.IsActive)
-              .HasDefaultValue(true);
-    }
-
-    private void ConfigureCouponEntity(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<Coupon>();
-
-        entity.HasIndex(e => e.Code).IsUnique();
-
-        entity.Property(e => e.Code)
-              .HasColumnType("citext")
-              .HasMaxLength(64);
-
-        entity.Property(e => e.Description)
-              .HasMaxLength(256);
-
-        entity.Property(e => e.DiscountPercentage)
-              .HasPrecision(5, 2);
-
-        entity.Property(e => e.CreatedAt)
-              .HasDefaultValueSql("timezone('utc', now())");
-
-        entity.Property(e => e.UpdatedAt)
-              .HasDefaultValueSql("timezone('utc', now())");
-    }
-
-    private void ConfigureUserTierEntity(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<UserTier>();
-
-        entity.HasKey(e => e.Id);
-
-        entity.HasIndex(e => new { e.UserId, e.IsActive });
-        entity.HasIndex(e => new { e.UserId, e.ActiveFrom });
-        entity.HasIndex(e => new { e.UserId, e.ActiveUntil });
     }
 
     private void ConfigureExternalLoginEntity(ModelBuilder modelBuilder)
@@ -361,84 +256,6 @@ public class JassSpaceDbContext : DbContext
             new Role { Id = 1, Name = "admin", Description = "Administrator with full system access" },
             new Role { Id = 2, Name = "mod", Description = "Moderator with moderation privileges" },
             new Role { Id = 3, Name = "user", Description = "Standard user" }
-        );
-    }
-
-    private void SeedTiers(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Tier>().HasData(
-            new Tier { Id = 1, Name = "free", Currency = "INR", Description = "Free tier with basic features" },
-            new Tier { Id = 2, Name = "plus", Currency = "INR", Description = "Plus tier with enhanced features" },
-            new Tier { Id = 3, Name = "pro", Currency = "INR", Description = "Pro tier with premium features" }
-        );
-    }
-
-    private void SeedTierBillingCycles(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<TierBillingCycle>().HasData(
-            new TierBillingCycle
-            {
-                Id = 1,
-                TierId = 2,
-                BillingPeriod = "monthly",
-                Amount = 6900,
-                DurationMonths = 1,
-                Description = "Monthly subscription for Plus",
-                IsActive = true
-            },
-            new TierBillingCycle
-            {
-                Id = 2,
-                TierId = 2,
-                BillingPeriod = "yearly",
-                Amount = 70000,
-                DurationMonths = 12,
-                Description = "Yearly subscription for Plus",
-                IsActive = true
-            },
-            new TierBillingCycle
-            {
-                Id = 3,
-                TierId = 3,
-                BillingPeriod = "monthly",
-                Amount = 9900,
-                DurationMonths = 1,
-                Description = "Monthly subscription for Pro",
-                IsActive = true
-            },
-            new TierBillingCycle
-            {
-                Id = 4,
-                TierId = 3,
-                BillingPeriod = "yearly",
-                Amount = 95000,
-                DurationMonths = 12,
-                Description = "Yearly subscription for Pro",
-                IsActive = true
-            }
-        );
-    }
-
-    private void SeedCoupons(ModelBuilder modelBuilder)
-    {
-        var now = new DateTimeOffset(2025, 10, 1, 0, 0, 0, TimeSpan.Zero);
-
-        modelBuilder.Entity<Coupon>().HasData(
-            new Coupon
-            {
-                Id = new Guid("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
-                Code = "WELCOME10",
-                Description = "Introductory 10% discount for Plus tier",
-                DiscountPercentage = 10m,
-                TierId = 2,
-                MaxRedemptions = 500,
-                RedemptionCount = 0,
-                ValidFrom = now,
-                ValidUntil = now.AddYears(1),
-                IsActive = true,
-                CreatedAt = now,
-                UpdatedAt = now
-            }
         );
     }
 

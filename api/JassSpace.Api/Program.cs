@@ -7,7 +7,6 @@ using JassSpace.Contracts.Interfaces;
 using JassSpace.Infra;
 using JassSpace.Infra.Configuration;
 using JassSpace.Repositories;
-using JassSpace.Repositories.Configuration;
 using JassSpace.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
@@ -70,13 +69,6 @@ builder.Services.AddScoped<JassSpace.Infra.IEmailService, JassSpace.Infra.EmailS
 builder.Services.Configure<JassSpace.Infra.Configuration.AzureBlobStorageSettings>(
     builder.Configuration.GetSection("AzureBlobStorage"));
 builder.Services.AddScoped<JassSpace.Infra.IAzureBlobStorageService, JassSpace.Infra.AzureBlobStorageService>();
-
-// Tier & payment configuration
-builder.Services.Configure<RazorpaySettings>(builder.Configuration.GetSection("Payments:Razorpay"));
-
-// Auto-grouping configuration
-builder.Services.Configure<JassSpace.Entities.AutoGroupingSettings>(
-    builder.Configuration.GetSection("AutoGrouping"));
 
 // Repository Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();

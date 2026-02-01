@@ -59,5 +59,4 @@ public class User
     public ICollection<TwoFactorMethod> TwoFactorMethods { get; set; } = new List<TwoFactorMethod>();
     public ICollection<TwoFactorCode> TwoFactorCodes { get; set; } = new List<TwoFactorCode>();
     public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
-    public ICollection<UserTier> UserTiers { get; set; } = new List<UserTier>();
 }

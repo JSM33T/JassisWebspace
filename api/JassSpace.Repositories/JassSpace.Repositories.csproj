@@ -21,4 +21,8 @@
     <ProjectReference Include="..\JassSpace.Entities\JassSpace.Entities.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Configuration\" />
+  </ItemGroup>
+
 </Project>

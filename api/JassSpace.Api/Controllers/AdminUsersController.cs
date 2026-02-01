@@ -1,5 +1,4 @@
 using JassSpace.Contracts;
-using JassSpace.Contracts.Exceptions;
 using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;

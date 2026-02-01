@@ -5,7 +5,6 @@ using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
 using JassSpace.Entities;
-using JassSpace.Entities.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
@@ -52,8 +51,6 @@ public sealed class AuthController(
             var user = await context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
-                .Include(u => u.UserTiers)
-                    .ThenInclude(ut => ut.Tier)
                 .FirstOrDefaultAsync(u => u.Email == request.EmailOrUsername ||
                                          u.Username == request.EmailOrUsername, cancellationToken);
 
@@ -441,18 +438,6 @@ public sealed class AuthController(
             var userId = Guid.NewGuid();
             var now = DateTimeOffset.UtcNow;
 
-            var freeTier = await context.Tiers
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == (int)TierType.Free, cancellationToken);
-
-            if (freeTier is null)
-            {
-                logger.LogError("Default free tier definition is missing. Unable to register user {UserId}", userId);
-                return Problem(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    title: "Configuration Error",
-                    detail: "Unable to complete registration because the default tier is not configured.");
-            }
             var user = new User
             {
                 Id = userId,
@@ -466,23 +451,7 @@ public sealed class AuthController(
             UpdatedAt = now
         };
 
-            var userTier = new UserTier
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                TierId = freeTier.Id,
-                ActiveFrom = now,
-                ActiveUntil = null,
-                IsActive = true,
-                Notes = "Assigned during email registration",
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
-            user.UserTiers.Add(userTier);
-
             context.Users.Add(user);
-            context.UserTiers.Add(userTier);
 
             // Assign default role (assumes cascade on UserRoles; no AsNoTracking here)
             var userRole = await context.Roles
@@ -587,8 +556,6 @@ public sealed class AuthController(
                     .ThenInclude(u => u.UserRoles)
                         .ThenInclude(ur => ur.Role)
                 .Include(rt => rt.User)
-                    .ThenInclude(u => u.UserTiers)
-                        .ThenInclude(ut => ut.Tier)
                 .Include(rt => rt.Session)
                 .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash, cancellationToken);
 
@@ -940,8 +907,6 @@ public sealed class AuthController(
             .AsNoTracking()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-            .Include(u => u.UserTiers)
-                .ThenInclude(ut => ut.Tier)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
@@ -1645,8 +1610,6 @@ public sealed class AuthController(
                 .ThenInclude(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
             .Include(el => el.User)
-                .ThenInclude(u => u.UserTiers)
-                    .ThenInclude(ut => ut.Tier)
             .FirstOrDefaultAsync(el => el.Provider == "github" && el.ProviderUserId == githubUser.Id, cancellationToken);
 
         if (existingExternalLogin != null)
@@ -1672,8 +1635,6 @@ public sealed class AuthController(
         var existingUser = await context.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-            .Include(u => u.UserTiers)
-                .ThenInclude(ut => ut.Tier)
             .FirstOrDefaultAsync(u => u.Email == githubUser.Email, cancellationToken);
 
         if (existingUser != null)
@@ -1705,16 +1666,6 @@ public sealed class AuthController(
         }
 
         var now = DateTimeOffset.UtcNow;
-
-        var freeTier = await context.Tiers
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == (int)TierType.Free, cancellationToken);
-
-        if (freeTier is null)
-        {
-            logger.LogError("Default free tier definition is missing. Unable to create GitHub OAuth user for {Email}", githubUser.Email);
-            throw new InvalidOperationException("Default tier configuration is missing.");
-        }
 
         var firstName = string.Empty;
         var lastName = string.Empty;
@@ -1768,23 +1719,7 @@ public sealed class AuthController(
         if (!string.IsNullOrWhiteSpace(cachedAvatar)) 
             newUser.AvatarUrl = cachedAvatar;
 
-        var newUserTier = new UserTier
-        {
-            Id = Guid.NewGuid(),
-            UserId = newUser.Id,
-            TierId = freeTier.Id,
-            ActiveFrom = now,
-            ActiveUntil = null,
-            IsActive = true,
-            Notes = "Assigned during GitHub OAuth registration",
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-
-        newUser.UserTiers.Add(newUserTier);
-
         context.Users.Add(newUser);
-        context.UserTiers.Add(newUserTier);
 
         var newExternalLogin = new ExternalLogin
         {
@@ -1883,8 +1818,6 @@ public sealed class AuthController(
                 .ThenInclude(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
             .Include(el => el.User)
-                .ThenInclude(u => u.UserTiers)
-                    .ThenInclude(ut => ut.Tier)
             .FirstOrDefaultAsync(el => el.Provider == "google" && el.ProviderUserId == googleUser.Id, cancellationToken);
 
         if (existingExternalLogin != null)
@@ -1913,8 +1846,6 @@ public sealed class AuthController(
         var existingUser = await context.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-            .Include(u => u.UserTiers)
-                .ThenInclude(ut => ut.Tier)
             .FirstOrDefaultAsync(u => u.Email == googleUser.Email, cancellationToken);
 
         if (existingUser != null)
@@ -1970,16 +1901,6 @@ public sealed class AuthController(
         // Create new user
         var now = DateTimeOffset.UtcNow;
 
-        var freeTier = await context.Tiers
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == (int)TierType.Free, cancellationToken);
-
-        if (freeTier is null)
-        {
-            logger.LogError("Default free tier definition is missing. Unable to create Google OAuth user for {Email}", googleUser.Email);
-            throw new InvalidOperationException("Default tier configuration is missing.");
-        }
-
         var newUser = new User
         {
             Id = Guid.NewGuid(),
@@ -1999,24 +1920,6 @@ public sealed class AuthController(
 
         var cachedAvatar = await CacheExternalAvatarAsync(newUser.Id, "google", googleUser.Picture, cancellationToken);
         if (!string.IsNullOrWhiteSpace(cachedAvatar)) newUser.AvatarUrl = cachedAvatar;
-
-        var newUserTier = new UserTier
-        {
-            Id = Guid.NewGuid(),
-            UserId = newUser.Id,
-            TierId = freeTier.Id,
-            ActiveFrom = now,
-            ActiveUntil = null,
-            IsActive = true,
-            Notes = "Assigned during Google OAuth registration",
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-
-        newUser.UserTiers.Add(newUserTier);
-
-        context.Users.Add(newUser);
-        context.UserTiers.Add(newUserTier);
 
         // Add external login record
         var newExternalLogin = new ExternalLogin
