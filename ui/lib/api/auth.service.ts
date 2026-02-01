@@ -278,6 +278,14 @@ export const authService = {
     async revokeSession(id: string): Promise<void> {
         return post<void>(`/profile/sessions/${id}/logout`);
     },
+
+    /**
+     * POST /profile/sessions/logout-all
+     * Revoke all other sessions (except current)
+     */
+    async revokeAllOtherSessions(): Promise<void> {
+        return post<void>('/profile/sessions/logout-all');
+    },
 };
 
 export default authService;

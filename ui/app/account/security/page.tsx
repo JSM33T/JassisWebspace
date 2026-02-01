@@ -12,6 +12,26 @@ import { useUser } from "@/contexts/UserContext";
 import { authService, SessionInfo } from "@/lib/api/auth.service";
 import { ApiError } from "@/lib/api/types";
 
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -46,6 +66,7 @@ export default function SecurityPage() {
     const { user } = useUser();
     const [isLoading, setIsLoading] = useState(false);
     const [sessions, setSessions] = useState<SessionInfo[]>([]);
+    const [isRevokingAll, setIsRevokingAll] = useState(false);
 
     // Password Change State
     const [passwordData, setPasswordData] = useState({
@@ -53,6 +74,28 @@ export default function SecurityPage() {
         newPassword: "",
         confirmPassword: ""
     });
+
+    const handleRevokeAll = async () => {
+        setIsRevokingAll(true);
+        try {
+            await authService.revokeAllOtherSessions();
+            // Refresh sessions list, keeping only current session
+            const current = sessions.find(s => s.isCurrentSession);
+            if (current) {
+                setSessions([current]);
+            } else {
+                // Fallback to fetch if state is somehow wonky
+                const activeSessions = await authService.getActiveSessions();
+                setSessions(activeSessions);
+            }
+            toast.success("All other sessions revoked successfully");
+        } catch (error) {
+            console.error("Revoke all error:", error);
+            toast.error("Failed to revoke other sessions");
+        } finally {
+            setIsRevokingAll(false);
+        }
+    };
 
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -245,59 +288,105 @@ export default function SecurityPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {sessions.map((session) => {
-                                    const deviceName = getDeviceName(session.userAgent);
-                                    const mobile = isMobile(session.userAgent);
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="font-medium">Session Management</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {sessions.length} active session{sessions.length !== 1 && 's'}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" size="sm">View Details</Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                                <DialogHeader>
+                                                    <DialogTitle>Active Sessions</DialogTitle>
+                                                    <DialogDescription>
+                                                        Manage devices where you're currently logged in
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="space-y-4 pt-4">
+                                                    {sessions.map((session) => {
+                                                        const deviceName = getDeviceName(session.userAgent);
+                                                        const mobile = isMobile(session.userAgent);
 
-                                    return (
-                                        <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border bg-card text-card-foreground shadow-sm gap-4 transition-all hover:bg-muted/50">
-                                            <div className="flex items-start sm:items-center space-x-4">
-                                                <div className="p-2 bg-primary/10 rounded-full mt-1 sm:mt-0">
-                                                    {mobile ? (
-                                                        <Smartphone className="h-5 w-5 text-primary" />
-                                                    ) : (
-                                                        <Laptop className="h-5 w-5 text-primary" />
+                                                        return (
+                                                            <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border bg-card text-card-foreground shadow-sm gap-4">
+                                                                <div className="flex items-start sm:items-center space-x-4">
+                                                                    <div className="p-2 bg-primary/10 rounded-full mt-1 sm:mt-0">
+                                                                        {mobile ? (
+                                                                            <Smartphone className="h-5 w-5 text-primary" />
+                                                                        ) : (
+                                                                            <Laptop className="h-5 w-5 text-primary" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="font-medium">{deviceName}</p>
+                                                                            {session.isCurrentSession && (
+                                                                                <span className="text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full ring-1 ring-green-600/20">Current</span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                                                            <span className="flex items-center gap-1">
+                                                                                {session.ipAddress}
+                                                                            </span>
+                                                                            <span className="hidden sm:inline">•</span>
+                                                                            <span className="flex items-center gap-1">
+                                                                                Last active: {new Date(session.lastSeenAt).toLocaleDateString()}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {!session.isCurrentSession && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10 self-end sm:self-auto"
+                                                                        onClick={() => handleRevokeSession(session.id)}
+                                                                    >
+                                                                        <LogOut className="h-4 w-4 mr-2" />
+                                                                        Revoke
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {sessions.length === 0 && (
+                                                        <div className="text-center py-8 text-muted-foreground">
+                                                            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                            <p>No active sessions found</p>
+                                                        </div>
                                                     )}
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="font-medium">{deviceName}</p>
-                                                        {session.isCurrentSession && (
-                                                            <span className="text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full ring-1 ring-green-600/20">Current</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                                                        <span className="flex items-center gap-1">
-                                                            {session.ipAddress}
-                                                        </span>
-                                                        <span className="hidden sm:inline">•</span>
-                                                        <span className="flex items-center gap-1">
-                                                            Last active: {new Date(session.lastSeenAt).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {!session.isCurrentSession && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 self-end sm:self-auto"
-                                                    onClick={() => handleRevokeSession(session.id)}
-                                                >
-                                                    <LogOut className="h-4 w-4 mr-2" />
-                                                    Revoke
-                                                </Button>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                            </DialogContent>
+                                        </Dialog>
 
-                                {sessions.length === 0 && (
-                                    <div className="text-center py-8 text-muted-foreground">
-                                        <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                        <p>No active sessions found</p>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="destructive" size="sm" disabled={sessions.length <= 1 || isRevokingAll}>
+                                                    Revoke All (Except Current)
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Revoke all other sessions?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This will log you out of all other devices except this one. This action cannot be undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleRevokeAll} className="bg-destructive hover:bg-destructive/90">
+                                                        {isRevokingAll ? "Revoking..." : "Yes, revoke all"}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </div>
-                                )}
+                                </div>
                             </CardContent>
                         </Card>
                     </motion.div>
