@@ -56,8 +56,6 @@ export default function OAuthCallbackPage() {
                             avatarUrl: userData.avatarUrl || undefined,
                             login: true,
                             expiry: expiresAt,
-                            tierId: (userData as any).tierId,
-                            tierName: (userData as any).tierName,
                             role: userData.roles?.[0] || 'user',
                         });
 
