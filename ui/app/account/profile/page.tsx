@@ -124,8 +124,13 @@ export default function ProfilePage() {
 
             // Validate response.profile before updating
             if (response.profile) {
+                const timestamp = Date.now();
+                const newAvatarUrl = response.profile.avatarUrl
+                    ? `${response.profile.avatarUrl}?t=${timestamp}`
+                    : undefined;
+
                 // Update form data with new URL
-                setFormData(prev => ({ ...prev, avatarUrl: response.profile.avatarUrl }));
+                setFormData(prev => ({ ...prev, avatarUrl: newAvatarUrl }));
 
                 // Update global user context - merging response with existing persistent state
                 setUser({
@@ -136,7 +141,7 @@ export default function ProfilePage() {
                     lastName: response.profile.lastName || "",
                     username: response.profile.username || "",
                     // Handle nullable fields
-                    avatarUrl: response.profile.avatarUrl || undefined,
+                    avatarUrl: newAvatarUrl,
                     coverUrl: response.profile.coverUrl || undefined,
                     bio: response.profile.bio || undefined,
                     preferences: response.profile.preferences || undefined,
@@ -165,8 +170,13 @@ export default function ProfilePage() {
 
             // Validate response.profile before updating
             if (response.profile) {
+                const timestamp = Date.now();
+                const newCoverUrl = response.profile.coverUrl
+                    ? `${response.profile.coverUrl}?t=${timestamp}`
+                    : undefined;
+
                 // Update form data
-                setFormData(prev => ({ ...prev, coverUrl: response.profile.coverUrl }));
+                setFormData(prev => ({ ...prev, coverUrl: newCoverUrl }));
 
                 // Update global user context
                 setUser({
@@ -178,7 +188,7 @@ export default function ProfilePage() {
                     username: response.profile.username || "",
                     // Handle nullable fields
                     avatarUrl: response.profile.avatarUrl || undefined,
-                    coverUrl: response.profile.coverUrl || undefined,
+                    coverUrl: newCoverUrl,
                     bio: response.profile.bio || undefined,
                     preferences: response.profile.preferences || undefined,
                     role: response.profile.roles?.[0] || user.role,
