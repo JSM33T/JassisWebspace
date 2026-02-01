@@ -1,0 +1,38 @@
+services:
+  dotnet:
+    build:
+      context: ./api
+      dockerfile: ./JassSpace.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    env_file:
+      - .env
+    volumes:
+      - /home/jassi/deployments/jass_space/logs/dotnet:/app/logs/dotnet
+      - /home/jassi/deployments/jass_space/cache:/app/cache
+
+  worker:
+    build:
+      context: ./api
+      dockerfile: ./JassSpace.Worker/Dockerfile
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - dotnet
+    volumes:
+      - /home/jassi/deployments/jass_space/logs/worker:/app/logs
+
+  nextjs:
+    build:
+      context: ./frontend_nextjs
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    # Uncomment and add environment variables as needed
+    # environment:
+    #   - NEXT_PUBLIC_API_URL=http://localhost:z
+    #   - DATABASE_URL=your_database_url
