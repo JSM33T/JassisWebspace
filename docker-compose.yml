@@ -8,8 +8,8 @@ services:
     env_file:
       - .env
     volumes:
-      - /home/jassi/deployments/jass_space/logs/dotnet:/app/logs/dotnet
-      - /home/jassi/deployments/jass_space/cache:/app/cache
+      - /home/jassi/deployments/JassSpace/.logs/dotnet:/app/logs/dotnet
+      - /home/jassi/deployments/JassSpace/.cache:/app/cache
 
   worker:
     build:
@@ -21,7 +21,7 @@ services:
     depends_on:
       - dotnet
     volumes:
-      - /home/jassi/deployments/jass_space/logs/worker:/app/logs
+      - /home/jassi/deployments/JassSpace/logs/worker:/app/logs
 
   nextjs:
     build:
