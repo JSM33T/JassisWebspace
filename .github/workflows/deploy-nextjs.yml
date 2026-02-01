@@ -36,33 +36,40 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
-          SERVICE_NAME: nextjs  # set to your compose service key (e.g., nextjs)
+          SERVICE_NAME: nextjs
         run: |
-          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" "bash -lc '
-            set -euo pipefail
+          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s <<'EOF'
+          set -euo pipefail
 
-            LOCKFILE=\"${REMOTE_DIR}/.deploy.lock\"
-            exec 9>\"\$LOCKFILE\"
-            echo \"[nextjs] Waiting for exclusive lock: \$LOCKFILE\"
-            if ! flock -w 600 9; then
-              echo \"[nextjs] ERROR: Could not acquire deploy lock within 10 minutes.\" >&2
-              exit 1
-            fi
-            echo \"[nextjs] Lock acquired at \$(date -Is)\"
-            trap \"echo [nextjs] Releasing lock; flock -u 9\" EXIT
+          LOCKFILE="${REMOTE_DIR}/.deploy.lock"
+          exec 9>"$LOCKFILE"
 
-            cd \"${REMOTE_DIR}\"
-            git fetch --all --prune
-            git checkout -f main || git switch -f main
-            git reset --hard
-            git clean -fd -e logs/
-            git pull --ff-only
+          echo "[nextjs] Waiting for exclusive lock: $LOCKFILE"
+          if ! flock -w 600 9; then
+            echo "[nextjs] ERROR: Could not acquire deploy lock within 10 minutes." >&2
+            exit 1
+          fi
+          echo "[nextjs] Lock acquired at $(date -Is)"
 
-            echo \"[nextjs] Rebuilding and bringing up service with health wait...\"
-            DOCKER_BUILDKIT=1 docker compose -p jassspace up -d --build --remove-orphans --wait --wait-timeout 180 \"$SERVICE_NAME\"
+          trap 'echo "[nextjs] Releasing lock"; flock -u 9' EXIT
 
-            echo \"[nextjs] Deploy verified by compose --wait ✅\"
-          '"
+          cd "$REMOTE_DIR"
+          git fetch --all --prune
+          git checkout -f main || git switch -f main
+          git reset --hard
+          git clean -fd -e logs/
+          git pull --ff-only
+
+          echo "[nextjs] Rebuilding and bringing up service with health wait..."
+          DOCKER_BUILDKIT=1 docker compose -p jassspace up -d \
+            --build \
+            --remove-orphans \
+            --wait \
+            --wait-timeout 180 \
+            "$SERVICE_NAME"
+
+          echo "[nextjs] Deploy verified by compose --wait ✅"
+          EOF
 
       - name: Show recent service logs (shared lock)
         if: always()
@@ -73,16 +80,16 @@ jobs:
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
           SERVICE_NAME: nextjs
         run: |
-          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" "bash -lc '
-            set -euo pipefail
+          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s <<'EOF'
+          set -euo pipefail
 
-            LOCKFILE=\"${REMOTE_DIR}/.deploy.lock\"
-            exec 9>\"\$LOCKFILE\"
-            # Shared lock; wait up to 2 minutes to avoid clashing with an active deploy
-            if flock -s -w 120 9; then
-              cd \"${REMOTE_DIR}\"
-              docker compose -p jassspace logs \"$SERVICE_NAME\" --since=5m || true
-            else
-              echo \"[nextjs] Skipping logs: could not acquire shared lock within 2 minutes\" >&2
-            fi
-          '"
+          LOCKFILE="${REMOTE_DIR}/.deploy.lock"
+          exec 9>"$LOCKFILE"
+
+          if flock -s -w 120 9; then
+            cd "$REMOTE_DIR"
+            docker compose -p jassspace logs "$SERVICE_NAME" --since=5m || true
+          else
+            echo "[nextjs] Skipping logs: could not acquire shared lock within 2 minutes" >&2
+          fi
+          EOF
