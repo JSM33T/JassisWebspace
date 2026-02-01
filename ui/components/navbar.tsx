@@ -151,19 +151,19 @@ export function Navbar() {
                                         </DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem asChild>
-                                            <Link href="/profile" className="cursor-pointer">
+                                            <Link href="/account/profile" className="cursor-pointer">
                                                 <UserCircle className="mr-2 h-4 w-4" />
                                                 Profile
                                             </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem asChild>
-                                            <Link href="/settings" className="cursor-pointer">
+                                            <Link href="/account/preferences" className="cursor-pointer">
                                                 <Settings className="mr-2 h-4 w-4" />
                                                 Settings
                                             </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem asChild>
-                                            <Link href="/security" className="cursor-pointer">
+                                            <Link href="/account/security" className="cursor-pointer">
                                                 <Shield className="mr-2 h-4 w-4" />
                                                 Security
                                             </Link>
@@ -239,19 +239,19 @@ export function Navbar() {
                                             <>
                                                 <div className="border-t pt-4 space-y-2">
                                                     <SheetClose asChild>
-                                                        <Link href="/profile" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                        <Link href="/account/profile" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
                                                             <UserCircle className="h-4 w-4 inline mr-2" />
                                                             Profile
                                                         </Link>
                                                     </SheetClose>
                                                     <SheetClose asChild>
-                                                        <Link href="/settings" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                        <Link href="/account/preferences" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
                                                             <Settings className="h-4 w-4 inline mr-2" />
                                                             Settings
                                                         </Link>
                                                     </SheetClose>
                                                     <SheetClose asChild>
-                                                        <Link href="/security" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                        <Link href="/account/security" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
                                                             <Shield className="h-4 w-4 inline mr-2" />
                                                             Security
                                                         </Link>
