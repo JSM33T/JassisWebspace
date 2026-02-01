@@ -206,7 +206,7 @@ export const authService = {
      * POST /auth/set-password
      * Set or change password (Google accounts can set without current) (requires auth)
      */
-    async setPassword(request: SetPasswordRequest, token: string): Promise<void> {
+    async setPassword(request: SetPasswordRequest, token?: string): Promise<void> {
         return post<void, SetPasswordRequest>('/auth/set-password', request, { token });
     },
 
