@@ -88,54 +88,7 @@ public sealed partial class AdminUsersController(
         }
     }
 
-    /// <summary>
-    /// Manually assigns a tier to a user on behalf of an administrator.
-    /// </summary>
-    [HttpPost("{userId:guid}/tier")]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserDetailsResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AssignTier(Guid userId, [FromBody] AdminUpgradeUserTierRequest? request, CancellationToken cancellationToken = default)
-    {
-        if (request is null)
-            return BadRequestProblem("Request body is required");
 
-        var validationError = ValidateUpgradeTierRequest(request);
-        if (validationError is not null)
-            return BadRequestProblem(validationError);
-
-        try
-        {
-            var updated = await userRepository.AssignAdminUserTierAsync(userId, request, cancellationToken);
-            if (updated is null)
-            {
-                logger.LogWarning("Admin attempted to upgrade missing user {UserId}", userId);
-                return NotFoundProblem("User not found");
-            }
-
-            logger.LogInformation("Admin manually assigned tier {TierId} to user {UserId}", request.TierId, userId);
-            await SendTierUpgradeNotificationAsync(updated.Profile, updated.ActiveTier);
-            return OkEnvelope(updated);
-        }
-        catch (TierNotFoundException ex)
-        {
-            logger.LogWarning(ex, "Admin attempted to assign missing tier {TierId} to user {UserId}", request.TierId, userId);
-            return NotFoundProblem("Tier not found", ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            logger.LogWarning(ex, "Validation error when admin upgraded tier for user {UserId}", userId);
-            return BadRequestProblem(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error assigning tier {TierId} to user {UserId}", request.TierId, userId);
-            return Problem(
-                statusCode: StatusCodes.Status500InternalServerError,
-                title: "Internal Server Error",
-                detail: "An error occurred while updating the user's tier.");
-        }
-    }
 
     private static string? ValidateUpdateRequest(AdminUpdateUserRequest request)
     {
@@ -180,56 +133,6 @@ public sealed partial class AdminUsersController(
         if (request.Roles is null || request.Roles.Count <= 0) return null;
         var invalidRole = request.Roles.FirstOrDefault(string.IsNullOrWhiteSpace);
         return invalidRole is not null ? "Role names cannot be empty" : null;
-    }
-
-    private static string? ValidateUpgradeTierRequest(AdminUpgradeUserTierRequest request)
-    {
-        if (request.TierId <= 0)
-        {
-            return "TierId must be a positive integer";
-        }
-
-        if (request.ActiveFrom.HasValue && request.ActiveUntil.HasValue && request.ActiveUntil <= request.ActiveFrom)
-        {
-            return "ActiveUntil must be later than ActiveFrom";
-        }
-
-        var trimmedNotes = request.Notes?.Trim();
-        if (!string.IsNullOrEmpty(trimmedNotes) && trimmedNotes.Length > 512)
-        {
-            return "Notes cannot exceed 512 characters";
-        }
-
-        return null;
-    }
-
-    private async Task SendTierUpgradeNotificationAsync(ProfileDetailsResponse profile, UserTierInfo? activeTier)
-    {
-        if (profile is null || string.IsNullOrWhiteSpace(profile.Email))
-        {
-            return;
-        }
-
-        var tierName = string.IsNullOrWhiteSpace(activeTier?.Name) ? "a new tier" : activeTier!.Name;
-        var greetingName = profile.DisplayName ?? profile.FirstName ?? profile.Username ?? "there";
-        var subject = $"Your JassSpace tier is now {tierName}";
-        var body =
-            $"""
-            <p>Hi {greetingName},</p>
-            <p>Your JassSpace account has been upgraded to <strong>{tierName}</strong>.</p>
-            <p>To ensure the new benefits apply instantly, please log out and sign back into your account. This refreshes your active session with the upgraded tier.</p>
-            <p>If you weren’t expecting this change, please reach out to support.</p>
-            <p>— The JassSpace Team</p>
-            """;
-
-        try
-        {
-            await emailService.SendEmailAsync(profile.Email, subject, body);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to send tier upgrade email to {Email}", profile.Email);
-        }
     }
 
     [System.Text.RegularExpressions.GeneratedRegex(@"^[a-zA-Z0-9_.-]+$")]

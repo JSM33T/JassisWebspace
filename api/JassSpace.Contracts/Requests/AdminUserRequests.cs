@@ -20,9 +20,4 @@ public sealed record AdminUpdateUserRequest(
     IReadOnlyList<string>? Roles = null
 );
 
-public sealed record AdminUpgradeUserTierRequest(
-    int TierId,
-    DateTimeOffset? ActiveFrom = null,
-    DateTimeOffset? ActiveUntil = null,
-    string? Notes = null
-);
+

@@ -1,12 +1,5 @@
 namespace JassSpace.Contracts.Responses;
 
-public sealed record UserTierInfo(
-    int TierId,
-    string Name,
-    DateTimeOffset ActiveFrom,
-    DateTimeOffset? ActiveUntil
-);
-
 public sealed record UserPublicResponse(
     Guid Id,
     string Username,
@@ -14,8 +7,7 @@ public sealed record UserPublicResponse(
     string? LastName,
     string? AvatarUrl,
     string? CoverUrl,
-    string? Bio,
-    UserTierInfo? ActiveTier
+    string? Bio
 );
 
 /// <summary>

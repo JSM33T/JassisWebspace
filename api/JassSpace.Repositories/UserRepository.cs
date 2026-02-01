@@ -55,18 +55,7 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
                 u.LastName,
                 u.AvatarUrl,
                 u.CoverUrl,
-                u.Bio,
-                ActiveTier = u.UserTiers
-                    .Where(ut => ut.IsActive &&
-                                 ut.ActiveFrom <= now)
-                    .OrderByDescending(ut => ut.ActiveFrom)
-                    .Select(ut => new UserTierInfo(
-                        ut.TierId,
-                        ut.Tier.Name,
-                        ut.ActiveFrom,
-                        ut.ActiveUntil
-                    ))
-                    .FirstOrDefault()
+                u.Bio
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -79,8 +68,7 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
             user.LastName,
             user.AvatarUrl,
             user.CoverUrl,
-            user.Bio,
-            user.ActiveTier
+            user.Bio
         );
     }
 
@@ -150,17 +138,6 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
                 u.IsActive,
                 u.CreatedAt,
                 u.UpdatedAt,
-                u.UserTiers
-                    .Where(ut => ut.IsActive &&
-                                 ut.ActiveFrom <= now &&
-                                 (ut.ActiveUntil == null || ut.ActiveUntil >= now))
-                    .OrderByDescending(ut => ut.ActiveFrom)
-                    .Select(ut => new UserTierInfo(
-                        ut.TierId,
-                        ut.Tier.Name,
-                        ut.ActiveFrom,
-                        ut.ActiveUntil))
-                    .FirstOrDefault(),
                 u.UserRoles
                     .OrderBy(ur => ur.Role.Name)
                     .Select(ur => ur.Role.Name)
@@ -180,16 +157,6 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
         var user = await (
             from u in _db.Users.AsNoTracking()
             where u.Id == userId && u.DeletedAt == null
-            let activeTier = u.UserTiers
-                .Where(ut => ut.IsActive &&
-                             ut.ActiveFrom <= now)
-                .OrderByDescending(ut => ut.ActiveFrom)
-                .Select(ut => new UserTierInfo(
-                    ut.TierId,
-                    ut.Tier.Name,
-                    ut.ActiveFrom,
-                    ut.ActiveUntil))
-                .FirstOrDefault()
             let roles = u.UserRoles
                 .OrderBy(ur => ur.Role.Name)
                 .Select(ur => ur.Role.Name)
@@ -212,12 +179,8 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
                     u.VerifiedBadge,
                     u.CreatedAt,
                     u.UpdatedAt,
-                    roles,
-                    activeTier != null ? activeTier.TierId : (int?)null,
-                    activeTier != null ? activeTier.Name : null,
-                    activeTier
+                    roles
                 ),
-                ActiveTier = activeTier,
                 u.IsActive
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -227,24 +190,7 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
             return null;
         }
 
-        var tierHistory = await _db.UserTiers
-            .AsNoTracking()
-            .Where(ut => ut.UserId == userId)
-            .OrderByDescending(ut => ut.ActiveFrom)
-            .ThenByDescending(ut => ut.CreatedAt)
-            .Select(ut => new AdminUserTierAssignmentResponse(
-                ut.Id,
-                ut.TierId,
-                ut.Tier.Name,
-                ut.ActiveFrom,
-                ut.ActiveUntil,
-                ut.IsActive,
-                ut.Notes,
-                ut.CreatedAt,
-                ut.UpdatedAt))
-            .ToListAsync(cancellationToken);
-
-        return new AdminUserDetailsResponse(user.Profile, user.ActiveTier, tierHistory, user.IsActive);
+        return new AdminUserDetailsResponse(user.Profile, user.IsActive);
     }
 
     public async Task<AdminUserDetailsResponse?> UpdateAdminUserAsync(
@@ -405,103 +351,7 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
         });
     }
 
-    public async Task<AdminUserDetailsResponse?> AssignAdminUserTierAsync(
-        Guid userId,
-        AdminUpgradeUserTierRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        if (request is null)
-        {
-            throw new ArgumentNullException(nameof(request));
-        }
 
-        if (request.TierId <= 0)
-        {
-            throw new InvalidOperationException("TierId must be greater than zero.");
-        }
-
-        var tier = await _db.Tiers
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == request.TierId, cancellationToken);
-
-        if (tier is null)
-        {
-            throw new TierNotFoundException($"Tier with id {request.TierId} was not found.");
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var effectiveFrom = (request.ActiveFrom ?? now).ToUniversalTime();
-        var effectiveUntil = request.ActiveUntil?.ToUniversalTime();
-
-        if (effectiveUntil.HasValue && effectiveUntil.Value <= effectiveFrom)
-        {
-            throw new InvalidOperationException("ActiveUntil must be later than ActiveFrom.");
-        }
-
-        var trimmedNotes = request.Notes?.Trim();
-        if (!string.IsNullOrEmpty(trimmedNotes) && trimmedNotes.Length > 512)
-        {
-            throw new InvalidOperationException("Notes cannot exceed 512 characters.");
-        }
-
-        var notes = string.IsNullOrEmpty(trimmedNotes)
-            ? "Manual admin tier upgrade"
-            : trimmedNotes;
-
-        var strategy = _db.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(async () =>
-        {
-            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
-
-            var user = await _db.Users
-                .Include(u => u.UserTiers)
-                .FirstOrDefaultAsync(u => u.Id == userId && u.DeletedAt == null, cancellationToken);
-
-            if (user is null)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                return (AdminUserDetailsResponse?)null;
-            }
-
-            var mutatedAt = DateTimeOffset.UtcNow;
-
-            foreach (var assignment in user.UserTiers.Where(ut => ut.IsActive))
-            {
-                assignment.IsActive = false;
-                var cutoff = effectiveFrom < assignment.ActiveFrom ? assignment.ActiveFrom : effectiveFrom;
-                assignment.ActiveUntil = cutoff;
-                assignment.UpdatedAt = mutatedAt;
-            }
-
-            var newAssignment = new UserTier
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                TierId = tier.Id,
-                ActiveFrom = effectiveFrom,
-                ActiveUntil = effectiveUntil,
-                IsActive = true,
-                Notes = notes,
-                CreatedAt = mutatedAt,
-                UpdatedAt = mutatedAt
-            };
-
-            _db.UserTiers.Add(newAssignment);
-
-            await _db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Admin manually assigned tier {TierName} ({TierId}) to user {UserId}. ActiveFrom={ActiveFrom:u}, ActiveUntil={ActiveUntil:u}",
-                tier.Name,
-                tier.Id,
-                userId,
-                effectiveFrom,
-                effectiveUntil);
-
-            return await GetAdminUserDetailsAsync(userId, cancellationToken);
-        });
-    }
 
     public async Task<IReadOnlyList<Guid>> GetUnverifiedUserIdsCreatedBeforeAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
     {

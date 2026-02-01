@@ -81,8 +81,6 @@ builder.Services.Configure<JassSpace.Entities.AutoGroupingSettings>(
 // Repository Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
-builder.Services.AddScoped<ITierRepository, TierRepository>();
-builder.Services.AddScoped<ITierService, TierService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.Configure<IpGeolocationOptions>(builder.Configuration.GetSection("IpGeolocation"));
 builder.Services.AddSingleton<IClientIpResolver, ClientIpResolver>();

@@ -44,16 +44,6 @@ public class ProfileRepository(JassSpaceDbContext db, ILogger<ProfileRepository>
                 u.VerifiedBadge,
                 u.CreatedAt,
                 u.UpdatedAt,
-                ActiveTier = u.UserTiers
-                    .Where(ut => ut.IsActive &&
-                                 ut.ActiveFrom <= now)
-                    .OrderByDescending(ut => ut.ActiveFrom)
-                    .Select(ut => new UserTierInfo(
-                        ut.TierId,
-                        ut.Tier.Name,
-                        ut.ActiveFrom,
-                        ut.ActiveUntil))
-                    .FirstOrDefault(),
                 Roles = u.UserRoles
                     .Select(ur => ur.Role.Name)
                     .ToArray()
@@ -78,10 +68,7 @@ public class ProfileRepository(JassSpaceDbContext db, ILogger<ProfileRepository>
             dto.VerifiedBadge,
             dto.CreatedAt,
             dto.UpdatedAt,
-            dto.Roles,
-            dto.ActiveTier?.TierId,
-            dto.ActiveTier?.Name,
-            dto.ActiveTier
+            dto.Roles
         );
     }
 
@@ -175,20 +162,7 @@ public class ProfileRepository(JassSpaceDbContext db, ILogger<ProfileRepository>
                   (ur, r) => r.Name)
             .ToArrayAsync(cancellationToken);
 
-        var now = DateTimeOffset.UtcNow;
 
-        var activeTier = await _db.UserTiers
-            .AsNoTracking()
-            .Where(ut => ut.UserId == userId &&
-                         ut.IsActive &&
-                         ut.ActiveFrom <= now)
-            .OrderByDescending(ut => ut.ActiveFrom)
-            .Select(ut => new UserTierInfo(
-                ut.TierId,
-                ut.Tier.Name,
-                ut.ActiveFrom,
-                ut.ActiveUntil))
-            .FirstOrDefaultAsync(cancellationToken);
 
         await tx.CommitAsync(cancellationToken);
 
@@ -208,10 +182,7 @@ public class ProfileRepository(JassSpaceDbContext db, ILogger<ProfileRepository>
             current.VerifiedBadge,
             current.CreatedAt,
             user.UpdatedAt,
-            roles,
-            activeTier?.TierId,
-            activeTier?.Name,
-            activeTier
+            roles
         );
 
         return new ProfileUpdateResponse(

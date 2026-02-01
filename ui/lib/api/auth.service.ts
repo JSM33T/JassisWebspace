@@ -65,14 +65,6 @@ export interface UpdateProfileRequest {
 // Response DTOs (matching .NET API)
 // ============================================================================
 
-export interface UserTierInfo {
-    tierId: number;
-    tierName: string;
-    startDate: string;
-    endDate: string;
-    isActive: boolean;
-}
-
 export interface UserInfo {
     id: string;
     email: string;
@@ -89,7 +81,6 @@ export interface UserInfo {
     createdAt: string;
     roles: string[];
     authMethod?: string | null;
-    activeTier?: UserTierInfo | null;
     preferences?: {
         timezone?: string | null;
         locale?: string | null;

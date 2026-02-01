@@ -14,9 +14,6 @@ export interface User {
     bio?: string;
     login: boolean;
     expiry?: Date;
-    // Tier information
-    tierId?: number;
-    tierName?: string;
     // Additional optional fields
     role?: string;
     preferences?: Record<string, any>;
@@ -139,8 +136,6 @@ export function UserProvider({ children }: UserProviderProps) {
                                             email: userData.email,
                                             avatarUrl: userData.avatarUrl,
                                             login: true,
-                                            tierId: (userData as any).tierId,
-                                            tierName: (userData as any).tierName,
                                             role: userData.roles?.[0] || 'user'
                                         };
 
@@ -193,8 +188,6 @@ export function UserProvider({ children }: UserProviderProps) {
                                 email: userData.email,
                                 avatarUrl: userData.avatarUrl,
                                 login: true,
-                                tierId: (userData as any).tierId,
-                                tierName: (userData as any).tierName,
                                 role: userData.roles?.[0] || 'user'
                             };
 
@@ -241,8 +234,6 @@ export function UserProvider({ children }: UserProviderProps) {
                                         email: userData.email,
                                         avatarUrl: userData.avatarUrl,
                                         login: true,
-                                        tierId: (userData as any).tierId,
-                                        tierName: (userData as any).tierName,
                                         role: userData.roles?.[0] || 'user'
                                     };
 
@@ -291,8 +282,6 @@ export function UserProvider({ children }: UserProviderProps) {
                                         email: userData.email,
                                         avatarUrl: userData.avatarUrl,
                                         login: true,
-                                        tierId: (userData as any).tierId,
-                                        tierName: (userData as any).tierName,
                                         role: userData.roles?.[0] || 'user'
                                     };
 
@@ -505,27 +494,5 @@ export const userHelpers = {
         if (!user?.login) return false;
         if (!user.expiry) return true; // No expiry means valid
         return new Date() < user.expiry;
-    },
-
-    getTierName: (user: User | null): string => {
-        return user?.tierName?.toLowerCase() ?? 'free';
-    },
-
-    getTierDisplayName: (user: User | null): string => {
-        const tierName = userHelpers.getTierName(user);
-        return tierName.charAt(0).toUpperCase() + tierName.slice(1);
-    },
-
-    isFreeTier: (user: User | null): boolean => {
-        if (!user) return true;
-        return user.tierId === 1 || userHelpers.getTierName(user) === 'free';
-    },
-
-    isPlusTier: (user: User | null): boolean => {
-        return user?.tierId === 2 || userHelpers.getTierName(user) === 'plus';
-    },
-
-    isProTier: (user: User | null): boolean => {
-        return user?.tierId === 3 || userHelpers.getTierName(user) === 'pro';
     },
 };

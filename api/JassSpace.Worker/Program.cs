@@ -44,7 +44,6 @@ if (!string.IsNullOrWhiteSpace(connectionString))
 
 // Register hosted services
 builder.Services.AddHostedService<AccountCleanupWorker>();
-builder.Services.AddHostedService<TierDowngradeWorker>();
 builder.Services.AddHostedService<GeolocationEnrichmentWorker>();
 
 var host = builder.Build();

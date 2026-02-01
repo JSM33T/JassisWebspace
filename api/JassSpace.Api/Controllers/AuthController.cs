@@ -484,8 +484,6 @@ public sealed class AuthController(
             context.Users.Add(user);
             context.UserTiers.Add(userTier);
 
-            var activeTierInfo = new UserTierInfo(freeTier.Id, freeTier.Name, now, null);
-
             // Assign default role (assumes cascade on UserRoles; no AsNoTracking here)
             var userRole = await context.Roles
                 .FirstOrDefaultAsync(r => r.Name == "user", cancellationToken);
@@ -533,8 +531,7 @@ public sealed class AuthController(
             var userInfo = await BuildUserInfoAsync(
                 user,
                 userRole != null ? new[] { userRole.Name } : Array.Empty<string>(),
-                cancellationToken: cancellationToken,
-                activeTierOverride: activeTierInfo);
+                cancellationToken: cancellationToken);
 
             logger.LogInformation("User {UserId} registered successfully", user.Id);
 
@@ -2283,8 +2280,7 @@ public sealed class AuthController(
         User user,
         IEnumerable<string>? rolesOverride = null,
         string? authMethod = null,
-        CancellationToken cancellationToken = default,
-        UserTierInfo? activeTierOverride = null)
+        CancellationToken cancellationToken = default)
     {
         // Ensure username - if missing, generate a generic one: user + short id
         var username = string.IsNullOrWhiteSpace(user.Username)
@@ -2299,8 +2295,6 @@ public sealed class AuthController(
             ? rolesOverride.ToArray()
             : user.UserRoles.Select(ur => ur.Role.Name).ToArray();
 
-        var activeTier = activeTierOverride ?? ResolveActiveTier(user);
-        activeTier ??= await GetActiveTierInfoAsync(user.Id, cancellationToken);
 
         return new UserInfo(
             Id: user.Id,
@@ -2313,54 +2307,8 @@ public sealed class AuthController(
             CoverUrl: user.CoverUrl,
             CreatedAt: user.CreatedAt,
             Roles: roles,
-            AuthMethod: authMethod,
-            ActiveTier: activeTier
+            AuthMethod: authMethod
         );
-    }
-
-    private static UserTierInfo? ResolveActiveTier(User user)
-    {
-        if (user.UserTiers.Count == 0)
-            return null;
-
-        var now = DateTimeOffset.UtcNow;
-
-        var active = user.UserTiers
-            .Where(ut => ut.IsActive &&
-                         ut.ActiveFrom <= now &&
-                         (ut.ActiveUntil == null || ut.ActiveUntil >= now))
-            .OrderByDescending(ut => ut.ActiveFrom)
-            .FirstOrDefault();
-
-        if (active?.Tier is null)
-            return null;
-
-        return new UserTierInfo(
-            active.TierId,
-            active.Tier.Name,
-            active.ActiveFrom,
-            active.ActiveUntil
-        );
-    }
-
-    private async Task<UserTierInfo?> GetActiveTierInfoAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var now = DateTimeOffset.UtcNow;
-
-        return await context.UserTiers
-            .AsNoTracking()
-            .Where(ut => ut.UserId == userId &&
-                         ut.IsActive &&
-                         ut.ActiveFrom <= now &&
-                         (ut.ActiveUntil == null || ut.ActiveUntil >= now))
-            .OrderByDescending(ut => ut.ActiveFrom)
-            .Select(ut => new UserTierInfo(
-                ut.TierId,
-                ut.Tier.Name,
-                ut.ActiveFrom,
-                ut.ActiveUntil
-            ))
-            .FirstOrDefaultAsync(cancellationToken);
     }
 
     // Helper method for consistent cookie options

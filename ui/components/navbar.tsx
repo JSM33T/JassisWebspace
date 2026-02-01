@@ -59,36 +59,7 @@ export function Navbar() {
                         ? normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1)
                         : 'User';
 
-    const renderTierBadge = () => {
-        if (!user) return null;
 
-        const tierLabel = userHelpers.getTierDisplayName(user);
-        const tierName = userHelpers.getTierName(user);
-
-        if (userHelpers.isProTier(user)) {
-            return (
-                <Badge className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-primary text-primary-foreground border-none shadow-sm">
-                    <Star className="h-3 w-3 mr-1" />
-                    {tierLabel}
-                </Badge>
-            );
-        }
-
-        if (userHelpers.isPlusTier(user)) {
-            return (
-                <Badge className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-primary text-primary-foreground border-none shadow-sm">
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    {tierLabel}
-                </Badge>
-            );
-        }
-
-        return (
-            <Badge className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-muted text-muted-foreground border-border/60">
-                {tierName === 'Free' ? 'Free' : tierLabel}
-            </Badge>
-        );
-    };
 
     return (
         <>
@@ -134,10 +105,7 @@ export function Navbar() {
                                     <DropdownMenuContent className="w-56" align="end" forceMount>
                                         <DropdownMenuLabel className="font-normal">
                                             <div className="flex flex-col space-y-1">
-                                                <div className="flex items-center justify-between w-full">
-                                                    <p className="text-sm font-medium leading-none truncate">{userHelpers.getFirstName(user)}</p>
-                                                    <div className="flex-shrink-0 ml-2">{renderTierBadge()}</div>
-                                                </div>
+                                                <p className="text-sm font-medium leading-none truncate">{userHelpers.getFirstName(user)}</p>
                                                 <div className="flex items-center justify-between w-full gap-2 pt-0.5 text-xs text-muted-foreground">
                                                     <div className="flex items-center gap-1 truncate">
                                                         <AtSign className="h-3 w-3 text-muted-foreground/80 flex-shrink-0" />
@@ -212,9 +180,6 @@ export function Navbar() {
                                                 </Avatar>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium truncate">{userHelpers.getFirstName(user)}</p>
-                                                    <div className="mt-1 flex items-center gap-2">
-                                                        {renderTierBadge()}
-                                                    </div>
                                                 </div>
                                             </div>
                                         )}
