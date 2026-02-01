@@ -1,0 +1,111 @@
+---
+title: "Inside JassSpace: Building a Fast, Secure Link Management Platform"
+description: "A technical walkthrough of how we're building JassSpace — from its Next.js front-end and .NET Core APIs to AI microservices, caching strategies, and deployment pipelines."
+readMinutes: 6
+author:
+  name: "Jasmeet Singh"
+  url: "https://jsm33t.com"
+tags:
+  - Product
+  - Engineering
+  - Architecture
+  - DevOps
+datePublished: "2025-09-28T09:00:00.000Z"
+isActive: true
+---
+
+# Behind the Scenes: Building a Modern Link Management Platform
+
+## Introduction
+
+JassSpace began with a simple observation — most people struggle to manage their online presence across platforms.
+A portfolio here, a resume there, a handful of socials somewhere else.
+
+Not everyone has time to build a website, but everyone deserves a clean, unified space to represent who they are.
+That’s the idea behind **JassSpace** — and while we’ve released its foundation, we’re still actively shaping its systems, refining its architecture, and expanding the features that power it.
+
+This post dives into **how we’re building JassSpace** — the stack, the decisions, and the evolving ideas behind its design.
+
+---
+
+## Frontend Architecture
+
+The front-end is built with **Next.js**, where we’re adopting a **hybrid rendering** approach — combining **Server-Side Rendering (SSR)** for public profile pages and **Client-Side Rendering (CSR)** for dynamic user dashboards.
+This mix lets us balance performance, SEO, and interactivity as the app scales.
+
+We’re continuously optimizing for:
+- **Instant load times** on public bio pages.
+- **Seamless navigation** for authenticated dashboards.
+- **SEO consistency** across custom subdomains.
+
+For **state management**, we use **Zustand**, keeping the app lightweight and predictable while avoiding unnecessary boilerplate.
+
+**UI layer highlights:**
+- **TailwindCSS** for a fast, responsive design system.
+- **shadcn/ui** for elegant, accessible components.
+- **Framer Motion** for subtle interactions and motion effects that make the experience feel alive.
+
+The focus is on creating a **maintainable design system** — one that can grow as we introduce themes, editor tools, and user customization features.
+
+---
+
+## Backend Architecture
+
+We’re building the backend on **.NET Core Web API**, structured for clarity and long-term scalability.
+
+- **ORM:** **Entity Framework Core** — giving us strong typing and easy migrations.
+- **Database:** **PostgreSQL**, our main data backbone.
+- **Caching layers:**
+  - **Redis** for high-speed lookups, link stats, and temporary sessions.
+  - **MongoDB** for “warm” caching and semi-structured data (like analytics events or AI responses).
+- **Logging:** **Serilog** for structured logs and observability.
+- **Security:** Enforced HTTPS, hashed passwords, and layered middleware validation.
+
+We’re also experimenting with **rate limiting**, **request tracking**, and **async caching strategies** to make every user request both secure and fast.
+
+As JassSpace scales, the goal is to keep the backend **stateless, modular, and cloud-ready** — able to handle bursts of lightweight API calls without performance trade-offs.
+
+---
+
+## AI and Automation Layer
+
+The **AI microservice** is now fully built using **.NET**, integrated directly within our service ecosystem.
+
+It handles automation tasks such as:
+- **Smart link categorization** and tagging.
+- **Auto-generated summaries** for profile content.
+- **Contextual recommendations** and analytics insights.
+
+The service uses **embedding models** and **semantic processing** libraries to deliver contextual intelligence while maintaining high performance and reliability.
+
+It communicates with the main API through internal HTTP endpoints and background jobs — ensuring that AI operations are **asynchronous**, **fault-tolerant**, and **non-blocking** for the user experience.
+
+This foundation powers our upcoming **AI-assisted features**, including **link insights**, **profile recommendations**, and **automated analytics summaries**.
+
+---
+
+## Infrastructure & Deployment
+
+JassSpace’s infrastructure is containerized using **Docker** and orchestrated through **Docker Compose** (with an eye toward future **Kubernetes migration**).
+Each service — Web API, AI service, Redis, PostgreSQL, and the front-end — runs in its own isolated container.
+
+- **Storage:** Assets such as profile images and cover photos are hosted on **Azure Blob Storage** for reliability and CDN-level performance.
+- **Scaling:** Stateless containers allow us to spin up additional instances easily during spikes.
+- **Configuration:** Secrets and environment variables are securely injected during builds and deployments.
+
+As we continue iterating, we’re refining our **CI/CD pipelines**, improving **build caching**, and setting up **monitoring and alerting** for better release visibility.
+
+---
+
+## Design Philosophy
+
+Everything we build in JassSpace follows a few core principles:
+
+- **Build modular, scale modular:** Each layer (UI, API, AI, Infra) can evolve independently.
+- **Cache first, compute second:** Optimize before scaling up.
+- **Security and observability by default:** Encryption, logging, and metrics are built in, not added later.
+- **Iterate transparently:** Build in public, share learnings, and improve continuously.
+
+We’re not just building a link manager — we’re engineering a **scalable digital identity platform** that feels modern, fast, and creator-friendly from day one.
+
+---
