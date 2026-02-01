@@ -37,8 +37,12 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
         run: |
-          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s <<'EOF'
+          # Pass REMOTE_DIR as an argument ($REMOTE_DIR) to bash -s
+          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s "$REMOTE_DIR" <<'EOF'
           set -euo pipefail
+          
+          # Capture the first argument as the variable inside the remote session
+          REMOTE_DIR="$1"
 
           LOCKFILE="${REMOTE_DIR}/.deploy.lock"
           exec 9>"$LOCKFILE"
@@ -65,7 +69,7 @@ jobs:
             --remove-orphans \
             --wait \
             --wait-timeout 180 \
-            dotnet worker
+            --dotnet worker
 
           echo "[dotnet] Deploy verified by compose --wait ✅"
           docker compose -p jassspace ps
@@ -79,8 +83,12 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
         run: |
-          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s <<'EOF'
+          # Pass REMOTE_DIR as an argument here too
+          ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s "$REMOTE_DIR" <<'EOF'
           set -euo pipefail
+          
+          # Capture the argument
+          REMOTE_DIR="$1"
 
           LOCKFILE="${REMOTE_DIR}/.deploy.lock"
           exec 9>"$LOCKFILE"
