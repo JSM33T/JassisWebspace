@@ -4,7 +4,7 @@ services:
       context: ./api
       dockerfile: ./JassSpace.Api/Dockerfile
     ports:
-      - "5000:8080"
+      - "5001:8080"
     env_file:
       - .env
     volumes:
@@ -28,7 +28,7 @@ services:
       context: ./ui
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - NODE_ENV=production
     restart: unless-stopped
