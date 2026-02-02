@@ -30,7 +30,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
@@ -118,6 +118,77 @@ export function Navbar() {
                                 >
                                     Home
                                 </Link>
+
+                                <Link
+                                    href="/blogs"
+                                    className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
+                                    onMouseEnter={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const parentRect = navRef.current?.getBoundingClientRect();
+                                        if (parentRect) {
+                                            setHoverStyle({
+                                                left: rect.left - parentRect.left,
+                                                width: rect.width,
+                                                opacity: 1,
+                                            });
+                                        }
+                                        setHoveredLink('plans');
+                                    }}
+                                >
+                                    Blogs
+                                </Link>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+
+                                            className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
+                                            onMouseEnter={(e) => {
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                const parentRect = navRef.current?.getBoundingClientRect();
+                                                if (parentRect) {
+                                                    setHoverStyle({
+                                                        left: rect.left - parentRect.left,
+                                                        width: rect.width,
+                                                        opacity: 1,
+                                                    });
+                                                }
+                                                setHoveredLink('resources');
+                                            }}
+                                        >
+                                            Studio <ChevronDown className="h-3 w-3 inline ml-1" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-64" align="center">
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/services" className="cursor-pointer flex items-start gap-3 p-3">
+                                                <Settings className="h-5 w-5 mt-0.5 text-primary" />
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">Services</span>
+                                                    <span className="text-xs text-muted-foreground">Explore our service offerings</span>
+                                                </div>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/projects" className="cursor-pointer flex items-start gap-3 p-3">
+                                                <Code className="h-5 w-5 mt-0.5 text-primary" />
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">Projects</span>
+                                                    <span className="text-xs text-muted-foreground">View our latest projects</span>
+                                                </div>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/tools" className="cursor-pointer flex items-start gap-3 p-3">
+                                                <Lightbulb className="h-5 w-5 mt-0.5 text-primary" />
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">Tools</span>
+                                                    <span className="text-xs text-muted-foreground">Developer tools and utilities</span>
+                                                </div>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                                 <Link
                                     href="/about"
                                     className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
@@ -135,42 +206,6 @@ export function Navbar() {
                                     }}
                                 >
                                     About
-                                </Link>
-                                <Link
-                                    href="/plans"
-                                    className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                    onMouseEnter={(e) => {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const parentRect = navRef.current?.getBoundingClientRect();
-                                        if (parentRect) {
-                                            setHoverStyle({
-                                                left: rect.left - parentRect.left,
-                                                width: rect.width,
-                                                opacity: 1,
-                                            });
-                                        }
-                                        setHoveredLink('plans');
-                                    }}
-                                >
-                                    Plans
-                                </Link>
-                                <Link
-                                    href="#"
-                                    className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                    onMouseEnter={(e) => {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const parentRect = navRef.current?.getBoundingClientRect();
-                                        if (parentRect) {
-                                            setHoverStyle({
-                                                left: rect.left - parentRect.left,
-                                                width: rect.width,
-                                                opacity: 1,
-                                            });
-                                        }
-                                        setHoveredLink('resources');
-                                    }}
-                                >
-                                    Resources
                                 </Link>
                             </div>
 
@@ -283,8 +318,8 @@ export function Navbar() {
                                                     </Link>
                                                 </SheetClose>
                                                 <SheetClose asChild>
-                                                    <Link href="/pricing" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                        Pricing
+                                                    <Link href="/blog" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                        Blog
                                                     </Link>
                                                 </SheetClose>
                                             </div>
