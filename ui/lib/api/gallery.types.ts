@@ -3,6 +3,7 @@ export interface Album {
     id: string;
     name: string;
     slug: string;
+    cover: string | null;
     description: string | null;
     createdAt: string;
     updatedAt: string | null;
@@ -23,6 +24,7 @@ export interface AlbumWithImages {
     id: string;
     name: string;
     slug: string;
+    cover: string | null;
     description: string | null;
     createdAt: string;
     updatedAt: string | null;

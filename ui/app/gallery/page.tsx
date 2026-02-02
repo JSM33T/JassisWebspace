@@ -139,7 +139,7 @@ export default function GalleryPage() {
                                             {formatDate(album.createdAt)}
                                         </div>
                                         <Button asChild className="w-full mt-4" variant="outline">
-                                            <Link href={`/gallery/${album.id}`}>
+                                            <Link href={`/gallery/${album.slug}`}>
                                                 View Album
                                             </Link>
                                         </Button>

@@ -1,9 +1,9 @@
 -- Insert sample album data with images and content entry
 
 -- 1. Create an album
-INSERT INTO "Albums" ("Id", "Name", "Slug", "Description", "CreatedAt", "UpdatedAt")
+INSERT INTO "Albums" ("Id", "Name", "Slug", "Cover", "Description", "CreatedAt", "UpdatedAt")
 VALUES 
-    ('a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d', 'Summer Vacation 2025', 'summer-vacation-2025', 'Beautiful moments from our summer trip to the mountains', NOW(), NOW());
+    ('a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d', 'Summer Vacation 2025', 'summer-vacation-2025', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4', 'Beautiful moments from our summer trip to the mountains', NOW(), NOW());
 
 -- 2. Insert images for the album
 INSERT INTO "Images" ("Id", "AlbumId", "Url", "Title", "Description", "Order", "CreatedAt")
