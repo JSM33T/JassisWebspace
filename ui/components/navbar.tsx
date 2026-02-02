@@ -30,7 +30,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
@@ -60,22 +60,16 @@ export function Navbar() {
 
     const studioMenuItems = [
         {
-            href: '/services',
-            label: 'Services',
-            description: 'Explore our service offerings',
-            icon: Settings,
+            href: '/gallery',
+            label: 'Gallery',
+            description: 'View our creative gallery',
+            icon: Image,
         },
         {
-            href: '/projects',
-            label: 'Projects',
-            description: 'View our latest projects',
-            icon: Code,
-        },
-        {
-            href: '/tools',
-            label: 'Tools',
-            description: 'Developer tools and utilities',
-            icon: Lightbulb,
+            href: '/music',
+            label: 'Music',
+            description: 'Explore our music collection',
+            icon: Music,
         },
     ];
 
@@ -97,7 +91,7 @@ export function Navbar() {
 
     return (
         <>
-            <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-5xl">
+            <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-5xl px-4">
                 {/* Gradient border wrapper */}
                 <div className="p-[1px] rounded-full bg-gradient-to-br from-primary/15 via-primary/10 to-primary/12">
                     <div className="bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 rounded-full shadow-lg shadow-black/5 px-6 lg:px-8">
