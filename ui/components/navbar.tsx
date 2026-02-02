@@ -52,6 +52,34 @@ export function Navbar() {
     const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
     const navRef = useRef<HTMLDivElement>(null);
 
+    // Navigation menu configuration - single source of truth
+    const navigationLinks = [
+        { href: '/', label: 'Home', id: 'home' },
+        { href: '/blogs', label: 'Blogs', id: 'blogs' },
+    ];
+
+    const studioMenuItems = [
+        {
+            href: '/services',
+            label: 'Services',
+            description: 'Explore our service offerings',
+            icon: Settings,
+        },
+        {
+            href: '/projects',
+            label: 'Projects',
+            description: 'View our latest projects',
+            icon: Code,
+        },
+        {
+            href: '/tools',
+            label: 'Tools',
+            description: 'Developer tools and utilities',
+            icon: Lightbulb,
+        },
+    ];
+
+    const aboutLink = { href: '/about', label: 'About', id: 'about' };
 
     const normalizedRole = (user?.role ?? '').toLowerCase();
     const roleDisplayName =
@@ -100,43 +128,28 @@ export function Navbar() {
                                         transform: 'translateY(-50%)',
                                     }}
                                 />
-                                <Link
-                                    href="/"
-                                    className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                    onMouseEnter={(e) => {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const parentRect = navRef.current?.getBoundingClientRect();
-                                        if (parentRect) {
-                                            setHoverStyle({
-                                                left: rect.left - parentRect.left,
-                                                width: rect.width,
-                                                opacity: 1,
-                                            });
-                                        }
-                                        setHoveredLink('home');
-                                    }}
-                                >
-                                    Home
-                                </Link>
+                                {navigationLinks.map((link) => (
+                                    <Link
+                                        key={link.id}
+                                        href={link.href}
+                                        className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
+                                        onMouseEnter={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const parentRect = navRef.current?.getBoundingClientRect();
+                                            if (parentRect) {
+                                                setHoverStyle({
+                                                    left: rect.left - parentRect.left,
+                                                    width: rect.width,
+                                                    opacity: 1,
+                                                });
+                                            }
+                                            setHoveredLink(link.id);
+                                        }}
+                                    >
+                                        {link.label}
+                                    </Link>
+                                ))}
 
-                                <Link
-                                    href="/blogs"
-                                    className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                    onMouseEnter={(e) => {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const parentRect = navRef.current?.getBoundingClientRect();
-                                        if (parentRect) {
-                                            setHoverStyle({
-                                                left: rect.left - parentRect.left,
-                                                width: rect.width,
-                                                opacity: 1,
-                                            });
-                                        }
-                                        setHoveredLink('plans');
-                                    }}
-                                >
-                                    Blogs
-                                </Link>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <button
@@ -159,38 +172,25 @@ export function Navbar() {
                                         </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent className="w-64" align="center">
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/services" className="cursor-pointer flex items-start gap-3 p-3">
-                                                <Settings className="h-5 w-5 mt-0.5 text-primary" />
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium">Services</span>
-                                                    <span className="text-xs text-muted-foreground">Explore our service offerings</span>
-                                                </div>
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/projects" className="cursor-pointer flex items-start gap-3 p-3">
-                                                <Code className="h-5 w-5 mt-0.5 text-primary" />
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium">Projects</span>
-                                                    <span className="text-xs text-muted-foreground">View our latest projects</span>
-                                                </div>
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/tools" className="cursor-pointer flex items-start gap-3 p-3">
-                                                <Lightbulb className="h-5 w-5 mt-0.5 text-primary" />
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium">Tools</span>
-                                                    <span className="text-xs text-muted-foreground">Developer tools and utilities</span>
-                                                </div>
-                                            </Link>
-                                        </DropdownMenuItem>
+                                        {studioMenuItems.map((item) => {
+                                            const Icon = item.icon;
+                                            return (
+                                                <DropdownMenuItem key={item.href} asChild>
+                                                    <Link href={item.href} className="cursor-pointer flex items-start gap-3 p-3">
+                                                        <Icon className="h-5 w-5 mt-0.5 text-primary" />
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{item.label}</span>
+                                                            <span className="text-xs text-muted-foreground">{item.description}</span>
+                                                        </div>
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
                                         <DropdownMenuSeparator />
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                 <Link
-                                    href="/about"
+                                    href={aboutLink.href}
                                     className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
                                     onMouseEnter={(e) => {
                                         const rect = e.currentTarget.getBoundingClientRect();
@@ -202,10 +202,10 @@ export function Navbar() {
                                                 opacity: 1,
                                             });
                                         }
-                                        setHoveredLink('about');
+                                        setHoveredLink(aboutLink.id);
                                     }}
                                 >
-                                    About
+                                    {aboutLink.label}
                                 </Link>
                             </div>
 
@@ -307,19 +307,33 @@ export function Navbar() {
                                             )}
 
                                             <div className="space-y-2">
+                                                {navigationLinks.map((link) => (
+                                                    <SheetClose key={link.id} asChild>
+                                                        <Link href={link.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                            {link.label}
+                                                        </Link>
+                                                    </SheetClose>
+                                                ))}
+
+                                                {/* Studio Menu Items */}
+                                                <div className="pl-3 pt-2 pb-1">
+                                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Studio</p>
+                                                </div>
+                                                {studioMenuItems.map((item) => {
+                                                    const Icon = item.icon;
+                                                    return (
+                                                        <SheetClose key={item.href} asChild>
+                                                            <Link href={item.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                                <Icon className="h-4 w-4 inline mr-2 text-primary" />
+                                                                {item.label}
+                                                            </Link>
+                                                        </SheetClose>
+                                                    );
+                                                })}
+
                                                 <SheetClose asChild>
-                                                    <Link href="/" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                        Home
-                                                    </Link>
-                                                </SheetClose>
-                                                <SheetClose asChild>
-                                                    <Link href="/about" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                        About
-                                                    </Link>
-                                                </SheetClose>
-                                                <SheetClose asChild>
-                                                    <Link href="/blog" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                        Blog
+                                                    <Link href={aboutLink.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                        {aboutLink.label}
                                                     </Link>
                                                 </SheetClose>
                                             </div>
