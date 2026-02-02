@@ -191,13 +191,11 @@ export const authService = {
     },
 
     /**
-     * GET /auth/verify-email
+     * POST /auth/verify-email
      * Verify email with verification token
      */
     async verifyEmail(email: string, token: string): Promise<void> {
-        return get<void>(
-            `/auth/verify-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`
-        );
+        return post<void, VerifyEmailRequest>('/auth/verify-email', { email, token });
     },
 
     /**
