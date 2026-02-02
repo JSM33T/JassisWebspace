@@ -43,7 +43,7 @@ if (!string.IsNullOrWhiteSpace(connectionString))
 
 // Register hosted services
 builder.Services.AddHostedService<AccountCleanupWorker>();
-builder.Services.AddHostedService<GeolocationEnrichmentWorker>();
+// builder.Services.AddHostedService<GeolocationEnrichmentWorker>();
 
 var host = builder.Build();
 host.Run();
