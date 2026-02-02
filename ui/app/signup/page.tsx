@@ -13,9 +13,11 @@ import { toast } from 'sonner';
 import authService, { ApiError } from '@/lib/api';
 import GoogleOAuthButton from '@/components/GoogleOAuthButton';
 import GitHubOAuthButton from '@/components/GitHubOAuthButton';
+import { useUser } from '@/contexts/UserContext';
 
 export default function SignupPage() {
     const router = useRouter();
+    const { setUser } = useUser();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
@@ -59,6 +61,19 @@ export default function SignupPage() {
             if (response.refreshToken) {
                 localStorage.setItem('refreshToken', response.refreshToken);
             }
+
+            // Update global user state (initially unverified)
+            setUser({
+                id: response.user.id,
+                firstName: response.user.firstName || '',
+                lastName: response.user.lastName || '',
+                username: response.user.username || '',
+                email: response.user.email,
+                avatarUrl: response.user.avatarUrl || undefined,
+                login: true,
+                expiry: new Date(response.expiresAt),
+                role: response.user.roles?.[0] || 'user',
+            });
 
             toast.success('Account created successfully! Please check your email to verify your account.');
             router.push('/verify-email?email=' + encodeURIComponent(formData.email));

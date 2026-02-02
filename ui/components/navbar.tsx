@@ -81,9 +81,6 @@ export function Navbar() {
                             <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                                 About
                             </Link>
-                            <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                                Pricing
-                            </Link>
                         </div>
 
                         {/* Right Side */}
