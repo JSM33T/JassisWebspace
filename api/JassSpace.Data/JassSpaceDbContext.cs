@@ -25,6 +25,9 @@ public class JassSpaceDbContext : DbContext
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<RateLimitBucket> RateLimitBuckets { get; set; }
     public DbSet<AppConfig> AppConfigs { get; set; }
+    public DbSet<Album> Albums { get; set; }
+    public DbSet<Image> Images { get; set; }
+    public DbSet<Content> Contents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,7 +48,10 @@ public class JassSpaceDbContext : DbContext
         ConfigureTwoFactorCodeEntity(modelBuilder);
         ConfigureAuditLogEntity(modelBuilder);
         ConfigureRateLimitBucketEntity(modelBuilder);
-        ConfigureAppConfigEntity(modelBuilder);        
+        ConfigureAppConfigEntity(modelBuilder);
+        ConfigureAlbumEntity(modelBuilder);
+        ConfigureImageEntity(modelBuilder);
+        ConfigureContentEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
@@ -248,6 +254,56 @@ public class JassSpaceDbContext : DbContext
 
         // Unique constraints
         entity.HasIndex(e => e.Key).IsUnique();
+    }
+
+    private void ConfigureAlbumEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Album>();
+
+        // Primary key
+        entity.HasKey(e => e.Id);
+
+        // Unique constraints
+        entity.HasIndex(e => e.Slug).IsUnique();
+
+        // Indexes
+        entity.HasIndex(e => e.Name);
+        entity.HasIndex(e => e.CreatedAt);
+
+        // Relationships
+        entity.HasMany(a => a.Images)
+              .WithOne(i => i.Album)
+              .HasForeignKey(i => i.AlbumId)
+              .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureImageEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Image>();
+
+        // Primary key
+        entity.HasKey(e => e.Id);
+
+        // Indexes
+        entity.HasIndex(e => new { e.AlbumId, e.Order });
+        entity.HasIndex(e => e.CreatedAt);
+    }
+
+    private void ConfigureContentEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Content>();
+
+        // Primary key
+        entity.HasKey(e => e.Id);
+
+        // Unique constraints
+        entity.HasIndex(e => e.Slug).IsUnique();
+
+        // Indexes
+        entity.HasIndex(e => e.ContentType);
+        entity.HasIndex(e => new { e.ContentType, e.ContentRefId });
+        entity.HasIndex(e => e.IsPublished);
+        entity.HasIndex(e => e.CreatedAt);
     }
 
     private void SeedRoles(ModelBuilder modelBuilder)

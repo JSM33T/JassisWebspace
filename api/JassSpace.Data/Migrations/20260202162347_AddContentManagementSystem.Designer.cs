@@ -4,6 +4,7 @@ using System.Net;
 using JassSpace.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JassSpace.Data.Migrations
 {
     [DbContext(typeof(JassSpaceDbContext))]
-    partial class JassSpaceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260202162347_AddContentManagementSystem")]
+    partial class AddContentManagementSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,10 +44,6 @@ namespace JassSpace.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Slug")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -53,9 +52,6 @@ namespace JassSpace.Data.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("Name");
-
-                    b.HasIndex("Slug")
-                        .IsUnique();
 
                     b.ToTable("Albums");
                 });
