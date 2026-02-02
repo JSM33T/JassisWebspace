@@ -43,8 +43,8 @@ namespace JassSpace.Api.Extensions
                                 var host = new Uri(origin).Host;
 
                                 // Production: root + subdomains of jassspace.com
-                                if (host.Equals("jassspace.com", StringComparison.OrdinalIgnoreCase)) return true;
-                                if (host.EndsWith(".jassspace.com", StringComparison.OrdinalIgnoreCase)) return true;
+                                if (host.Equals("jassi.me", StringComparison.OrdinalIgnoreCase)) return true;
+                                if (host.EndsWith(".jassi.me", StringComparison.OrdinalIgnoreCase)) return true;
 
                                 // Local development
                                 if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase)) return true;
