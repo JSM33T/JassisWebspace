@@ -71,7 +71,7 @@ export default function EditAlbumPage() {
                 description: data.description || "",
             });
             if (data.cover) {
-                setCoverPreview(data.cover);
+                setCoverPreview(`${data.cover}?t=${new Date().getTime()}`);
             }
         } catch (error) {
             console.error("Failed to load album", error);
