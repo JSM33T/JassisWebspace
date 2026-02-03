@@ -28,6 +28,7 @@ public sealed class GalleryController(
         try
         {
             var albums = await dbContext.Albums
+                .Where(a => a.IsActive)
                 .OrderByDescending(a => a.CreatedAt)
                 .Select(a => new AlbumResponse(
                     a.Id,
@@ -64,7 +65,7 @@ public sealed class GalleryController(
         try
         {
             var album = await dbContext.Albums
-                .Where(a => a.Id == albumId)
+                .Where(a => a.Id == albumId && a.IsActive)
                 .Select(a => new AlbumWithImagesResponse(
                     a.Id,
                     a.Name,
