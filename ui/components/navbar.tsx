@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,7 +30,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
@@ -53,6 +53,8 @@ export function Navbar() {
     const navRef = useRef<HTMLDivElement>(null);
 
     // Navigation menu configuration - single source of truth
+    const normalizedRole = (user?.role ?? '').toLowerCase();
+
     const navigationLinks = [
         { href: '/', label: 'Home', id: 'home' },
         { href: '/blogs', label: 'Blogs', id: 'blogs' },
@@ -75,7 +77,7 @@ export function Navbar() {
 
     const aboutLink = { href: '/about', label: 'About', id: 'about' };
 
-    const normalizedRole = (user?.role ?? '').toLowerCase();
+
     const roleDisplayName =
         normalizedRole === 'admin'
             ? 'Admin'
@@ -143,6 +145,8 @@ export function Navbar() {
                                         {link.label}
                                     </Link>
                                 ))}
+
+
 
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -237,6 +241,14 @@ export function Navbar() {
                                                 </div>
                                             </DropdownMenuLabel>
                                             <DropdownMenuSeparator />
+                                            {normalizedRole === 'admin' && (
+                                                <DropdownMenuItem asChild>
+                                                    <Link href="/admin" className="cursor-pointer">
+                                                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                                                        Admin
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                            )}
                                             <DropdownMenuItem asChild>
                                                 <Link href="/account/profile" className="cursor-pointer">
                                                     <UserCircle className="mr-2 h-4 w-4" />
@@ -309,6 +321,8 @@ export function Navbar() {
                                                     </SheetClose>
                                                 ))}
 
+
+
                                                 {/* Studio Menu Items */}
                                                 <div className="pl-3 pt-2 pb-1">
                                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Studio</p>
@@ -335,7 +349,16 @@ export function Navbar() {
                                             {isAuthenticated ? (
                                                 <>
                                                     <div className="border-t pt-4 space-y-2">
+                                                        {normalizedRole === 'admin' && (
+                                                            <SheetClose asChild>
+                                                                <Link href="/admin" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                                    <LayoutDashboard className="h-4 w-4 inline mr-2" />
+                                                                    Admin
+                                                                </Link>
+                                                            </SheetClose>
+                                                        )}
                                                         <SheetClose asChild>
+
                                                             <Link href="/account/profile" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
                                                                 <UserCircle className="h-4 w-4 inline mr-2" />
                                                                 Profile
