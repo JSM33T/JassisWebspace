@@ -46,8 +46,20 @@ export default function EditAlbumPage() {
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-    const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
-    const [newImagesPreview, setNewImagesPreview] = useState<string[]>([]);
+    interface NewImage {
+        file: File;
+        id: string; // temporary id for react key
+        preview: string;
+        title: string;
+        description: string;
+        order: number;
+    }
+
+    const [newImages, setNewImages] = useState<NewImage[]>([]);
+
+    // State for managing existing image edits
+    const [editingImageId, setEditingImageId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<{ title: string; description: string; order: number } | null>(null);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -97,20 +109,38 @@ export default function EditAlbumPage() {
     const handleNewImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
-            setNewImageFiles((prev) => [...prev, ...files]);
-            files.forEach((file) => {
+            const currentCount = (album?.images.length || 0) + newImages.length;
+
+            files.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
-                    setNewImagesPreview((prev) => [...prev, reader.result as string]);
+                    setNewImages((prev) => [
+                        ...prev,
+                        {
+                            file,
+                            id: Math.random().toString(36).substring(7),
+                            preview: reader.result as string,
+                            title: file.name.split('.')[0], // Default title from filename
+                            description: "",
+                            order: currentCount + index + 1
+                        }
+                    ]);
                 };
                 reader.readAsDataURL(file);
             });
         }
+        // Reset input
+        e.target.value = '';
     };
 
-    const removeNewImage = (index: number) => {
-        setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
-        setNewImagesPreview((prev) => prev.filter((_, i) => i !== index));
+    const updateNewImage = (id: string, field: keyof NewImage, value: string | number) => {
+        setNewImages(prev => prev.map(img =>
+            img.id === id ? { ...img, [field]: value } : img
+        ));
+    };
+
+    const removeNewImage = (id: string) => {
+        setNewImages((prev) => prev.filter((img) => img.id !== id));
     };
 
     const handleDeleteExistingImage = async (imageId: string) => {
@@ -119,11 +149,44 @@ export default function EditAlbumPage() {
         try {
             await adminGalleryService.deleteImage(imageId);
             toast.success("Image deleted");
-            // Refresh album data
+            // If deleting the currently edited image, exit edit mode
+            if (editingImageId === imageId) {
+                setEditingImageId(null);
+                setEditForm(null);
+            }
             loadAlbum();
         } catch (error) {
             console.error(error);
             toast.error("Failed to delete image");
+        }
+    };
+
+    const startEditingImage = (image: GalleryImage) => {
+        setEditingImageId(image.id);
+        setEditForm({
+            title: image.title || "",
+            description: image.description || "",
+            order: image.order
+        });
+    };
+
+    const cancelEditing = () => {
+        setEditingImageId(null);
+        setEditForm(null);
+    };
+
+    const saveImageEdits = async (imageId: string) => {
+        if (!editForm) return;
+
+        try {
+            await adminGalleryService.updateImage(imageId, editForm);
+            toast.success("Image updated");
+            setEditingImageId(null);
+            setEditForm(null);
+            loadAlbum();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to update image");
         }
     };
 
@@ -147,24 +210,25 @@ export default function EditAlbumPage() {
     };
 
     const onUploadImages = async () => {
-        if (newImageFiles.length === 0) return;
+        if (newImages.length === 0) return;
 
         try {
             setUploadingImages(true);
-            const imageTitles = newImageFiles.map((_, i) => `Image`);
-            const imageDescriptions = newImageFiles.map(() => "");
-            const imageOrders = newImageFiles.map((_, i) => (album?.images.length || 0) + i + 1);
+
+            const imageFiles = newImages.map(img => img.file);
+            const imageTitles = newImages.map(img => img.title);
+            const imageDescriptions = newImages.map(img => img.description);
+            const imageOrders = newImages.map(img => img.order);
 
             await adminGalleryService.addImagesToAlbum(albumId, {
-                imageFiles: newImageFiles,
+                imageFiles,
                 imageTitles,
                 imageDescriptions,
                 imageOrders,
             });
 
             toast.success("Images uploaded successfully");
-            setNewImageFiles([]);
-            setNewImagesPreview([]);
+            setNewImages([]);
             loadAlbum();
         } catch (error) {
             console.error(error);
@@ -288,7 +352,7 @@ export default function EditAlbumPage() {
                             <CardTitle>Add New Images</CardTitle>
                             <CardDescription>Upload more photos to this album</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
                             <div className="flex items-center gap-4">
                                 <Button type="button" variant="outline" className="relative cursor-pointer">
                                     <Upload className="h-4 w-4 mr-2" />
@@ -301,37 +365,72 @@ export default function EditAlbumPage() {
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     />
                                 </Button>
-                                {newImageFiles.length > 0 && (
+                                {newImages.length > 0 && (
                                     <span className="text-sm text-muted-foreground">
-                                        {newImageFiles.length} images selected
+                                        {newImages.length} images selected
                                     </span>
                                 )}
                             </div>
 
-                            {newImagesPreview.length > 0 && (
+                            {newImages.length > 0 && (
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                                        {newImagesPreview.map((preview, index) => (
-                                            <div key={index} className="relative aspect-square group rounded-md overflow-hidden border bg-muted">
-                                                <Image
-                                                    src={preview}
-                                                    alt={`New ${index}`}
-                                                    fill
-                                                    className="object-cover"
-                                                />
-                                                <button
-                                                    onClick={() => removeNewImage(index)}
-                                                    className="absolute top-1 right-1 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {newImages.map((img, index) => (
+                                            <div key={img.id} className="flex gap-4 p-4 border rounded-lg bg-muted/30">
+                                                <div className="relative w-32 h-32 flex-shrink-0 bg-muted rounded-md overflow-hidden">
+                                                    <Image
+                                                        src={img.preview}
+                                                        alt="Preview"
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                                <div className="flex-1 space-y-3">
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-medium">Title</label>
+                                                            <Input
+                                                                value={img.title}
+                                                                onChange={(e) => updateNewImage(img.id, 'title', e.target.value)}
+                                                                placeholder="Image title"
+                                                                className="h-8"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-medium">Order</label>
+                                                            <Input
+                                                                type="number"
+                                                                value={img.order}
+                                                                onChange={(e) => updateNewImage(img.id, 'order', parseInt(e.target.value))}
+                                                                className="h-8"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-xs font-medium">Description</label>
+                                                        <Input
+                                                            value={img.description}
+                                                            onChange={(e) => updateNewImage(img.id, 'description', e.target.value)}
+                                                            placeholder="Description (optional)"
+                                                            className="h-8"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                    onClick={() => removeNewImage(img.id)}
                                                 >
-                                                    <X className="h-3 w-3" />
-                                                </button>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-end border-t pt-4">
                                         <Button onClick={onUploadImages} disabled={uploadingImages}>
                                             {uploadingImages && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Upload {newImageFiles.length} Images
+                                            Upload {newImages.length} Images
                                         </Button>
                                     </div>
                                 </div>
@@ -352,25 +451,108 @@ export default function EditAlbumPage() {
                                 No images in this album yet.
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {album.images.map((image) => (
-                                    <div key={image.id} className="group relative aspect-square rounded-lg overflow-hidden border bg-muted shadow-sm">
-                                        <Image
-                                            src={image.url}
-                                            alt={image.title || "Album image"}
-                                            fill
-                                            className="object-cover transition-transform group-hover:scale-105"
-                                            unoptimized
-                                        />
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                            <Button
-                                                variant="destructive"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={() => handleDeleteExistingImage(image.id)}
-                                            >
-                                                <Trash className="h-4 w-4" />
-                                            </Button>
+                                    <div key={image.id} className="group relative border rounded-lg overflow-hidden bg-card shadow-sm">
+                                        <div className="flex gap-4 p-3">
+                                            {/* Preview */}
+                                            <div className="relative w-24 h-24 flex-shrink-0 bg-muted rounded-md overflow-hidden">
+                                                <Image
+                                                    src={image.url}
+                                                    alt={image.title || "Album image"}
+                                                    fill
+                                                    className="object-cover"
+                                                    unoptimized
+                                                />
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="flex-1 min-w-0">
+                                                {editingImageId === image.id && editForm ? (
+                                                    <div className="space-y-3">
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <div className="col-span-2">
+                                                                <Input
+                                                                    value={editForm.title}
+                                                                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                                                                    placeholder="Title"
+                                                                    className="h-8 text-sm"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <Input
+                                                                    type="number"
+                                                                    value={editForm.order}
+                                                                    onChange={(e) => setEditForm({ ...editForm, order: parseInt(e.target.value) })}
+                                                                    className="h-8 text-sm"
+                                                                    placeholder="Order"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <Input
+                                                            value={editForm.description}
+                                                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                                            placeholder="Description"
+                                                            className="h-8 text-sm"
+                                                        />
+                                                        <div className="flex justify-between items-center pt-1">
+                                                            <Button
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                className="h-7 px-2 text-xs"
+                                                                onClick={() => handleDeleteExistingImage(image.id)}
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                            <div className="flex gap-2">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 px-2 text-xs"
+                                                                    onClick={cancelEditing}
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="h-7 px-2 text-xs"
+                                                                    onClick={() => saveImageEdits(image.id)}
+                                                                >
+                                                                    Save
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col h-full justify-between">
+                                                        <div>
+                                                            <div className="flex justify-between items-start gap-2">
+                                                                <p className="font-medium text-sm truncate" title={image.title || ""}>
+                                                                    {image.title || <span className="text-muted-foreground italic">No title</span>}
+                                                                </p>
+                                                                <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                                                    #{image.order}
+                                                                </span>
+                                                            </div>
+                                                            {image.description && (
+                                                                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                                                    {image.description}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex justify-end pt-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-7 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={() => startEditingImage(image)}
+                                                            >
+                                                                Edit
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

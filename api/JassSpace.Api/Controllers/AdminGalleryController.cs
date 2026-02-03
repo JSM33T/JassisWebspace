@@ -450,6 +450,57 @@ public sealed class AdminGalleryController(
     }
 
     /// <summary>
+    /// Update details of a specific image
+    /// </summary>
+    [HttpPut("images/{imageId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ImageResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateImage(
+        Guid imageId,
+        [FromForm] string? title,
+        [FromForm] string? description,
+        [FromForm] int? order,
+        CancellationToken cancellationToken = default)
+    {
+        var image = await dbContext.Images
+            .FirstOrDefaultAsync(i => i.Id == imageId, cancellationToken);
+
+        if (image is null)
+        {
+            return NotFoundProblem("Image not found", $"No image found with ID '{imageId}'.");
+        }
+
+        try
+        {
+            if (title != null) image.Title = title;
+            if (description != null) image.Description = description;
+            if (order.HasValue) image.Order = order.Value;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            var response = new ImageResponse(
+                image.Id,
+                image.AlbumId,
+                image.Url,
+                image.Title,
+                image.Description,
+                image.Order,
+                image.CreatedAt
+            );
+
+            return OkEnvelope(response);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to update image {ImageId}", imageId);
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to update image",
+                "An unexpected error occurred while updating the image.");
+        }
+    }
+
+    /// <summary>
     /// Delete an individual image from an album
     /// </summary>
     [HttpDelete("images/{imageId:guid}")]

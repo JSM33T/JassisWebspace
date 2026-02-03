@@ -85,6 +85,15 @@ class AdminGalleryService {
         return post<Image[]>(`/admin/gallery/albums/${albumId}/images`, formData);
     }
 
+    async updateImage(imageId: string, data: { title?: string, description?: string, order?: number }): Promise<Image> {
+        const formData = new FormData();
+        if (data.title !== undefined) formData.append('title', data.title);
+        if (data.description !== undefined) formData.append('description', data.description);
+        if (data.order !== undefined) formData.append('order', data.order.toString());
+
+        return put<Image>(`/admin/gallery/images/${imageId}`, formData);
+    }
+
     async deleteImage(imageId: string): Promise<void> {
         return del(`/admin/gallery/images/${imageId}`);
     }
