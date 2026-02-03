@@ -185,6 +185,7 @@ public sealed class MediaController(
     /// Retrieves an image by its blob name. Uses the local cache when possible.
     /// </summary>
     [HttpGet("{blobName}")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetImage(string blobName, CancellationToken cancellationToken = default)

@@ -21,9 +21,22 @@ namespace JassSpace.Api.Controllers;
 public sealed class AdminGalleryController(
     JassSpaceDbContext dbContext,
     IAzureBlobStorageService blobStorageService,
-    ILogger<AdminGalleryController> logger)
+    ILogger<AdminGalleryController> logger,
+    IHttpContextAccessor httpContextAccessor)
     : BaseApiController
 {
+    private string GetBaseUrl()
+    {
+        var request = httpContextAccessor.HttpContext?.Request;
+        if (request == null) return "http://localhost:5283";
+        return $"{request.Scheme}://{request.Host}";
+    }
+
+    private string GetFullMediaUrl(string blobName)
+    {
+        return $"{GetBaseUrl()}/media/{blobName}";
+    }
+
     private async Task<BlobUploadResult> UploadFileAsync(IFormFile file, string? blobName, CancellationToken cancellationToken)
     {
         await using var stream = file.OpenReadStream();
@@ -56,7 +69,7 @@ public sealed class AdminGalleryController(
             var uploadResult = await UploadFileAsync(file, "gallery/" + Guid.NewGuid(), cancellationToken);
             
             // Return the media controller URL instead of blob URL
-            var mediaUrl = $"/media/{uploadResult.BlobName}";
+            var mediaUrl = GetFullMediaUrl(uploadResult.BlobName);
             var response = new MediaUploadResponse(uploadResult.BlobName, mediaUrl);
             
             return OkEnvelope(response);
@@ -107,18 +120,21 @@ public sealed class AdminGalleryController(
                 slug = $"{slug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
             }
 
+            var albumId = Guid.NewGuid();
+
             // Upload cover image if provided
             string? coverUrl = null;
             if (coverImage is not null && coverImage.Length > 0)
             {
-                var coverUpload = await UploadFileAsync(coverImage, $"gallery/covers/{slug}", cancellationToken);
-                coverUrl = $"/media/{coverUpload.BlobName}";
+                // Use ID for immutable blob path
+                var coverUpload = await UploadFileAsync(coverImage, $"gallery/covers/{albumId}", cancellationToken);
+                coverUrl = GetFullMediaUrl(coverUpload.BlobName);
             }
 
             // Create the album
             var album = new Album
             {
-                Id = Guid.NewGuid(),
+                Id = albumId,
                 Name = name,
                 Slug = slug,
                 Cover = coverUrl,
@@ -164,9 +180,9 @@ public sealed class AdminGalleryController(
                     var imageFile = imageFiles[i];
                     if (imageFile.Length == 0) continue;
 
-                    // Upload image to blob
-                    var imageUpload = await UploadFileAsync(imageFile, $"gallery/images/{slug}-{Guid.NewGuid()}", cancellationToken);
-                    var imageUrl = $"/media/{imageUpload.BlobName}";
+                    // Upload image to blob using Album ID
+                    var imageUpload = await UploadFileAsync(imageFile, $"gallery/images/{albumId}-{Guid.NewGuid()}", cancellationToken);
+                    var imageUrl = GetFullMediaUrl(imageUpload.BlobName);
 
                     // Get metadata for this image
                     var title = imageTitles != null && i < imageTitles.Count ? imageTitles[i] : null;
@@ -263,7 +279,7 @@ public sealed class AdminGalleryController(
 
                 // Upload image to blob
                 var imageUpload = await UploadFileAsync(imageFile, $"gallery/images/{albumId}-{Guid.NewGuid()}", cancellationToken);
-                var imageUrl = $"/media/{imageUpload.BlobName}";
+                var imageUrl = GetFullMediaUrl(imageUpload.BlobName);
 
                 // Get metadata for this image
                 var title = imageTitles != null && i < imageTitles.Count ? imageTitles[i] : null;
@@ -357,8 +373,8 @@ public sealed class AdminGalleryController(
             // Upload new cover image if provided
             if (coverImage is not null && coverImage.Length > 0)
             {
-                var coverUpload = await UploadFileAsync(coverImage, $"gallery/covers/{album.Slug}", cancellationToken);
-                album.Cover = $"/media/{coverUpload.BlobName}";
+                var coverUpload = await UploadFileAsync(coverImage, $"gallery/covers/{albumId}", cancellationToken);
+                album.Cover = GetFullMediaUrl(coverUpload.BlobName);
             }
 
             // Update active status

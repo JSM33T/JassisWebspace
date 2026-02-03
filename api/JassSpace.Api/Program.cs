@@ -57,6 +57,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 // Register services
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddHttpClient();
 
