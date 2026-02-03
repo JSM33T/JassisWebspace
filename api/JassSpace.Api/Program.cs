@@ -71,6 +71,9 @@ builder.Services.Configure<JassSpace.Infra.Configuration.AzureBlobStorageSetting
     builder.Configuration.GetSection("AzureBlobStorage"));
 builder.Services.AddScoped<JassSpace.Infra.IAzureBlobStorageService, JassSpace.Infra.AzureBlobStorageService>();
 
+// Image Processing Service
+builder.Services.AddScoped<JassSpace.Infra.IImageProcessingService, JassSpace.Infra.ImageProcessingService>();
+
 // Repository Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();

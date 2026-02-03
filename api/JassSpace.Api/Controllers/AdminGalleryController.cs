@@ -21,6 +21,7 @@ namespace JassSpace.Api.Controllers;
 public sealed class AdminGalleryController(
     JassSpaceDbContext dbContext,
     IAzureBlobStorageService blobStorageService,
+    IImageProcessingService imageProcessingService,
     ILogger<AdminGalleryController> logger,
     IHttpContextAccessor httpContextAccessor)
     : BaseApiController
@@ -40,10 +41,14 @@ public sealed class AdminGalleryController(
     private async Task<BlobUploadResult> UploadFileAsync(IFormFile file, string? blobName, CancellationToken cancellationToken)
     {
         await using var stream = file.OpenReadStream();
+        
+        // Process the image (convert to WebP and scale if needed)
+        await using var processedStream = await imageProcessingService.ProcessImageAsync(stream, cancellationToken);
+        
         return await blobStorageService.UploadImageAsync(
-            stream,
+            processedStream,
             file.FileName,
-            string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
+            "image/webp", // Force WebP content type
             blobName,
             cancellationToken);
     }
