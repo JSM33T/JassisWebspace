@@ -416,7 +416,7 @@ public sealed class AdminGalleryController(
     /// <summary>
     /// Delete an album and all associated images (Hard Delete with Blob Cleanup)
     /// </summary>
-    [HttpDelete("albums/{albumId:guid}")]
+    [HttpPost("albums/{albumId:guid}/delete")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAlbum(Guid albumId, CancellationToken cancellationToken = default)

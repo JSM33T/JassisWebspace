@@ -5,14 +5,18 @@ import Link from "next/link";
 import { Plus, Pencil, Trash } from "lucide-react";
 import { Album } from "@/lib/api/gallery.types";
 import { galleryService } from "@/lib/api/gallery.service";
+import { adminGalleryService } from "@/lib/api/admin-gallery.service";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function AdminGalleryPage() {
     const [albums, setAlbums] = useState<Album[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleting, setDeleting] = useState<string | null>(null);
+    const router = useRouter();
 
     useEffect(() => {
         loadAlbums();
@@ -27,6 +31,23 @@ export default function AdminGalleryPage() {
             console.error("Failed to load albums", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async (albumId: string, albumName: string) => {
+        if (!confirm(`Are you sure you want to delete "${albumName}"? This will permanently delete all images in this album.`)) {
+            return;
+        }
+
+        try {
+            setDeleting(albumId);
+            await adminGalleryService.deleteAlbum(albumId);
+            setAlbums(albums.filter(a => a.id !== albumId));
+        } catch (error) {
+            console.error("Failed to delete album", error);
+            alert("Failed to delete album. Please try again.");
+        } finally {
+            setDeleting(null);
         }
     };
 
@@ -88,7 +109,12 @@ export default function AdminGalleryPage() {
                                         Edit
                                     </Link>
                                 </Button>
-                                <Button variant="destructive" size="sm">
+                                <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    onClick={() => handleDelete(album.id, album.name)}
+                                    disabled={deleting === album.id}
+                                >
                                     <Trash className="h-4 w-4" />
                                 </Button>
                             </CardFooter>

@@ -94,6 +94,10 @@ class AdminGalleryService {
         return put<Image>(`/admin/gallery/images/${imageId}`, formData);
     }
 
+    async deleteAlbum(albumId: string): Promise<void> {
+        return post(`/admin/gallery/albums/${albumId}/delete`);
+    }
+
     async deleteImage(imageId: string): Promise<void> {
         return del(`/admin/gallery/images/${imageId}`);
     }
