@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Image as ImageIcon, ArrowLeft, Calendar, Images } from 'lucide-react';
+import Image from 'next/image';
 import { galleryService } from '@/lib/api/gallery.service';
 import { Album } from '@/lib/api/gallery.types';
 import { ApiError } from '@/lib/api/types';
@@ -46,7 +47,7 @@ export default function GalleryPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen pt-24">
             {/* Header */}
             <section className="px-4 py-12 md:py-16 border-b">
                 <div className="container mx-auto">
@@ -119,6 +120,24 @@ export default function GalleryPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {albums.map((album) => (
                                 <Card key={album.id} className="hover:shadow-lg transition-shadow">
+                                    {album.cover ? (
+                                        <div className="w-full h-48 overflow-hidden rounded-t-md relative">
+                                            <Image
+                                                src={album.cover}
+                                                alt={`${album.name} cover`}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-full h-48 overflow-hidden rounded-t-md flex items-center justify-center bg-muted">
+                                            <div className="text-muted-foreground flex flex-col items-center">
+                                                <ImageIcon className="h-8 w-8 mb-2" />
+                                                <span className="text-sm">No cover</span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <CardHeader>
                                         <CardTitle className="flex items-start justify-between">
                                             <span className="line-clamp-1">{album.name}</span>

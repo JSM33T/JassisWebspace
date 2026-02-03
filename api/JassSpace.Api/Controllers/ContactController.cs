@@ -5,7 +5,7 @@ namespace JassSpace.Api.Controllers
 {
     [Route($"api/contact")]
     [ApiController]
-    public class ContactController : ControllerBase
+    public class ContactController : BaseApiController
     {
     }
 }
