@@ -426,5 +426,32 @@ namespace JassSpace.Infra
 
             return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, configuredPath));
         }
+        public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(blobName))
+            {
+                return;
+            }
+
+            // 1. Delete from Azure Blob Storage
+            var blobClient = _containerClient.GetBlobClient(blobName);
+            try
+            {
+                await blobClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken);
+                _logger.LogInformation("Blob {BlobName} deleted from Azure Blob Storage", blobName);
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogError(ex, "Failed to delete blob {BlobName} from Azure", blobName);
+                // Continue to try deleting local cache even if Azure fails (or maybe it was already gone)
+            }
+
+            // 2. Delete from Local Cache
+            if (_settings.UseLocalCache)
+            {
+                ClearCachedFiles(blobName);
+                _logger.LogInformation("Cached files for {BlobName} cleared", blobName);
+            }
+        }
     }
 }

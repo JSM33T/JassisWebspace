@@ -414,7 +414,7 @@ public sealed class AdminGalleryController(
     }
 
     /// <summary>
-    /// Delete an album (soft delete by setting IsActive = false)
+    /// Delete an album and all associated images (Hard Delete with Blob Cleanup)
     /// </summary>
     [HttpDelete("albums/{albumId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -422,6 +422,7 @@ public sealed class AdminGalleryController(
     public async Task<IActionResult> DeleteAlbum(Guid albumId, CancellationToken cancellationToken = default)
     {
         var album = await dbContext.Albums
+            .Include(a => a.Images)
             .FirstOrDefaultAsync(a => a.Id == albumId, cancellationToken);
 
         if (album is null)
@@ -431,18 +432,45 @@ public sealed class AdminGalleryController(
 
         try
         {
-            // Soft delete
-            album.IsActive = false;
-            album.UpdatedAt = DateTimeOffset.UtcNow;
+            // 1. Delete Cover Image Blob if exists
+            var coverBlobName = ExtractBlobNameFromUrl(album.Cover);
+            if (!string.IsNullOrEmpty(coverBlobName))
+            {
+                await blobStorageService.DeleteBlobAsync(coverBlobName, cancellationToken);
+            }
 
+            // 2. Delete All Image Blobs
+            foreach (var image in album.Images)
+            {
+                var imageBlobName = ExtractBlobNameFromUrl(image.Url);
+                if (!string.IsNullOrEmpty(imageBlobName))
+                {
+                    await blobStorageService.DeleteBlobAsync(imageBlobName, cancellationToken);
+                }
+            }
+
+            // 3. Delete DB Records
+            // Cascade delete should handle Images if configured, but let's be explicit with the context
+            dbContext.Images.RemoveRange(album.Images); // Remove images first
+            
+            // Remove Content entry if exists (polymorphic relation manual cleanup usually)
+            var content = await dbContext.Contents
+                .FirstOrDefaultAsync(c => c.ContentRefId == albumId && c.ContentType == ContentType.Album, cancellationToken);
+            if (content != null)
+            {
+                 dbContext.Contents.Remove(content);
+            }
+
+            dbContext.Albums.Remove(album);
+            
             await dbContext.SaveChangesAsync(cancellationToken);
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to delete album {AlbumId}", albumId);
-            return Problem(
+            logger.LogError(ex, "Failed to delete album {AlbumId} and cleanup blobs", albumId);
+             return Problem(
                 StatusCodes.Status500InternalServerError,
                 "Failed to delete album",
                 "An unexpected error occurred while deleting the album.");
@@ -501,7 +529,7 @@ public sealed class AdminGalleryController(
     }
 
     /// <summary>
-    /// Delete an individual image from an album
+    /// Delete an individual image from an album and clean up its blob
     /// </summary>
     [HttpDelete("images/{imageId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -518,9 +546,14 @@ public sealed class AdminGalleryController(
 
         try
         {
-            // We physically delete the image record
-            // Note: We're not deleting the blob to avoid accidental data loss suitable for soft-deletes policy elsewhere,
-            // but for gallery images, we might want to delete it. For now, we just remove the record.
+            // 1. Delete Blob
+            var blobName = ExtractBlobNameFromUrl(image.Url);
+            if (!string.IsNullOrEmpty(blobName))
+            {
+                await blobStorageService.DeleteBlobAsync(blobName, cancellationToken);
+            }
+
+            // 2. Delete DB Record
             dbContext.Images.Remove(image);
             await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -534,6 +567,16 @@ public sealed class AdminGalleryController(
                 "Failed to delete image",
                 "An unexpected error occurred while deleting the image.");
         }
+    }
+
+    private string? ExtractBlobNameFromUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return null;
+        var marker = "/media/";
+        var index = url.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index == -1) return null;
+        
+        return url.Substring(index + marker.Length);
     }
 
     /// <summary>
