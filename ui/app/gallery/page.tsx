@@ -119,18 +119,20 @@ export default function GalleryPage() {
                     {!loading && !error && albums.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {albums.map((album) => (
-                                <Card key={album.id} className="hover:shadow-lg transition-shadow">
+                                <Card key={album.id} className="hover:shadow-lg transition-shadow overflow-hidden">
                                     {album.cover ? (
-                                        <div className="w-full h-48 overflow-hidden rounded-t-md relative">
+                                        <div className="w-full h-48 relative bg-muted">
                                             <Image
                                                 src={album.cover}
-                                                alt={`${album.name} cover`}
+                                                alt={album.name}
                                                 fill
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                                 className="object-cover"
+                                                unoptimized
                                             />
                                         </div>
                                     ) : (
-                                        <div className="w-full h-48 overflow-hidden rounded-t-md flex items-center justify-center bg-muted">
+                                        <div className="w-full h-48 flex items-center justify-center bg-muted">
                                             <div className="text-muted-foreground flex flex-col items-center">
                                                 <ImageIcon className="h-8 w-8 mb-2" />
                                                 <span className="text-sm">No cover</span>
