@@ -277,7 +277,7 @@ public sealed class MediaController(
                 4096,
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
 
-            return File(stream, cachedImage.ContentType, cachedImage.FileName);
+            return File(stream, cachedImage.ContentType);
         }
         catch (FileNotFoundException)
         {

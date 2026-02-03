@@ -250,6 +250,7 @@ export default function EditAlbumPage() {
                                                     alt="Cover preview"
                                                     fill
                                                     className="object-cover"
+                                                    unoptimized
                                                 />
                                             ) : (
                                                 <div className="text-center text-muted-foreground p-2">
@@ -359,6 +360,7 @@ export default function EditAlbumPage() {
                                             alt={image.title || "Album image"}
                                             fill
                                             className="object-cover transition-transform group-hover:scale-105"
+                                            unoptimized
                                         />
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                             <Button

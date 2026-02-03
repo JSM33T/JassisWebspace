@@ -62,6 +62,7 @@ export default function AdminGalleryPage() {
                                         alt={album.name}
                                         fill
                                         className="object-cover"
+                                        unoptimized
                                     />
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-muted-foreground">
