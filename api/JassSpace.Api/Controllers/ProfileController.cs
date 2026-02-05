@@ -47,6 +47,43 @@ public sealed class ProfileController(
     }
 
     /// <summary>
+    /// Get public profile by username
+    /// </summary>
+    [HttpGet("{username}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<PublicProfileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPublicProfile(string username, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var normalizedUsername = (username ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(normalizedUsername))
+            {
+                return NotFoundProblem("User not found");
+            }
+
+            logger.LogInformation("Getting public profile for username {Username} with CorrelationId {CorrelationId}",
+                username, CorrelationId);
+
+            var profile = await profileService.GetPublicProfileByUsernameAsync(normalizedUsername, cancellationToken);
+            
+            if (profile != null) return OkEnvelope(profile);
+            
+            logger.LogWarning("Public profile not found for username {Username}", username);
+            return NotFoundProblem("User not found");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting public profile for username {Username}", username);
+            return Problem(
+                statusCode: StatusCodes.Status500InternalServerError,
+                title: "Internal Server Error",
+                detail: "An error occurred while retrieving the profile");
+        }
+    }
+
+    /// <summary>
     /// Update user's profile information (excluding password)
     /// </summary>
     [HttpPost($"")]

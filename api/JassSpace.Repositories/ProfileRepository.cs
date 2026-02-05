@@ -72,6 +72,48 @@ public class ProfileRepository(JassSpaceDbContext db, ILogger<ProfileRepository>
         );
     }
 
+    public async Task<PublicProfileResponse?> GetPublicProfileByUsernameAsync(
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedUsername = username.Trim().ToLowerInvariant();
+
+        var dto = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Username.ToLower() == normalizedUsername)
+            .Select(u => new
+            {
+                u.Id,
+                u.Username,
+                u.FirstName,
+                u.LastName,
+                u.DisplayName,
+                u.Bio,
+                u.AvatarUrl,
+                u.CoverUrl,
+                u.VerifiedBadge,
+                u.CreatedAt,
+                u.UpdatedAt
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (dto is null) return null;
+
+        return new PublicProfileResponse(
+            dto.Id,
+            dto.Username,
+            dto.FirstName,
+            dto.LastName,
+            dto.DisplayName,
+            dto.Bio,
+            dto.AvatarUrl,
+            dto.CoverUrl,
+            dto.VerifiedBadge,
+            dto.CreatedAt,
+            dto.UpdatedAt
+        );
+    }
+
 
     public async Task<ProfileUpdateResponse?> UpdateProfileAsync(
     Guid userId,

@@ -27,6 +27,7 @@ public sealed class BlogController(
         [FromQuery] DateTimeOffset? startDate,
         [FromQuery] DateTimeOffset? endDate,
         [FromQuery] Guid? categoryId,
+        [FromQuery] string? authorUsername,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
@@ -68,6 +69,12 @@ public sealed class BlogController(
             if (categoryId.HasValue)
             {
                 query = query.Where(b => b.CategoryId == categoryId.Value);
+            }
+
+            // Apply author filter
+            if (!string.IsNullOrWhiteSpace(authorUsername))
+            {
+                query = query.Where(b => b.Authors.Any(ba => ba.User.Username == authorUsername));
             }
 
             // Get total count for pagination

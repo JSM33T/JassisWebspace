@@ -15,6 +15,9 @@ public sealed class ProfileService(IProfileRepository profileRepository, ILogger
     public Task<ProfileDetailsResponse?> GetProfileDetailsAsync(Guid userId, CancellationToken cancellationToken = default) =>
         _profileRepository.GetProfileDetailsAsync(userId, cancellationToken);
 
+    public Task<PublicProfileResponse?> GetPublicProfileByUsernameAsync(string username, CancellationToken cancellationToken = default) =>
+        _profileRepository.GetPublicProfileByUsernameAsync(username, cancellationToken);
+
     public async Task<ProfileUpdateResult> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken cancellationToken = default)
     {
         var usernameCandidate = request.Username?.Trim();

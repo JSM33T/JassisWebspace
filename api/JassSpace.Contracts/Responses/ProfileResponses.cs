@@ -19,6 +19,20 @@ public sealed record ProfileDetailsResponse(
     IReadOnlyList<string> Roles
 );
 
+public sealed record PublicProfileResponse(
+    Guid Id,
+    string Username,
+    string? FirstName,
+    string? LastName,
+    string? DisplayName,
+    string? Bio,
+    string? AvatarUrl,
+    string? CoverUrl,
+    bool VerifiedBadge,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt
+);
+
 public sealed record SessionInfo(
     Guid Id,
     string AuthMethod,

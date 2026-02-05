@@ -21,6 +21,7 @@ export const blogService = {
         startDate?: string;
         endDate?: string;
         categoryId?: string;
+        authorUsername?: string;
         page?: number;
         pageSize?: number;
     }): Promise<BlogListItem[]> {
@@ -29,6 +30,7 @@ export const blogService = {
         if (params?.startDate) queryParams.append('startDate', params.startDate);
         if (params?.endDate) queryParams.append('endDate', params.endDate);
         if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
+        if (params?.authorUsername) queryParams.append('authorUsername', params.authorUsername);
         if (params?.page) queryParams.append('page', params.page.toString());
         if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
         

@@ -20,8 +20,6 @@ export interface UpdateProfileRequest {
 
 export interface ProfileInfo {
     id: string;
-    email: string;
-    emailVerified: boolean;
     username?: string | null;
     firstName?: string | null;
     lastName?: string | null;
@@ -29,11 +27,16 @@ export interface ProfileInfo {
     bio?: string | null;
     avatarUrl?: string | null;
     coverUrl?: string | null;
-    timezone?: string | null;
-    locale?: string | null;
     verifiedBadge: boolean;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface PrivateProfileInfo extends ProfileInfo {
+    email: string;
+    emailVerified: boolean;
+    timezone?: string | null;
+    locale?: string | null;
     roles: string[];
 }
 
@@ -43,7 +46,7 @@ export interface GetProfileResponse {
 
 export interface UpdateProfileResponse {
     data: {
-        profile: ProfileInfo;
+        profile: PrivateProfileInfo;
     };
 }
 
@@ -56,8 +59,16 @@ export const profileService = {
      * GET /profile
      * Get current user profile
      */
-    async getProfile(token: string): Promise<GetProfileResponse> {
-        return get<GetProfileResponse>('/profile', { token });
+    async getProfile(token: string): Promise<PrivateProfileInfo> {
+        return get<PrivateProfileInfo>('/profile', { token });
+    },
+
+    /**
+     * GET /profile/{username}
+     * Get public profile by username
+     */
+    async getPublicProfile(username: string): Promise<ProfileInfo> {
+        return get<ProfileInfo>(`/profile/${username}`);
     },
 
     /**

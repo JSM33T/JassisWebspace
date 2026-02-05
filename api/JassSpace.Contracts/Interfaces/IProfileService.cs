@@ -64,6 +64,14 @@ namespace JassSpace.Contracts.Interfaces
         Task<ProfileDetailsResponse?> GetProfileDetailsAsync(Guid userId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Retrieves public profile details for the specified username.
+        /// </summary>
+        /// <param name="username">The username of the profile owner.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        /// <returns>The public profile details or <c>null</c> if the user does not exist.</returns>
+        Task<PublicProfileResponse?> GetPublicProfileByUsernameAsync(string username, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Applies profile updates submitted by the user.
         /// </summary>
         /// <param name="userId">The unique identifier of the profile owner.</param>
