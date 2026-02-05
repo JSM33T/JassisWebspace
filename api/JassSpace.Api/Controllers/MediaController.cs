@@ -4,8 +4,10 @@ using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
 using JassSpace.Infra;
+using JassSpace.Infra.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace JassSpace.Api.Controllers;
 
@@ -14,9 +16,12 @@ namespace JassSpace.Api.Controllers;
 public sealed class MediaController(
     IAzureBlobStorageService blobStorageService,
     IProfileRepository profileRepository,
-    ILogger<MediaController> logger)
+    ILogger<MediaController> logger,
+    IOptions<AzureBlobStorageSettings> blobSettings)
     : BaseApiController
 {
+    private readonly string _containerName = blobSettings?.Value?.ContainerName ?? string.Empty;
+
     /// <summary>
     /// Uploads an image to Cloudinary and stores a cached copy locally.
     /// </summary>
@@ -33,7 +38,8 @@ public sealed class MediaController(
         try
         {
             var uploadResult = await UploadFileAsync(file, cancellationToken);
-            var response = new MediaUploadResponse(uploadResult.BlobName, uploadResult.Url);
+            var mediaUrl = MediaUrlHelper.BuildMediaUrl(Request, uploadResult.BlobName);
+            var response = new MediaUploadResponse(uploadResult.BlobName, mediaUrl);
             return OkEnvelope(response);
         }
         catch (Exception ex)
@@ -71,7 +77,8 @@ public sealed class MediaController(
         {
             var uploadResult = await UploadFileAsync(file, $"{userId:N}-avatar", cancellationToken);
 
-            var updateRequest = new UpdateProfileRequest(AvatarUrl: uploadResult.Url);
+            var mediaUrl = MediaUrlHelper.BuildMediaUrl(Request, uploadResult.BlobName);
+            var updateRequest = new UpdateProfileRequest(AvatarUrl: mediaUrl);
             var updateResponse = await profileRepository.UpdateProfileAsync(userId, updateRequest, cancellationToken);
 
             if (updateResponse is null)
@@ -79,7 +86,7 @@ public sealed class MediaController(
                 return NotFoundProblem("User not found", "Unable to update the avatar for the current user.");
             }
 
-            return OkEnvelope(updateResponse, new { uploadResult.BlobName });
+            return OkEnvelope(updateResponse, new { uploadResult.BlobName, Url = mediaUrl });
         }
         catch (Exception ex)
         {
@@ -114,7 +121,8 @@ public sealed class MediaController(
         {
             var uploadResult = await UploadFileAsync(file, $"{userId:N}-cover", cancellationToken);
 
-            var updateRequest = new UpdateProfileRequest(CoverUrl: uploadResult.Url);
+            var mediaUrl = MediaUrlHelper.BuildMediaUrl(Request, uploadResult.BlobName);
+            var updateRequest = new UpdateProfileRequest(CoverUrl: mediaUrl);
             var updateResponse = await profileRepository.UpdateProfileAsync(userId, updateRequest, cancellationToken);
 
             if (updateResponse is null)
@@ -122,7 +130,7 @@ public sealed class MediaController(
                 return NotFoundProblem("User not found", "Unable to update the cover image for the current user.");
             }
 
-            return OkEnvelope(updateResponse, new { uploadResult.BlobName });
+            return OkEnvelope(updateResponse, new { uploadResult.BlobName, Url = mediaUrl });
         }
         catch (Exception ex)
         {
@@ -247,6 +255,11 @@ public sealed class MediaController(
 
     private async Task<CachedImageResult?> ResolveCachedImageAsync(string mediaReference, CancellationToken cancellationToken)
     {
+        if (MediaUrlHelper.TryExtractMediaBlobName(mediaReference, out var mediaBlobName))
+        {
+            return await blobStorageService.GetImageAsync(mediaBlobName, cancellationToken);
+        }
+
         if (Uri.TryCreate(mediaReference, UriKind.Absolute, out _))
         {
             var cachedFromUrl = await blobStorageService.GetImageByUrlAsync(mediaReference, cancellationToken);
@@ -254,6 +267,11 @@ public sealed class MediaController(
             {
                 return cachedFromUrl;
             }
+        }
+
+        if (MediaUrlHelper.TryResolveBlobNameFromUrl(mediaReference, _containerName, out var blobName))
+        {
+            return await blobStorageService.GetImageAsync(blobName, cancellationToken);
         }
 
         return await blobStorageService.GetImageAsync(mediaReference, cancellationToken);
@@ -269,6 +287,7 @@ public sealed class MediaController(
     {
         try
         {
+            var contentType = NormalizeContentType(cachedImage.ContentType, cachedImage.FilePath);
             var stream = new FileStream(
                 cachedImage.FilePath,
                 FileMode.Open,
@@ -277,7 +296,7 @@ public sealed class MediaController(
                 4096,
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
 
-            return File(stream, cachedImage.ContentType);
+            return File(stream, contentType);
         }
         catch (FileNotFoundException)
         {
@@ -292,5 +311,28 @@ public sealed class MediaController(
                 errorTitle,
                 "An unexpected error occurred while reading the cached image.");
         }
+    }
+
+    private static string NormalizeContentType(string? contentType, string filePath)
+    {
+        if (!string.IsNullOrWhiteSpace(contentType) &&
+            contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return contentType;
+        }
+
+        var ext = Path.GetExtension(filePath).Trim().TrimStart('.').ToLowerInvariant();
+        return ext switch
+        {
+            "jpg" => "image/jpeg",
+            "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "gif" => "image/gif",
+            "webp" => "image/webp",
+            "bmp" => "image/bmp",
+            "tiff" => "image/tiff",
+            "svg" => "image/svg+xml",
+            _ => "image/jpeg"
+        };
     }
 }

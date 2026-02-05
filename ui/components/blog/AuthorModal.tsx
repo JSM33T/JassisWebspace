@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -96,11 +95,11 @@ export function AuthorModal({ isOpen, onClose, userId, username }: AuthorModalPr
                         {/* Cover Image */}
                         {profile.coverUrl ? (
                             <div className="relative h-32 w-full bg-gradient-to-br from-primary/20 to-primary/5">
-                                <Image
+                                <img
                                     src={profile.coverUrl}
                                     alt="Cover"
-                                    fill
-                                    className="object-cover"
+                                    className="absolute inset-0 h-full w-full object-cover"
+                                    loading="lazy"
                                 />
                             </div>
                         ) : (

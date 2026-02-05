@@ -14,6 +14,8 @@ using System.Text;
 using System.Text.Json;
 using JassSpace.Api.Extensions;
 using JassSpace.Infra;
+using JassSpace.Infra.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace JassSpace.Api.Controllers;
 
@@ -26,11 +28,13 @@ public sealed class AuthController(
     IRateLimiterService rateLimiter,
     HttpClient httpClient,
     IEmailService emailService,
-    IAzureBlobStorageService blobStorageService)
+    IAzureBlobStorageService blobStorageService,
+    IOptions<AzureBlobStorageSettings> blobSettings)
     : BaseApiController
 {
     private const string GitHubUserAgent = "JassSpaceApp/1.0";
     private const string ExternalAvatarUserAgent = "JassSpaceAvatarFetcher/1.0";
+    private readonly string _containerName = blobSettings?.Value?.ContainerName ?? string.Empty;
 
     /// <summary>
     /// Authenticate user with email or username and create a new session
@@ -2030,7 +2034,7 @@ public sealed class AuthController(
                 $"{userId:N}-avatar",
                 cancellationToken);
 
-            return uploadResult.Url;
+            return MediaUrlHelper.BuildMediaUrl(Request, uploadResult.BlobName);
         }
         catch (Exception ex)
         {
@@ -2206,8 +2210,8 @@ public sealed class AuthController(
             Username: username,
             FirstName: firstName,
             LastName: lastName,
-            AvatarUrl: user.AvatarUrl,
-            CoverUrl: user.CoverUrl,
+            AvatarUrl: MediaUrlHelper.ToMediaUrl(Request, user.AvatarUrl, _containerName),
+            CoverUrl: MediaUrlHelper.ToMediaUrl(Request, user.CoverUrl, _containerName),
             CreatedAt: user.CreatedAt,
             Roles: roles,
             AuthMethod: authMethod

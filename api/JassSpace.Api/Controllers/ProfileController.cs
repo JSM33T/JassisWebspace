@@ -1,9 +1,12 @@
 using JassSpace.Contracts;
+using JassSpace.Api.Extensions;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using JassSpace.Contracts.Interfaces;
+using JassSpace.Infra.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace JassSpace.Api.Controllers;
 
@@ -11,9 +14,12 @@ namespace JassSpace.Api.Controllers;
 [Authorize]
 public sealed class ProfileController(
     ILogger<ProfileController> logger,
-    IProfileService profileService)
+    IProfileService profileService,
+    IOptions<AzureBlobStorageSettings> blobSettings)
     : BaseApiController
 {
+    private readonly string _containerName = blobSettings?.Value?.ContainerName ?? string.Empty;
+
     /// <summary>
     /// Get current user's profile details
     /// </summary>
@@ -30,7 +36,7 @@ public sealed class ProfileController(
 
             var profile = await profileService.GetProfileDetailsAsync(userIdGuid, cancellationToken);
             
-            if (profile != null) return OkEnvelope(profile);
+            if (profile != null) return OkEnvelope(MapProfileUrls(profile));
             
             logger.LogWarning("User {UserId} not found", UserId);
             return NotFoundProblem("User not found");
@@ -68,7 +74,7 @@ public sealed class ProfileController(
 
             var profile = await profileService.GetPublicProfileByUsernameAsync(normalizedUsername, cancellationToken);
             
-            if (profile != null) return OkEnvelope(profile);
+            if (profile != null) return OkEnvelope(MapPublicProfileUrls(profile));
             
             logger.LogWarning("Public profile not found for username {Username}", username);
             return NotFoundProblem("User not found");
@@ -107,7 +113,7 @@ public sealed class ProfileController(
             {
                 case ProfileUpdateStatus.Success:
                     logger.LogInformation("Profile updated successfully for user {UserId}", UserId);
-                    return OkEnvelope(result.Response!);
+                    return OkEnvelope(MapProfileUpdateUrls(result.Response!));
                 case ProfileUpdateStatus.UserNotFound:
                     logger.LogWarning("User {UserId} not found", UserId);
                     return NotFoundProblem("User not found");
@@ -366,4 +372,21 @@ public sealed class ProfileController(
             ipAddress,
             userAgent);
     }
+
+    private ProfileDetailsResponse MapProfileUrls(ProfileDetailsResponse profile)
+        => profile with
+        {
+            AvatarUrl = MediaUrlHelper.ToMediaUrl(Request, profile.AvatarUrl, _containerName),
+            CoverUrl = MediaUrlHelper.ToMediaUrl(Request, profile.CoverUrl, _containerName)
+        };
+
+    private PublicProfileResponse MapPublicProfileUrls(PublicProfileResponse profile)
+        => profile with
+        {
+            AvatarUrl = MediaUrlHelper.ToMediaUrl(Request, profile.AvatarUrl, _containerName),
+            CoverUrl = MediaUrlHelper.ToMediaUrl(Request, profile.CoverUrl, _containerName)
+        };
+
+    private ProfileUpdateResponse MapProfileUpdateUrls(ProfileUpdateResponse response)
+        => response with { Profile = MapProfileUrls(response.Profile) };
 }
