@@ -28,6 +28,9 @@ public class JassSpaceDbContext : DbContext
     public DbSet<Album> Albums { get; set; }
     public DbSet<Image> Images { get; set; }
     public DbSet<Content> Contents { get; set; }
+    public DbSet<Blog> Blogs { get; set; }
+    public DbSet<BlogCategory> BlogCategories { get; set; }
+    public DbSet<BlogAuthor> BlogAuthors { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,6 +55,9 @@ public class JassSpaceDbContext : DbContext
         ConfigureAlbumEntity(modelBuilder);
         ConfigureImageEntity(modelBuilder);
         ConfigureContentEntity(modelBuilder);
+        ConfigureBlogEntity(modelBuilder);
+        ConfigureBlogCategoryEntity(modelBuilder);
+        ConfigureBlogAuthorEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
@@ -304,6 +310,70 @@ public class JassSpaceDbContext : DbContext
         entity.HasIndex(e => new { e.ContentType, e.ContentRefId });
         entity.HasIndex(e => e.IsPublished);
         entity.HasIndex(e => e.CreatedAt);
+    }
+
+    private void ConfigureBlogEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Blog>();
+
+        // Primary key
+        entity.HasKey(e => e.Id);
+
+        // Unique constraints
+        entity.HasIndex(e => e.Slug).IsUnique();
+
+        // Indexes
+        entity.HasIndex(e => e.Title);
+        entity.HasIndex(e => e.IsPublished);
+        entity.HasIndex(e => e.PublishedAt);
+        entity.HasIndex(e => e.CreatedAt);
+        entity.HasIndex(e => e.CategoryId);
+
+        // Relationships
+        entity.HasOne(b => b.Category)
+              .WithMany(c => c.Blogs)
+              .HasForeignKey(b => b.CategoryId)
+              .OnDelete(DeleteBehavior.SetNull);
+
+        entity.HasMany(b => b.Authors)
+              .WithOne(ba => ba.Blog)
+              .HasForeignKey(ba => ba.BlogId)
+              .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureBlogCategoryEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<BlogCategory>();
+
+        // Primary key
+        entity.HasKey(e => e.Id);
+
+        // Unique constraints
+        entity.HasIndex(e => e.Slug).IsUnique();
+
+        // Indexes
+        entity.HasIndex(e => e.Name);
+        entity.HasIndex(e => e.CreatedAt);
+    }
+
+    private void ConfigureBlogAuthorEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<BlogAuthor>();
+
+        // Primary key
+        entity.HasKey(e => e.Id);
+
+        // Composite index for unique blog-user combination
+        entity.HasIndex(e => new { e.BlogId, e.UserId }).IsUnique();
+
+        // Index for ordering
+        entity.HasIndex(e => new { e.BlogId, e.Order });
+
+        // Relationships
+        entity.HasOne(ba => ba.User)
+              .WithMany()
+              .HasForeignKey(ba => ba.UserId)
+              .OnDelete(DeleteBehavior.Cascade);
     }
 
     private void SeedRoles(ModelBuilder modelBuilder)
