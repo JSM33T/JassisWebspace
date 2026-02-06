@@ -45,7 +45,7 @@ export function AuthorModal({ isOpen, onClose, userId, username }: AuthorModalPr
 
     const handleMoreFromAuthor = () => {
         onClose();
-        router.push(`/blog/page?author=${username}`);
+        router.push(`/blog?author=${username}`);
     };
 
     const getInitials = (name: string) => {

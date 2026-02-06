@@ -57,7 +57,7 @@ export function Navbar() {
 
     const navigationLinks = [
         { href: '/', label: 'Home', id: 'home' },
-        { href: '/blogs', label: 'Blogs', id: 'blogs' },
+        { href: '/blog', label: 'Blogs', id: 'blogs' },
     ];
 
     const studioMenuItems = [

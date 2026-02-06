@@ -101,7 +101,7 @@ export default function BlogViewPage() {
             Go Back
           </Button>
           <Button asChild>
-            <Link href="/blog/page">All Blogs</Link>
+            <Link href="/blog">All Blogs</Link>
           </Button>
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function BlogViewPage() {
 
         {/* Back */}
         <Button variant="ghost" size="sm" asChild className="mb-6">
-          <Link href="/blog/page">
+          <Link href="/blog">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Blog
           </Link>
@@ -187,7 +187,7 @@ export default function BlogViewPage() {
         {/* Footer */}
         <div className="mt-16 pt-8 border-t flex justify-between items-center">
           <Button asChild variant="outline">
-            <Link href="/blog/page">View More Articles</Link>
+            <Link href="/blog">View More Articles</Link>
           </Button>
         </div>
       </div>
