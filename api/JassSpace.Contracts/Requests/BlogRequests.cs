@@ -1,6 +1,7 @@
 namespace JassSpace.Contracts.Requests;
 
 public record CreateBlogRequest(
+    Guid? Id,
     string Title,
     string? Excerpt,
     string Content,

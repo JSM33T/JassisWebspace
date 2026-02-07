@@ -19,7 +19,8 @@ namespace JassSpace.Api.Controllers;
 [Authorize(Roles = "admin,mod")]
 public sealed class AdminBlogController(
     JassSpaceDbContext dbContext,
-    ILogger<AdminBlogController> logger)
+    ILogger<AdminBlogController> logger,
+    IAzureBlobStorageService blobStorageService)
     : BaseApiController
 {
     /// <summary>
@@ -115,7 +116,7 @@ public sealed class AdminBlogController(
                 slug = $"{slug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
             }
 
-            var blogId = Guid.NewGuid();
+            var blogId = request.Id ?? Guid.NewGuid();
             var now = DateTimeOffset.UtcNow;
 
             var blog = new Blog
@@ -221,6 +222,20 @@ public sealed class AdminBlogController(
                 }
             }
 
+            // Handle Image Update - Delete old image if changed
+            if (request.FeaturedImage != blog.FeaturedImage && !string.IsNullOrWhiteSpace(blog.FeaturedImage))
+            {
+                try 
+                {
+                    await blobStorageService.DeleteBlobByUrlAsync(blog.FeaturedImage, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to delete old image blob {BlobUrl}", blog.FeaturedImage);
+                    // Swallow exception so we still update the blog record
+                }
+            }
+
             blog.Excerpt = request.Excerpt;
             blog.Content = request.Content;
             blog.FeaturedImage = request.FeaturedImage;
@@ -315,6 +330,18 @@ public sealed class AdminBlogController(
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(blog.FeaturedImage))
+            {
+                 try 
+                {
+                    await blobStorageService.DeleteBlobByUrlAsync(blog.FeaturedImage, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to delete image blob {BlobUrl}", blog.FeaturedImage);
+                }
+            }
+
             dbContext.Blogs.Remove(blog);
             await dbContext.SaveChangesAsync(cancellationToken);
 

@@ -57,6 +57,15 @@ namespace JassSpace.Infra
         Task DeleteBlobAsync(
             string blobName,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes an image from Azure Blob Storage and local cache using its full blob URL.
+        /// </summary>
+        /// <param name="blobUrl">The full URL of the blob to delete.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        Task DeleteBlobByUrlAsync(
+            string blobUrl,
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>

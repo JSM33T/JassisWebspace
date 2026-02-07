@@ -44,6 +44,7 @@ export interface BlogDetail {
 }
 
 export interface CreateBlogRequest {
+    id?: string;
     title: string;
     excerpt?: string;
     content: string;

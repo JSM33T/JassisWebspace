@@ -453,5 +453,30 @@ namespace JassSpace.Infra
                 _logger.LogInformation("Cached files for {BlobName} cleared", blobName);
             }
         }
+
+        public Task DeleteBlobByUrlAsync(string blobUrl, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(blobUrl))
+            {
+                return Task.CompletedTask;
+            }
+
+            string blobName;
+            
+            // Handle local media proxy URLs (e.g., http://localhost/media/blob-name.jpg)
+            if (blobUrl.Contains("/media/", StringComparison.OrdinalIgnoreCase))
+            {
+                var marker = "/media/";
+                var index = blobUrl.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+                blobName = blobUrl.Substring(index + marker.Length);
+            }
+            else if (!TryResolveBlobNameFromUrl(blobUrl, out blobName))
+            {
+                _logger.LogWarning("Unable to resolve blob name from URL {BlobUrl} for deletion", blobUrl);
+                return Task.CompletedTask;
+            }
+
+            return DeleteBlobAsync(blobName, cancellationToken);
+        }
     }
 }

@@ -85,13 +85,36 @@ export function BlogForm({ initialData }: BlogFormProps) {
         loadData();
     }, []);
 
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
     const onSubmit = async (data: BlogFormValues) => {
         try {
             setLoading(true);
+
+            // Determine Blog ID (use existing or generate new)
+            // We need a stable ID to ensure image name matches blog ID
+            const blogId = initialData?.id || crypto.randomUUID();
+
+            let featuredImageUrl = data.featuredImage;
+
+            if (selectedImage) {
+                try {
+                    // Upload image with blogId as filename
+                    const { url } = await adminGalleryService.uploadImage(selectedImage, blogId);
+                    featuredImageUrl = url;
+                } catch (error) {
+                    console.error("Failed to upload image", error);
+                    alert("Failed to upload image.");
+                    return; // Stop submission if upload fails
+                }
+            }
+
             const requestData: CreateBlogRequest = {
                 ...data,
+                id: blogId, // Pass ID to backend
                 excerpt: data.excerpt || undefined,
-                featuredImage: data.featuredImage || undefined,
+                featuredImage: featuredImageUrl || undefined,
                 categoryId: data.categoryId || undefined,
                 authorIds: data.authorIds || [],
             };
@@ -111,20 +134,13 @@ export function BlogForm({ initialData }: BlogFormProps) {
         }
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        try {
-            setUploading(true);
-            const { url } = await adminGalleryService.uploadImage(file);
-            form.setValue("featuredImage", url);
-        } catch (error) {
-            console.error("Failed to upload image", error);
-            alert("Failed to upload image.");
-        } finally {
-            setUploading(false);
-        }
+        setSelectedImage(file);
+        setPreviewUrl(URL.createObjectURL(file));
+        // We don't set the form value yet, as it's not uploaded
     };
 
     return (
@@ -290,10 +306,10 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                     <FormLabel>Featured Image</FormLabel>
                                     <FormControl>
                                         <div className="space-y-4">
-                                            {field.value && (
+                                            {(previewUrl || field.value) && (
                                                 <div className="relative aspect-video rounded-md overflow-hidden border">
                                                     <Image
-                                                        src={field.value}
+                                                        src={previewUrl || field.value || ""}
                                                         alt="Featured"
                                                         fill
                                                         className="object-cover"
@@ -304,7 +320,11 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                                         variant="destructive"
                                                         size="icon"
                                                         className="absolute top-2 right-2 h-6 w-6"
-                                                        onClick={() => field.onChange("")}
+                                                        onClick={() => {
+                                                            field.onChange("");
+                                                            setSelectedImage(null);
+                                                            setPreviewUrl(null);
+                                                        }}
                                                     >
                                                         <X className="h-4 w-4" />
                                                     </Button>

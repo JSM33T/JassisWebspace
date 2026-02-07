@@ -61,6 +61,7 @@ public sealed class AdminGalleryController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UploadGalleryImage(
         [FromForm] IFormFile? file,
+        [FromForm] string? fileName,
         CancellationToken cancellationToken = default)
     {
         if (file is null || file.Length == 0)
@@ -70,8 +71,20 @@ public sealed class AdminGalleryController(
 
         try
         {
-            // Upload to Azure Blob Storage
-            var uploadResult = await UploadFileAsync(file, "gallery/" + Guid.NewGuid(), cancellationToken);
+            // Use custom fileName if provided (e.g. Blog ID), otherwise random
+            // Note: UploadFileAsync forces WebP, so actual blob name will effectively be {fileName/guid} (no extension in blob name, but MIME type correct)
+            // or we can append it here if we want extension in blob name.
+            // AzureBlobStorageService doesn't append extension unless name is null.
+            // But browsers might need extension for some behavior? 
+            // The previous logic used just GUID string. Let's stick to consistent logic.
+            // If fileName is "123-abc", blob name is "123-abc".
+            
+            var baseName = !string.IsNullOrWhiteSpace(fileName) ? fileName : Guid.NewGuid().ToString();
+            
+            // Revert back: using just the base name.
+            // If the user wants to ensure overwrite by ID, they pass the ID.
+            
+            var uploadResult = await UploadFileAsync(file, baseName, cancellationToken);
             
             // Return the media controller URL instead of blob URL
             var mediaUrl = GetFullMediaUrl(uploadResult.BlobName);

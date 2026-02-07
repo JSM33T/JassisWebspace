@@ -102,9 +102,12 @@ class AdminGalleryService {
         return del(`/admin/gallery/images/${imageId}`);
     }
 
-    async uploadImage(file: File): Promise<{ publicId: string, url: string }> {
+    async uploadImage(file: File, fileName?: string): Promise<{ publicId: string, url: string }> {
         const formData = new FormData();
         formData.append('file', file);
+        if (fileName) {
+            formData.append('fileName', fileName);
+        }
 
         return post<{ publicId: string, url: string }>('/admin/gallery/upload-image', formData);
     }
