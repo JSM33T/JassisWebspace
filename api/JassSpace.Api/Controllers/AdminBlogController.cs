@@ -4,6 +4,7 @@ using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
 using JassSpace.Data;
 using JassSpace.Entities;
+using JassSpace.Entities.Enums;
 using JassSpace.Infra;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -164,6 +165,32 @@ public sealed class AdminBlogController(
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
+            // Create Content entry for the blog
+            var contentSlug = slug;
+            var existingContentSlug = await dbContext.Contents
+                .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
+            
+            if (existingContentSlug)
+            {
+                contentSlug = $"{slug}-{blog.Id.ToString().Substring(0, 8)}";
+            }
+
+            var content = new Content
+            {
+                Id = Guid.NewGuid(),
+                ContentType = ContentType.Blog,
+                ContentRefId = blog.Id,
+                Title = blog.Title,
+                Slug = contentSlug,
+                IsPublished = blog.IsPublished,
+                PublishedAt = blog.PublishedAt,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            dbContext.Contents.Add(content);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             // Fetch created blog for response to ensure we have all includes
             var createdBlog = await GetBlogWithDetails(blogId, cancellationToken);
             if (createdBlog == null) return  Problem(StatusCodes.Status500InternalServerError, "Creation failed", "Could not retrieve created blog.");
@@ -249,6 +276,60 @@ public sealed class AdminBlogController(
             blog.IsPublished = request.IsPublished;
             
             blog.UpdatedAt = DateTimeOffset.UtcNow;
+
+            // Update associated Content entity
+            var content = await dbContext.Contents
+                .FirstOrDefaultAsync(c => c.ContentType == ContentType.Blog && c.ContentRefId == id, cancellationToken);
+            
+            if (content != null)
+            {
+                content.Title = blog.Title;
+                
+                // Update slug if blog slug changed (which happens if title changed)
+                // We should try to keep them in sync, but handle uniqueness
+                if (content.Slug != blog.Slug)
+                {
+                    var contentSlug = blog.Slug;
+                    var existingContentSlug = await dbContext.Contents
+                        .AnyAsync(c => c.Slug == contentSlug && c.Id != content.Id, cancellationToken);
+                    
+                    if (existingContentSlug)
+                    {
+                        contentSlug = $"{blog.Slug}-{content.Id.ToString().Substring(0, 8)}";
+                    }
+                    content.Slug = contentSlug;
+                }
+
+                content.IsPublished = blog.IsPublished;
+                content.PublishedAt = blog.PublishedAt;
+                content.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            else
+            {
+                // If content entry missing for some reason, create it
+                 var contentSlug = blog.Slug;
+                var existingContentSlug = await dbContext.Contents
+                    .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
+                
+                if (existingContentSlug)
+                {
+                    contentSlug = $"{blog.Slug}-{blog.Id.ToString().Substring(0, 8)}";
+                }
+
+                var newContent = new Content
+                {
+                    Id = Guid.NewGuid(),
+                    ContentType = ContentType.Blog,
+                    ContentRefId = blog.Id,
+                    Title = blog.Title,
+                    Slug = contentSlug,
+                    IsPublished = blog.IsPublished,
+                    PublishedAt = blog.PublishedAt,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                dbContext.Contents.Add(newContent);
+            }
 
             // Update Authors
             // Remove existing not in request
@@ -381,6 +462,15 @@ public sealed class AdminBlogController(
                 {
                     logger.LogError(ex, "Failed to delete image blob {BlobUrl}", blog.FeaturedImage);
                 }
+            }
+
+            // Delete associated Content entity
+            var content = await dbContext.Contents
+                .FirstOrDefaultAsync(c => c.ContentType == ContentType.Blog && c.ContentRefId == id, cancellationToken);
+            
+            if (content != null)
+            {
+                dbContext.Contents.Remove(content);
             }
 
             dbContext.Blogs.Remove(blog);

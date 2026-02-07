@@ -16,6 +16,7 @@ namespace JassSpace.Api.Controllers;
 public sealed class MediaController(
     IAzureBlobStorageService blobStorageService,
     IProfileRepository profileRepository,
+    IImageProcessingService imageProcessingService,
     ILogger<MediaController> logger,
     IOptions<AzureBlobStorageSettings> blobSettings)
     : BaseApiController
@@ -153,10 +154,15 @@ public sealed class MediaController(
     private async Task<BlobUploadResult> UploadFileAsync(IFormFile file, string? blobName, CancellationToken cancellationToken)
     {
         await using var stream = file.OpenReadStream();
+        
+        // Process the image (convert to WebP and scale if needed)
+        // This unifies behavior with gallery uploads
+        await using var processedStream = await imageProcessingService.ProcessImageAsync(stream, cancellationToken);
+
         return await blobStorageService.UploadImageAsync(
-            stream,
+            processedStream,
             file.FileName,
-            string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
+            "image/webp", // Force WebP content type
             blobName,
             cancellationToken);
     }
