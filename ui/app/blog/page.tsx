@@ -222,6 +222,7 @@ export default function BlogHomePage() {
                                                     alt={blog.title}
                                                     fill
                                                     className="object-cover"
+                                                    unoptimized
                                                 />
                                             ) : (
                                                 <BookOpen className="m-auto h-12 w-12 text-muted-foreground" />
@@ -237,6 +238,12 @@ export default function BlogHomePage() {
                                         <h3 className="text-xl font-semibold line-clamp-2">
                                             {blog.title}
                                         </h3>
+
+                                        {blog.excerpt && (
+                                            <p className="text-muted-foreground line-clamp-3 text-sm">
+                                                {blog.excerpt}
+                                            </p>
+                                        )}
 
                                         {blog.authors?.[0] && (
                                             <button
