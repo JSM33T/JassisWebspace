@@ -64,6 +64,18 @@ public sealed class AuthController(
                 return UnauthorizedProblem("Invalid email/username or password");
             }
 
+            if (user.DeletedAt.HasValue)
+            {
+                logger.LogWarning("Login failed: User deleted {UserId}", user.Id);
+                return UnauthorizedProblem("Invalid email/username or password");
+            }
+
+            if (!user.IsActive)
+            {
+                logger.LogWarning("Login failed: User inactive {UserId}", user.Id);
+                return UnauthorizedProblem("Your account has been deactivated. Please contact support.");
+            }
+
             // Verify password (in production, use proper password hashing like BCrypt)
             if (!VerifyPassword(request.Password, user.PasswordHash))
             {

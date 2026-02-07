@@ -1,23 +1,20 @@
-using System;
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace JassSpace.Contracts.Requests;
 
-public sealed record AdminUpdateUserRequest(
-    string? Email = null,
-    bool? EmailVerified = null,
-    string? Username = null,
-    string? FirstName = null,
-    string? LastName = null,
-    string? DisplayName = null,
-    string? Bio = null,
-    string? AvatarUrl = null,
-    string? CoverUrl = null,
-    string? Timezone = null,
-    string? Locale = null,
-    bool? VerifiedBadge = null,
-    bool? IsActive = null,
-    IReadOnlyList<string>? Roles = null
+public record AdminUpdateUserRequest(
+    string? Email,
+    bool? EmailVerified,
+    string? Username,
+    string? FirstName,
+    string? LastName,
+    string? DisplayName,
+    string? Bio,
+    string? AvatarUrl,
+    string? CoverUrl,
+    string? Timezone,
+    string? Locale,
+    bool? VerifiedBadge,
+    bool? IsActive,
+    List<string>? Roles
 );
-
-

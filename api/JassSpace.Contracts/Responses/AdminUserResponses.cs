@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-
 namespace JassSpace.Contracts.Responses;
 
-public sealed record AdminUserListItemResponse(
+
+public record AdminUserListItemResponse(
     Guid Id,
     string Email,
     bool EmailVerified,
@@ -15,12 +13,10 @@ public sealed record AdminUserListItemResponse(
     bool IsActive,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    IReadOnlyList<string> Roles
+    string[] Roles
 );
 
-public sealed record AdminUserDetailsResponse(
+public record AdminUserDetailsResponse(
     ProfileDetailsResponse Profile,
     bool IsActive
 );
-
-
