@@ -1937,6 +1937,8 @@ public sealed class AuthController(
         var cachedAvatar = await CacheExternalAvatarAsync(newUser.Id, "google", googleUser.Picture, cancellationToken);
         if (!string.IsNullOrWhiteSpace(cachedAvatar)) newUser.AvatarUrl = cachedAvatar;
 
+        context.Users.Add(newUser);
+
         // Add external login record
         var newExternalLogin = new ExternalLogin
         {
