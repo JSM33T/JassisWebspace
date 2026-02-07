@@ -66,6 +66,14 @@ namespace JassSpace.Infra
         Task DeleteBlobByUrlAsync(
             string blobUrl,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Lists all blobs in the container that matching the specified prefix.
+        /// </summary>
+        /// <param name="prefix">The prefix to filter blobs by.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <returns>A list of blob names matching the prefix.</returns>
+        Task<List<string>> ListBlobsByPrefixAsync(string prefix, CancellationToken cancellationToken = default);
     }
 
     /// <summary>

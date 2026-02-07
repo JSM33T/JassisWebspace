@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -477,6 +478,27 @@ namespace JassSpace.Infra
             }
 
             return DeleteBlobAsync(blobName, cancellationToken);
+        }
+
+        public async Task<List<string>> ListBlobsByPrefixAsync(string prefix, CancellationToken cancellationToken = default)
+        {
+            var results = new List<string>();
+            
+            // Azure Blob Storage listing
+            try
+            {
+                await foreach (var blobItem in _containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
+                {
+                    results.Add(blobItem.Name);
+                }
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogError(ex, "Failed to list blobs with prefix {Prefix}", prefix);
+                throw;
+            }
+
+            return results;
         }
     }
 }

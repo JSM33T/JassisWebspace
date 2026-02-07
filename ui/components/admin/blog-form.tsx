@@ -36,7 +36,7 @@ import Image from "next/image";
 const blogSchema = z.object({
     title: z.string().min(1, "Title is required"),
     excerpt: z.string().optional(),
-    content: z.string().min(1, "Content is required"),
+    content: z.string().optional(), // Content is optional for initial creation
     featuredImage: z.string().optional(),
     categoryId: z.string().optional(),
     authorIds: z.array(z.string()).optional(),
@@ -56,11 +56,15 @@ export function BlogForm({ initialData }: BlogFormProps) {
     const [authors, setAuthors] = useState<BlogAuthor[]>([]);
     const [uploading, setUploading] = useState(false);
 
+    // Determine if we are in "Edit" mode (have an existing blog ID)
+    const isEditing = !!initialData?.id;
+
     const form = useForm<BlogFormValues>({
         resolver: zodResolver(blogSchema),
         defaultValues: {
             title: initialData?.title || "",
             excerpt: initialData?.excerpt || "",
+            // Default content to empty string if not present
             content: initialData?.content || "",
             featuredImage: initialData?.featuredImage || "",
             categoryId: initialData?.category?.id || undefined,
@@ -92,8 +96,10 @@ export function BlogForm({ initialData }: BlogFormProps) {
         try {
             setLoading(true);
 
-            // Determine Blog ID (use existing or generate new)
-            // We need a stable ID to ensure image name matches blog ID
+            // Determine Blog ID (use existing or generate new for CREATE)
+            // For creation, we generate one to ensure image sync, 
+            // BUT backend might ignore it if we don't pass it correctly.
+            // We already updated backend to accept ID.
             const blogId = initialData?.id || crypto.randomUUID();
 
             let featuredImageUrl = data.featuredImage;
@@ -112,7 +118,8 @@ export function BlogForm({ initialData }: BlogFormProps) {
 
             const requestData: CreateBlogRequest = {
                 ...data,
-                id: blogId, // Pass ID to backend
+                id: blogId,
+                content: data.content || "", // Allow empty content for draft
                 excerpt: data.excerpt || undefined,
                 featuredImage: featuredImageUrl || undefined,
                 categoryId: data.categoryId || undefined,
@@ -121,11 +128,19 @@ export function BlogForm({ initialData }: BlogFormProps) {
 
             if (initialData) {
                 await adminBlogService.updateBlog(initialData.id, requestData);
+                router.refresh();
+                // Stay on page or optional redirect
             } else {
-                await adminBlogService.createBlog(requestData);
+                const response = await adminBlogService.createBlog(requestData);
+                // Redirect to the edit page for this new blog to enable content editing
+                // response should ideally contain the ID, but we generated 'blogId' so we know it.
+                // However, let's use the response ID if available to be safe, or fall back to ours.
+                // The API might return the created object.
+                // Assuming createBlog returns the created blog or we can use our generated ID.
+                // Let's assume we can navigate to /admin/blogs/{blogId}
+                router.push(`/admin/blogs/${blogId}`);
+                router.refresh();
             }
-            router.push("/admin/blogs");
-            router.refresh();
         } catch (error) {
             console.error("Failed to save blog", error);
             alert("Failed to save blog. Please try again.");
@@ -162,23 +177,111 @@ export function BlogForm({ initialData }: BlogFormProps) {
                             )}
                         />
 
-                        <FormField
-                            control={form.control}
-                            name="content"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Content</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Write your blog post content here..."
-                                            className="min-h-[400px] font-mono"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        {isEditing ? (
+                            <FormField
+                                control={form.control}
+                                name="content"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Content</FormLabel>
+                                        <FormControl>
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Supports Markdown
+                                                    </p>
+                                                    <div>
+                                                        <input
+                                                            type="file"
+                                                            id="content-image-upload"
+                                                            className="hidden"
+                                                            accept="image/*"
+                                                            onChange={async (e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (!file) return;
+
+                                                                try {
+                                                                    setUploading(true);
+                                                                    // Use the existing blog ID from initialData
+                                                                    // Generate custom filename: blog-{blogId}-{random/timestamp}
+                                                                    const blogId = initialData?.id;
+                                                                    if (!blogId) {
+                                                                        alert("Error: Missing Blog ID");
+                                                                        return;
+                                                                    }
+
+                                                                    const timestamp = Date.now();
+                                                                    const fileName = `blog-${blogId}-${timestamp}`;
+
+                                                                    const { url } = await adminGalleryService.uploadImage(file, fileName);
+
+                                                                    // Insert markdown into textarea
+                                                                    const textarea = document.getElementById("content-textarea") as HTMLTextAreaElement;
+                                                                    if (textarea) {
+                                                                        const start = textarea.selectionStart;
+                                                                        const end = textarea.selectionEnd;
+                                                                        const text = textarea.value;
+                                                                        const before = text.substring(0, start);
+                                                                        const after = text.substr(end);
+                                                                        const imageMarkdown = `\n![Image](${url})\n`;
+
+                                                                        const newText = before + imageMarkdown + after;
+
+                                                                        // Update form value
+                                                                        field.onChange(newText);
+
+                                                                        // Wait for render then restore cursor ?? 
+                                                                        // React Hook Form handles value binding.
+                                                                    }
+                                                                } catch (error) {
+                                                                    console.error("Failed to upload content image", error);
+                                                                    alert("Failed to upload image");
+                                                                } finally {
+                                                                    setUploading(false);
+                                                                    // Reset input
+                                                                    e.target.value = "";
+                                                                }
+                                                            }}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => document.getElementById("content-image-upload")?.click()}
+                                                            disabled={uploading}
+                                                        >
+                                                            {uploading ? (
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Upload className="mr-2 h-4 w-4" />
+                                                            )}
+                                                            Insert Image
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <Textarea
+                                                    placeholder="Write your blog post content here..."
+                                                    className="min-h-[400px] font-mono"
+                                                    {...field}
+                                                    id="content-textarea"
+                                                />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ) : (
+                            <div className="p-12 border-2 border-dashed rounded-lg text-center bg-muted/20">
+                                <h3 className="text-lg font-medium text-muted-foreground mb-2">Content Editor Locked</h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Please save the blog details first to unlock the content editor and image uploads.
+                                </p>
+                                <Button type="button" variant="secondary" disabled>
+                                    Save to start writing
+                                </Button>
+                            </div>
+                        )}
 
                         <FormField
                             control={form.control}
@@ -228,7 +331,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
 
                             <Button type="submit" disabled={loading} className="w-full">
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {initialData ? "Update Post" : "Create Post"}
+                                {initialData ? "Update Post" : "Create Draft & Continue"}
                             </Button>
                         </Card>
 

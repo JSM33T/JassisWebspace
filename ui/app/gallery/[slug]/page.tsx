@@ -69,7 +69,7 @@ export default function AlbumDetailPage() {
         return (
             <div className="flex flex-col min-h-screen">
                 <section className="px-4 py-12 md:py-16 border-b">
-                    <div className="container mx-auto">
+                    <div className="container mx-auto pt-16">
                         <Button variant="outline" asChild className="mb-6">
                             <Link href="/gallery">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -110,7 +110,7 @@ export default function AlbumDetailPage() {
                         </p>
                         <Button asChild>
                             <Link href="/gallery">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                <ArrowLeft className="mr-2 h-4 w-4 pt-16" />
                                 Back to Gallery
                             </Link>
                         </Button>
@@ -124,7 +124,7 @@ export default function AlbumDetailPage() {
         <div className="flex flex-col min-h-screen">
             {/* Header */}
             <section className="px-4 py-12 md:py-16 border-b">
-                <div className="container mx-auto">
+                <div className="container mx-auto pt-16">
                     <Button variant="outline" asChild className="mb-6">
                         <Link href="/gallery">
                             <ArrowLeft className="mr-2 h-4 w-4" />

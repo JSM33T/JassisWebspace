@@ -109,7 +109,7 @@ export default function CreateAlbumPage() {
 
     return (
         <div className="p-8 max-w-5xl mx-auto">
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-8 pt-16 ">
                 <Button variant="outline" size="icon" asChild>
                     <Link href="/admin/gallery">
                         <ArrowLeft className="h-4 w-4" />

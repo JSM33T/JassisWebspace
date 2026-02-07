@@ -295,6 +295,47 @@ public sealed class AdminBlogController(
             // This simple implementation doesn't strictly reorder existing authors based on the request list order 
             // unless we rewrite the whole collection. For MVP, adding/removing is sufficient.
 
+            // Handle Orphaned Content Images (Cleanup)
+            try
+            {
+                // 1. Get all blobs associated with this blog's content (prefix: blog-{id}-)
+                var prefix = $"blog-{id}-";
+                var storedBlobs = await blobStorageService.ListBlobsByPrefixAsync(prefix, cancellationToken);
+                
+                if (storedBlobs.Any())
+                {
+                    // 2. Identify images currently used in the new content
+                    var usedBlobNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    
+                    if (!string.IsNullOrWhiteSpace(request.Content))
+                    {
+                        // Find all instances of strings starting with the prefix in the content
+                        // This captures the filenames from URLs like https://.../blog-{id}-{timestamp}.jpg
+                        // and also from local proxy URLs
+                        var matches = Regex.Matches(request.Content, $"{Regex.Escape(prefix)}[a-zA-Z0-9\\-_\\.]+", RegexOptions.IgnoreCase);
+                        foreach (Match match in matches)
+                        {
+                            usedBlobNames.Add(match.Value);
+                        }
+                    }
+
+                    // 3. Find orphans (Stored but not Used)
+                    var orphans = storedBlobs.Where(b => !usedBlobNames.Contains(b)).ToList();
+
+                    // 4. Delete orphans
+                    foreach (var orphan in orphans)
+                    {
+                        await blobStorageService.DeleteBlobAsync(orphan, cancellationToken);
+                        logger.LogInformation("Deleted orphaned content image {BlobName} for blog {BlogId}", orphan, id);
+                    }
+                }
+            }
+            catch (Exception ex) 
+            {
+                logger.LogError(ex, "Failed to clean up orphaned images for blog {BlogId}", id);
+                // Non-critical, swallow exception to ensure blog update persists
+            }
+
             await dbContext.SaveChangesAsync(cancellationToken);
 
             var updatedBlog = await GetBlogWithDetails(id, cancellationToken);

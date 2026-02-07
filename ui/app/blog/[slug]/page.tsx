@@ -16,6 +16,8 @@ import {
     BookOpen,
     Users,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { blogService } from '@/lib/api/blog.service';
 import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
@@ -112,7 +114,7 @@ export default function BlogViewPage() {
 
     return (
         <div className="pt-20">
-            <div className="container max-w-4xl mx-auto px-4">
+            <div className="container max-w-4xl mx-auto px-4 pt-4">
 
                 {/* Back */}
                 <Button variant="ghost" size="sm" asChild className="mb-6">
@@ -180,10 +182,11 @@ export default function BlogViewPage() {
                 )}
 
                 {/* Content */}
-                <div
-                    className="prose prose-lg dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: blog.content }}
-                />
+                <div className="prose prose-lg dark:prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {blog.content}
+                    </ReactMarkdown>
+                </div>
 
                 {/* Footer */}
                 <div className="mt-16 pt-8 border-t flex justify-between items-center">
