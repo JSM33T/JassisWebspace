@@ -40,7 +40,7 @@ const blogSchema = z.object({
     featuredImage: z.string().optional(),
     categoryId: z.string().optional(),
     authorIds: z.array(z.string()).optional(),
-    isPublished: z.boolean().default(false),
+    isPublished: z.boolean(),
 });
 
 type BlogFormValues = z.infer<typeof blogSchema>;
