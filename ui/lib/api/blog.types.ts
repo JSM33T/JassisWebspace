@@ -30,6 +30,7 @@ export interface BlogListItem {
 
 export interface BlogDetail {
     id: string;
+    contentId: string; // The ID of the associated Content entity for comments/polymorphism
     title: string;
     slug: string;
     excerpt: string | null;

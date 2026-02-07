@@ -31,6 +31,7 @@ public class JassSpaceDbContext : DbContext
     public DbSet<Blog> Blogs { get; set; }
     public DbSet<BlogCategory> BlogCategories { get; set; }
     public DbSet<BlogAuthor> BlogAuthors { get; set; }
+    public DbSet<Comment> Comments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,10 +59,44 @@ public class JassSpaceDbContext : DbContext
         ConfigureBlogEntity(modelBuilder);
         ConfigureBlogCategoryEntity(modelBuilder);
         ConfigureBlogAuthorEntity(modelBuilder);
+        ConfigureCommentEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
     }
+// ... (existing configuration methods)
+
+    private void ConfigureCommentEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Comment>();
+
+        // Primary key
+        entity.HasKey(e => e.Id);
+
+        // Indexes
+        entity.HasIndex(e => e.ContentId);
+        entity.HasIndex(e => e.UserId);
+        entity.HasIndex(e => e.ParentCommentId); // Index for fast reply lookups
+        entity.HasIndex(e => e.CreatedAt);
+
+        // Relationships
+        entity.HasOne(c => c.Content)
+              .WithMany() // Assuming Content doesn't have a specific Comments collection navigation property yet, it's fine.
+              .HasForeignKey(c => c.ContentId)
+              .OnDelete(DeleteBehavior.Cascade); // Delete content -> Delete comments
+
+        entity.HasOne(c => c.User)
+              .WithMany()
+              .HasForeignKey(c => c.UserId)
+              .OnDelete(DeleteBehavior.Cascade); // Delete user -> Delete comments? Or SetNull? Usually Cascade or Keep generic user. Let's cascade for now.
+
+        // Self-referencing for replies
+        entity.HasOne(c => c.ParentComment)
+              .WithMany(p => p.Replies)
+              .HasForeignKey(c => c.ParentCommentId)
+              .OnDelete(DeleteBehavior.Cascade); // Delete parent -> Delete replies
+    }
+
 
     private void ConfigureUserEntity(ModelBuilder modelBuilder)
     {

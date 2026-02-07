@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer';
+import { CommentSection } from '@/components/comments/CommentSection';
 import { blogService } from '@/lib/api/blog.service';
 import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
@@ -183,6 +184,10 @@ export default function BlogViewPage() {
 
                 {/* Content */}
                 <MarkdownRenderer content={blog.content} />
+
+                <div className="mt-12">
+                    <CommentSection contentId={blog.contentId} />
+                </div>
 
                 {/* Footer */}
                 <div className="mt-16 pt-8 border-t flex justify-between items-center">

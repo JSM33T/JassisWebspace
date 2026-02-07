@@ -4,6 +4,7 @@ using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
 using JassSpace.Data;
 using JassSpace.Entities;
+using JassSpace.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -144,6 +145,7 @@ public sealed class BlogController(
                 .Where(b => b.Slug == slug && b.IsPublished)
                 .Select(b => new BlogDetailResponse(
                     b.Id,
+                    dbContext.Contents.FirstOrDefault(c => c.ContentRefId == b.Id && c.ContentType == ContentType.Blog)!.Id,
                     b.Title,
                     b.Slug,
                     b.Excerpt,
@@ -394,6 +396,7 @@ public sealed class BlogController(
                 .Where(b => b.Id == blog.Id)
                 .Select(b => new BlogDetailResponse(
                     b.Id,
+                    dbContext.Contents.FirstOrDefault(c => c.ContentRefId == b.Id && c.ContentType == ContentType.Blog)!.Id,
                     b.Title,
                     b.Slug,
                     b.Excerpt,

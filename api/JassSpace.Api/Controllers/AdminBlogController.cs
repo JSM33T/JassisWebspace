@@ -470,6 +470,11 @@ public sealed class AdminBlogController(
             
             if (content != null)
             {
+                // Delete all comments associated with this content
+                await dbContext.Comments
+                    .Where(c => c.ContentId == content.Id)
+                    .ExecuteDeleteAsync(cancellationToken);
+
                 dbContext.Contents.Remove(content);
             }
 
@@ -496,6 +501,7 @@ public sealed class AdminBlogController(
             .Where(b => b.Id == blogId)
             .Select(b => new BlogDetailResponse(
                 b.Id,
+                dbContext.Contents.FirstOrDefault(c => c.ContentRefId == b.Id && c.ContentType == ContentType.Blog)!.Id,
                 b.Title,
                 b.Slug,
                 b.Excerpt,

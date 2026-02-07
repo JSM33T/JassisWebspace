@@ -32,6 +32,7 @@ public record BlogListItemResponse(
 
 public record BlogDetailResponse(
     Guid Id,
+    Guid ContentId,
     string Title,
     string Slug,
     string? Excerpt,
