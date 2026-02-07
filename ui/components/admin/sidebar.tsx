@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Image, Settings, Users } from "lucide-react";
+import { LayoutDashboard, Image, Settings, Users, BookOpen } from "lucide-react";
 
 const routes = [
     {
@@ -24,6 +24,12 @@ const routes = [
         icon: Users,
         href: "/admin/users",
         color: "text-orange-700",
+    },
+    {
+        label: "Blogs",
+        icon: BookOpen,
+        href: "/admin/blogs",
+        color: "text-emerald-500",
     },
     {
         label: "Settings",
