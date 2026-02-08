@@ -49,6 +49,20 @@ namespace JassSpace.Infra
         Task<CachedImageResult?> GetImageByUrlAsync(
             string blobUrl,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Retrieves a thumbnail variant for an image blob (served from local cache).
+        /// If the thumbnail is missing but the original exists (or can be downloaded), it will be generated.
+        /// </summary>
+        /// <param name="blobName">The name of the blob to retrieve.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <returns>
+        /// A task that represents the asynchronous retrieval operation.
+        /// The task result contains a <see cref="CachedImageResult"/> if found; otherwise, <c>null</c>.
+        /// </returns>
+        Task<CachedImageResult?> GetThumbnailAsync(
+            string blobName,
+            CancellationToken cancellationToken = default);
         /// <summary>
         /// Deletes an image from Azure Blob Storage and local cache by its blob name.
         /// </summary>

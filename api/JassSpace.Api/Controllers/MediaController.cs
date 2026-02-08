@@ -202,26 +202,71 @@ public sealed class MediaController(
     [AllowAnonymous]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetImage(string blobName, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetImage(
+        string blobName,
+        [FromQuery(Name = "thumb")] string? thumb,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(blobName))
         {
             return BadRequestProblem("Invalid image identifier", "The blob name provided is empty.");
         }
 
-        var cachedImage = await blobStorageService.GetImageAsync(blobName, cancellationToken);
+        var wantsThumb = IsTruthy(thumb);
+
+        var cachedImage = wantsThumb
+            ? await blobStorageService.GetThumbnailAsync(blobName, cancellationToken)
+            : await blobStorageService.GetImageAsync(blobName, cancellationToken);
+
         if (cachedImage is null)
         {
             return NotFoundProblem("Image not found", $"No image found for blob name '{blobName}'.");
         }
 
+        if (wantsThumb)
+        {
+            var isThumb = cachedImage.FilePath.EndsWith(".thumb.webp", StringComparison.OrdinalIgnoreCase);
+            Response.Headers["X-Media-Variant"] = isThumb ? "thumb" : "original";
+            Response.Headers["X-Thumb-Max-Dimension"] = "480";
+        }
+
         return StreamCachedImage(
             resourceType: "blob image",
-            cacheIdentifier: blobName,
+            cacheIdentifier: wantsThumb ? $"{blobName} (thumb)" : blobName,
             cachedImage,
             notFoundTitle: "Image not found",
             notFoundDetail: $"No cached file available for blob name '{blobName}'.",
             errorTitle: "Failed to read image");
+    }
+
+    /// <summary>
+    /// Retrieves a thumbnail variant for an image by its blob name.
+    /// Prefer this endpoint over <c>?thumb=1</c> if you have a caching layer that ignores query strings.
+    /// </summary>
+    [HttpGet("thumb/{blobName}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public Task<IActionResult> GetImageThumb(string blobName, CancellationToken cancellationToken = default)
+        => GetImage(blobName, thumb: "true", cancellationToken);
+
+    private static bool IsTruthy(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "1" => true,
+            "true" => true,
+            "t" => true,
+            "yes" => true,
+            "y" => true,
+            "on" => true,
+            _ => false
+        };
     }
 
     private async Task<IActionResult> GetProfileMediaAsync(

@@ -9,6 +9,7 @@ public class ImageProcessingService : IImageProcessingService
 {
     private readonly ILogger<ImageProcessingService> _logger;
     private const int MaxDimension = 2000;
+    private const int ThumbMaxDimension = 480;
 
     public ImageProcessingService(ILogger<ImageProcessingService> logger)
     {
@@ -77,6 +78,69 @@ public class ImageProcessingService : IImageProcessingService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process image");
+            throw new InvalidOperationException("Image processing failed. The file may not be a valid image.", ex);
+        }
+    }
+
+    public Task<Stream> CreateThumbnailAsync(Stream sourceStream, CancellationToken cancellationToken = default)
+        => ProcessToWebpAsync(sourceStream, ThumbMaxDimension, quality: 70, cancellationToken);
+
+    private async Task<Stream> ProcessToWebpAsync(
+        Stream sourceStream,
+        int maxDimension,
+        int quality,
+        CancellationToken cancellationToken)
+    {
+        if (sourceStream == null)
+        {
+            throw new ArgumentNullException(nameof(sourceStream));
+        }
+
+        if (!sourceStream.CanRead)
+        {
+            throw new InvalidOperationException("Source stream cannot be read.");
+        }
+
+        try
+        {
+            using var image = await Image.LoadAsync(sourceStream, cancellationToken);
+
+            var originalWidth = image.Width;
+            var originalHeight = image.Height;
+            var maxSide = Math.Max(originalWidth, originalHeight);
+
+            if (maxSide > maxDimension)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new Size(maxDimension, maxDimension)
+                }));
+
+                _logger.LogDebug(
+                    "Resized image for WebP output from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight} (max {MaxDimension}px)",
+                    originalWidth, originalHeight, image.Width, image.Height, maxDimension);
+            }
+
+            // Thumbs don't need metadata; dropping it reduces payload size a bit.
+            image.Metadata.ExifProfile = null;
+            image.Metadata.IptcProfile = null;
+            image.Metadata.XmpProfile = null;
+
+            var outputStream = new MemoryStream();
+            var encoder = new WebpEncoder
+            {
+                Quality = quality,
+                FileFormat = WebpFileFormatType.Lossy
+            };
+
+            await image.SaveAsync(outputStream, encoder, cancellationToken);
+            outputStream.Position = 0;
+            return outputStream;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to process image to WebP");
             throw new InvalidOperationException("Image processing failed. The file may not be a valid image.", ex);
         }
     }

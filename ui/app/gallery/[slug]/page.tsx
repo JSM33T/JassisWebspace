@@ -132,6 +132,7 @@ export default function AlbumDetailPage() {
 
     const slides = album.images.map(image => ({
         src: image.url,
+        thumbnail: toThumbUrl(image.url),
         title: image.title,
         description: image.description
     }));
@@ -179,6 +180,7 @@ export default function AlbumDetailPage() {
             {/* Images Grid */}
             <section className="flex-1 px-4 py-12 md:py-16">
                 <div className="container mx-auto max-w-5xl">
+                    {/* Grid uses thumbs by default; Lightbox uses original `image.url` for full size. */}
                     {album.images.length === 0 ? (
                         <div className="text-center py-20 bg-muted/10 rounded-3xl border border-dashed">
                             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-6">
@@ -202,7 +204,7 @@ export default function AlbumDetailPage() {
                                 >
                                     <div className="relative w-full">
                                         <Image
-                                            src={image.url}
+                                            src={toThumbUrl(image.url)}
                                             alt={image.title || 'Album image'}
                                             width={800}
                                             height={600}
@@ -251,4 +253,17 @@ export default function AlbumDetailPage() {
             />
         </div>
     );
+}
+
+function toThumbUrl(url: string): string {
+    // Prefer the dedicated endpoint to avoid caches/CDNs that ignore query strings.
+    const marker = '/media/';
+    const idx = url.indexOf(marker);
+    if (idx === -1) return url;
+
+    const prefix = url.slice(0, idx);
+    const rest = url.slice(idx + marker.length);
+    const blobName = rest.split('?')[0];
+
+    return `${prefix}${marker}thumb/${blobName}`;
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -18,13 +19,17 @@ namespace JassSpace.Infra
         private readonly BlobContainerClient _containerClient;
         private readonly AzureBlobStorageSettings _settings;
         private readonly ILogger<AzureBlobStorageService> _logger;
+        private readonly IImageProcessingService _imageProcessingService;
         private readonly string _cacheDirectory;
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> _thumbLocks = new();
 
         public AzureBlobStorageService(
             IOptions<AzureBlobStorageSettings> settings,
+            IImageProcessingService imageProcessingService,
             ILogger<AzureBlobStorageService> logger)
         {
             _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
+            _imageProcessingService = imageProcessingService ?? throw new ArgumentNullException(nameof(imageProcessingService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             if (string.IsNullOrWhiteSpace(_settings.ConnectionString))
@@ -125,6 +130,9 @@ namespace JassSpace.Infra
                 }
 
                 _logger.LogInformation("Image {BlobName} cached at {LocalPath}", effectiveBlobName, localPath);
+
+                // Always generate a thumb alongside the cached original (best-effort).
+                await EnsureThumbnailCachedAsync(effectiveBlobName, localPath, cancellationToken);
             }
 
             var url = blobClient.Uri.ToString();
@@ -141,10 +149,14 @@ namespace JassSpace.Infra
             // Check local cache first if enabled
             if (_settings.UseLocalCache)
             {
-                var existingPath = FindCachedFile(blobName);
+                var existingPath = FindCachedOriginalFile(blobName);
                 if (!string.IsNullOrWhiteSpace(existingPath))
                 {
                     _logger.LogDebug("Returning cached image for {BlobName}", blobName);
+
+                    // Best-effort: ensure thumb exists for this cached original.
+                    await EnsureThumbnailCachedAsync(blobName, existingPath!, cancellationToken);
+
                     return new CachedImageResult(
                         existingPath!, 
                         GetContentTypeFromExtension(Path.GetExtension(existingPath)), 
@@ -179,6 +191,9 @@ namespace JassSpace.Infra
 
                     _logger.LogInformation("Cached blob {BlobName} to {LocalPath}", blobName, localPath);
 
+                    // Best-effort: create thumb variant.
+                    await EnsureThumbnailCachedAsync(blobName, localPath, cancellationToken);
+
                     return new CachedImageResult(localPath, contentType, Path.GetFileName(localPath));
                 }
                 else
@@ -193,6 +208,43 @@ namespace JassSpace.Infra
                 _logger.LogError(ex, "Failed to download blob {BlobName}", blobName);
                 return null;
             }
+        }
+
+        public async Task<CachedImageResult?> GetThumbnailAsync(string blobName, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(blobName))
+            {
+                return null;
+            }
+
+            if (!_settings.UseLocalCache)
+            {
+                // This service only serves from local cache; without it we cannot provide a file path.
+                return null;
+            }
+
+            var thumbPath = BuildThumbLocalPath(blobName);
+            if (File.Exists(thumbPath))
+            {
+                return new CachedImageResult(thumbPath, "image/webp", Path.GetFileName(thumbPath));
+            }
+
+            // Ensure original exists (download if needed), then generate thumb.
+            var original = await GetImageAsync(blobName, cancellationToken);
+            if (original is null)
+            {
+                return null;
+            }
+
+            await EnsureThumbnailCachedAsync(blobName, original.FilePath, cancellationToken);
+
+            if (File.Exists(thumbPath))
+            {
+                return new CachedImageResult(thumbPath, "image/webp", Path.GetFileName(thumbPath));
+            }
+
+            // Fall back to original if thumb generation failed.
+            return original;
         }
 
         public Task<CachedImageResult?> GetImageByUrlAsync(string blobUrl, CancellationToken cancellationToken = default)
@@ -243,7 +295,7 @@ namespace JassSpace.Infra
             }
         }
 
-        private string? FindCachedFile(string blobName)
+        private string? FindCachedOriginalFile(string blobName)
         {
             if (!_settings.UseLocalCache)
             {
@@ -256,7 +308,28 @@ namespace JassSpace.Infra
             try
             {
                 var matches = Directory.GetFiles(_cacheDirectory, searchPattern, SearchOption.TopDirectoryOnly);
-                return matches.Length > 0 ? matches[0] : null;
+
+                // Never treat the generated thumb as the "original" cache hit.
+                // Also ignore any temp artifacts.
+                var thumbPrefix = $"{safeName}.thumb.";
+
+                foreach (var match in matches)
+                {
+                    var fileName = Path.GetFileName(match);
+                    if (fileName.StartsWith(thumbPrefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (fileName.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    return match;
+                }
+
+                return null;
             }
             catch
             {
@@ -269,6 +342,77 @@ namespace JassSpace.Infra
             var safeName = SanitizeBlobName(blobName);
             var normalizedExtension = NormalizeExtension(extension);
             return Path.Combine(_cacheDirectory, $"{safeName}.{normalizedExtension}");
+        }
+
+        private string BuildThumbLocalPath(string blobName)
+        {
+            var safeName = SanitizeBlobName(blobName);
+            return Path.Combine(_cacheDirectory, $"{safeName}.thumb.webp");
+        }
+
+        private async Task EnsureThumbnailCachedAsync(string blobName, string originalLocalPath, CancellationToken cancellationToken)
+        {
+            if (!_settings.UseLocalCache)
+            {
+                return;
+            }
+
+            var thumbPath = BuildThumbLocalPath(blobName);
+            if (File.Exists(thumbPath))
+            {
+                return;
+            }
+
+            // Skip SVG (ImageSharp SVG support depends on additional packages; treat as non-thumbable).
+            if (string.Equals(Path.GetExtension(originalLocalPath), ".svg", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var safeName = SanitizeBlobName(blobName);
+            var gate = _thumbLocks.GetOrAdd(safeName, _ => new SemaphoreSlim(1, 1));
+            await gate.WaitAsync(cancellationToken);
+
+            try
+            {
+                if (File.Exists(thumbPath))
+                {
+                    return;
+                }
+
+                if (!File.Exists(originalLocalPath))
+                {
+                    return;
+                }
+
+                await using var source = new FileStream(
+                    originalLocalPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    4096,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+                await using var thumbStream = await _imageProcessingService.CreateThumbnailAsync(source, cancellationToken);
+
+                var tmpPath = $"{thumbPath}.tmp";
+                await using (var outFile = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    await thumbStream.CopyToAsync(outFile, cancellationToken);
+                }
+
+                // Atomic replace.
+                File.Move(tmpPath, thumbPath, overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                // Don't fail the primary request due to thumb issues.
+                _logger.LogDebug(ex, "Failed to generate thumbnail for {BlobName}", blobName);
+            }
+            finally
+            {
+                gate.Release();
+            }
         }
 
         private bool TryResolveBlobNameFromUrl(string blobUrl, out string blobName)
