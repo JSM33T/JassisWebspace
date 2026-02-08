@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,6 @@ import "yet-another-react-lightbox/plugins/captions.css";
 
 export default function AlbumDetailPage() {
     const params = useParams();
-    const router = useRouter();
     const slug = params.slug as string;
 
     const [album, setAlbum] = useState<AlbumWithImages | null>(null);
@@ -93,7 +92,7 @@ export default function AlbumDetailPage() {
                     </div>
                 </section>
                 <section className="flex-1 px-4 py-12">
-                    <div className="container mx-auto">
+                    <div className="container mx-auto max-w-5xl">
                         <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
                             {[1, 2, 3, 4, 5, 6].map((i) => (
                                 <Skeleton key={i} className="aspect-square w-full rounded-xl" />
@@ -117,7 +116,7 @@ export default function AlbumDetailPage() {
                             {error || 'Album Not Found'}
                         </h3>
                         <p className="text-muted-foreground mb-4">
-                            The album you're looking for doesn't exist or has been removed.
+                            The album you&apos;re looking for doesn&apos;t exist or has been removed.
                         </p>
                         <Button asChild>
                             <Link href="/gallery">
@@ -179,7 +178,7 @@ export default function AlbumDetailPage() {
 
             {/* Images Grid */}
             <section className="flex-1 px-4 py-12 md:py-16">
-                <div className="container mx-auto">
+                <div className="container mx-auto max-w-5xl">
                     {album.images.length === 0 ? (
                         <div className="text-center py-20 bg-muted/10 rounded-3xl border border-dashed">
                             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-6">
