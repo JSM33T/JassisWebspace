@@ -43,5 +43,8 @@ public record BlogDetailResponse(
     bool IsPublished,
     DateTimeOffset? PublishedAt,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt
+    DateTimeOffset? UpdatedAt,
+    int LikeCount = 0,
+    bool IsLiked = false,
+    int CommentCount = 0
 );

@@ -42,6 +42,9 @@ export interface BlogDetail {
     publishedAt: string | null;
     createdAt: string;
     updatedAt: string | null;
+    likeCount: number;
+    isLiked: boolean;
+    commentCount: number;
 }
 
 export interface CreateBlogRequest {

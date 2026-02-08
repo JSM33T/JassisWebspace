@@ -15,6 +15,7 @@ import {
     Clock,
     BookOpen,
     Users,
+    MessageSquare,
 } from 'lucide-react';
 
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer';
@@ -23,6 +24,7 @@ import { blogService } from '@/lib/api/blog.service';
 import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
 import { AuthorModal } from '@/components/blog/AuthorModal';
+import { LikeButton } from '@/components/likes/LikeButton';
 
 export default function BlogViewPage() {
     const { slug } = useParams<{ slug: string }>();
@@ -164,6 +166,18 @@ export default function BlogViewPage() {
                     <span className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
                         {estimateReadingTime(blog.content)} min read
+                    </span>
+
+                    <span className="flex items-center gap-2">
+                        <LikeButton
+                            contentId={blog.contentId}
+                            initialCount={blog.likeCount}
+                            initialLiked={blog.isLiked}
+                        />
+                    </span>
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                        <MessageSquare className="h-4 w-4" />
+                        <span>{blog.commentCount}</span>
                     </span>
                 </div>
 

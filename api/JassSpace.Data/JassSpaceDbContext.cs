@@ -31,7 +31,8 @@ public class JassSpaceDbContext : DbContext
     public DbSet<Blog> Blogs { get; set; }
     public DbSet<BlogCategory> BlogCategories { get; set; }
     public DbSet<BlogAuthor> BlogAuthors { get; set; }
-    public DbSet<Comment> Comments { get; set; }
+    public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<Like> Likes => Set<Like>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,6 +61,7 @@ public class JassSpaceDbContext : DbContext
         ConfigureBlogCategoryEntity(modelBuilder);
         ConfigureBlogAuthorEntity(modelBuilder);
         ConfigureCommentEntity(modelBuilder);
+        ConfigureLikeEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
@@ -435,5 +437,21 @@ public class JassSpaceDbContext : DbContext
             new AppConfig { Id = new Guid("77777777-7777-7777-7777-777777777777"), Key = "SignupDisabled", Value = "false", UpdatedAt = baseDate },
             new AppConfig { Id = new Guid("88888888-8888-8888-8888-888888888888"), Key = "PasswordMinLength", Value = "8", UpdatedAt = baseDate }
         );
+    }
+    private void ConfigureLikeEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Like>();
+
+        entity.HasKey(l => new { l.ContentId, l.UserId });
+
+        entity.HasOne(l => l.Content)
+            .WithMany()
+            .HasForeignKey(l => l.ContentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasOne(l => l.User)
+            .WithMany()
+            .HasForeignKey(l => l.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

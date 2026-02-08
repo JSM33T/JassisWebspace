@@ -524,7 +524,10 @@ public sealed class AdminBlogController(
                 b.IsPublished,
                 b.PublishedAt,
                 b.CreatedAt,
-                b.UpdatedAt
+                b.UpdatedAt,
+                0,
+                false,
+                0
             ))
             .FirstOrDefaultAsync(cancellationToken);
     }

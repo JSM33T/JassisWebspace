@@ -171,7 +171,10 @@ public sealed class BlogController(
                     b.IsPublished,
                     b.PublishedAt,
                     b.CreatedAt,
-                    b.UpdatedAt
+                    b.UpdatedAt,
+                    dbContext.Likes.Count(l => l.ContentId == dbContext.Contents.FirstOrDefault(c => c.ContentRefId == b.Id && c.ContentType == ContentType.Blog)!.Id),
+                    UserId != null && dbContext.Likes.Any(l => l.ContentId == dbContext.Contents.FirstOrDefault(c => c.ContentRefId == b.Id && c.ContentType == ContentType.Blog)!.Id && l.UserId == Guid.Parse(UserId)),
+                    dbContext.Comments.Count(c => c.ContentId == dbContext.Contents.FirstOrDefault(con => con.ContentRefId == b.Id && con.ContentType == ContentType.Blog)!.Id && !c.IsDeleted)
                 ))
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -422,7 +425,10 @@ public sealed class BlogController(
                     b.IsPublished,
                     b.PublishedAt,
                     b.CreatedAt,
-                    b.UpdatedAt
+                    b.UpdatedAt,
+                    0,
+                    false,
+                    0
                 ))
                 .FirstAsync(cancellationToken);
 
