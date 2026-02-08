@@ -33,6 +33,7 @@ export interface AlbumWithImages {
 
 export interface CreateAlbumRequest {
     name: string;
+    slug?: string;
     description?: string;
 }
 

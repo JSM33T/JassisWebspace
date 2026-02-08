@@ -9,6 +9,7 @@ import { ArrowLeft, Loader2, Upload, X, Image as ImageIcon } from "lucide-react"
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
+import { ImageCropper } from "@/components/ui/image-cropper";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ import { adminGalleryService } from "@/lib/api/admin-gallery.service";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
+    slug: z.string().optional(),
     description: z.string().optional(),
 });
 
@@ -38,10 +40,15 @@ export default function CreateAlbumPage() {
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagesPreview, setImagesPreview] = useState<string[]>([]);
 
+    // Cropper state
+    const [cropperOpen, setCropperOpen] = useState(false);
+    const [tempCoverSrc, setTempCoverSrc] = useState<string | null>(null);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
+            slug: "",
             description: "",
         },
     });
@@ -49,13 +56,20 @@ export default function CreateAlbumPage() {
     const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setCoverFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setCoverPreview(reader.result as string);
+                setTempCoverSrc(reader.result as string);
+                setCropperOpen(true);
+                e.target.value = ""; // Reset input
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const onCropComplete = (croppedBlob: Blob) => {
+        const file = new File([croppedBlob], "cover-image.webp", { type: "image/webp" });
+        setCoverFile(file);
+        setCoverPreview(URL.createObjectURL(file));
     };
 
     const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,6 +145,23 @@ export default function CreateAlbumPage() {
                                         <FormControl>
                                             <Input placeholder="Summer Vacation 2024" {...field} />
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="slug"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Slug</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="album-slug" {...field} />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Leave empty to auto-generate from name.
+                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -247,6 +278,17 @@ export default function CreateAlbumPage() {
                     </div>
                 </form>
             </Form>
+
+            <ImageCropper
+                isOpen={cropperOpen}
+                onClose={() => setCropperOpen(false)}
+                imageSrc={tempCoverSrc}
+                onCropComplete={onCropComplete}
+                aspectRatio={4 / 3}
+                outputWidth={800}
+                outputHeight={600}
+                outputFormat="image/webp"
+            />
         </div>
     );
 }

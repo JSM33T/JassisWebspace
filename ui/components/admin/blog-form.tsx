@@ -516,6 +516,9 @@ export function BlogForm({ initialData }: BlogFormProps) {
                 imageSrc={tempImageSrc}
                 onCropComplete={onCropComplete}
                 aspectRatio={16 / 9}
+                outputWidth={1920}
+                outputHeight={1080}
+                outputFormat="image/jpeg"
             />
         </Form>
     );

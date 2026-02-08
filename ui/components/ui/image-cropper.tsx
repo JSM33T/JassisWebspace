@@ -13,6 +13,9 @@ interface ImageCropperProps {
     imageSrc: string | null;
     onCropComplete: (croppedImage: Blob) => void;
     aspectRatio?: number; // Default 16/9
+    outputWidth?: number; // Default 1920
+    outputHeight?: number; // Default 1080
+    outputFormat?: "image/jpeg" | "image/png" | "image/webp"; // Default image/jpeg
 }
 
 export function ImageCropper({
@@ -21,6 +24,9 @@ export function ImageCropper({
     imageSrc,
     onCropComplete,
     aspectRatio = 16 / 9,
+    outputWidth = 1920,
+    outputHeight = 1080,
+    outputFormat = "image/jpeg",
 }: ImageCropperProps) {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
@@ -60,19 +66,13 @@ export function ImageCropper({
             return null;
         }
 
-        // Set canvas size to the desired output size (1920x1080)
-        canvas.width = 1280;
-        canvas.height = 720;
+        // Set canvas size to the desired output size
+        canvas.width = outputWidth;
+        canvas.height = outputHeight;
 
         // Draw the image on the canvas
         // We need to draw the cropped area of the source image onto the full canvas
         // The pixelCrop gives us the x, y, width, height in the *source* image's natural dimensions (because react-easy-crop handles that)
-        // Wait, pixelCrop from react-easy-crop is relative to the displayed image or natural? 
-        // Docs say: local coordinates of the image. 
-
-        // Actually, to get high quality, we should use the natural dimensions.
-        // But we want to Resize to 1920x1080.
-        // So we draw source(x,y,w,h) to destination(0,0,1920,1080).
 
         ctx.drawImage(
             image,
@@ -82,8 +82,8 @@ export function ImageCropper({
             pixelCrop.height,
             0,
             0,
-            1280,
-            720
+            outputWidth,
+            outputHeight
         );
 
         return new Promise((resolve, reject) => {
@@ -93,7 +93,7 @@ export function ImageCropper({
                     return;
                 }
                 resolve(blob);
-            }, "image/jpeg", 0.95);
+            }, outputFormat, 0.95);
         });
     };
 

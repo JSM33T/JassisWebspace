@@ -111,6 +111,7 @@ public sealed class AdminGalleryController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateAlbumWithImages(
         [FromForm] string name,
+        [FromForm] string? slug,
         [FromForm] string? description,
         [FromForm] IFormFile? coverImage,
         [FromForm] List<IFormFile>? imageFiles,
@@ -127,15 +128,17 @@ public sealed class AdminGalleryController(
         try
         {
             // Generate slug
-            var slug = GenerateSlug(name);
+            var targetSlug = !string.IsNullOrWhiteSpace(slug) 
+                ? GenerateSlug(slug) 
+                : GenerateSlug(name);
             
             // Check if slug already exists
             var slugExists = await dbContext.Albums
-                .AnyAsync(a => a.Slug == slug, cancellationToken);
+                .AnyAsync(a => a.Slug == targetSlug, cancellationToken);
             
             if (slugExists)
             {
-                slug = $"{slug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+                targetSlug = $"{targetSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
             }
 
             var albumId = Guid.NewGuid();
@@ -154,7 +157,7 @@ public sealed class AdminGalleryController(
             {
                 Id = albumId,
                 Name = name,
-                Slug = slug,
+                Slug = targetSlug,
                 Cover = coverUrl,
                 Description = description,
                 IsActive = true,
@@ -165,13 +168,13 @@ public sealed class AdminGalleryController(
             dbContext.Albums.Add(album);
 
             // Create Content entry
-            var contentSlug = slug;
+            var contentSlug = targetSlug;
             var existingContentSlug = await dbContext.Contents
                 .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
             
             if (existingContentSlug)
             {
-                contentSlug = $"{slug}-{album.Id.ToString().Substring(0, 8)}";
+                contentSlug = $"{targetSlug}-{album.Id.ToString().Substring(0, 8)}";
             }
 
             var content = new Content
@@ -352,6 +355,7 @@ public sealed class AdminGalleryController(
     public async Task<IActionResult> UpdateAlbum(
         Guid albumId,
         [FromForm] string? name,
+        [FromForm] string? slug,
         [FromForm] string? description,
         [FromForm] IFormFile? coverImage,
         [FromForm] bool? isActive,
@@ -367,18 +371,33 @@ public sealed class AdminGalleryController(
 
         try
         {
-            // Update name and slug if provided
-            if (!string.IsNullOrWhiteSpace(name) && name != album.Name)
+            // Update name and slug
+            if (!string.IsNullOrWhiteSpace(name))
             {
-                album.Name = name;
-                var newSlug = GenerateSlug(name);
-                
-                var slugExists = await dbContext.Albums
-                    .AnyAsync(a => a.Slug == newSlug && a.Id != albumId, cancellationToken);
+                if (name != album.Name)
+                {
+                    album.Name = name;
+                }
+            }
+
+            // Handle Slug Update
+            var targetSlug = !string.IsNullOrWhiteSpace(slug)
+                ? GenerateSlug(slug)
+                : (name != null && name != album.Name ? GenerateSlug(name) : album.Slug);
+
+            if (targetSlug != album.Slug)
+            {
+                 var slugExists = await dbContext.Albums
+                    .AnyAsync(a => a.Slug == targetSlug && a.Id != albumId, cancellationToken);
                 
                 if (!slugExists)
                 {
-                    album.Slug = newSlug;
+                    album.Slug = targetSlug;
+                }
+                else 
+                {
+                     // If slug taken by another album, append random
+                     album.Slug = $"{targetSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
                 }
             }
 

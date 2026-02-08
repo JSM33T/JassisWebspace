@@ -3,6 +3,7 @@ import { post, put, del } from "./client";
 
 export interface CreateAlbumRequest {
     name: string;
+    slug?: string;
     description?: string;
     coverImage?: File;
     imageFiles?: File[];
@@ -15,6 +16,7 @@ class AdminGalleryService {
     async createAlbum(data: CreateAlbumRequest): Promise<AlbumWithImages> {
         const formData = new FormData();
         formData.append('name', data.name);
+        if (data.slug) formData.append('slug', data.slug);
         if (data.description) formData.append('description', data.description);
         if (data.coverImage) formData.append('coverImage', data.coverImage);
 
@@ -48,6 +50,7 @@ class AdminGalleryService {
     async updateAlbum(id: string, data: Partial<CreateAlbumRequest> & { isActive?: boolean }): Promise<AlbumWithImages> {
         const formData = new FormData();
         if (data.name) formData.append('name', data.name);
+        if (data.slug !== undefined) formData.append('slug', data.slug || "");
         if (data.description !== undefined) formData.append('description', data.description);
         if (data.coverImage) formData.append('coverImage', data.coverImage);
         if (data.isActive !== undefined) formData.append('isActive', data.isActive.toString());
