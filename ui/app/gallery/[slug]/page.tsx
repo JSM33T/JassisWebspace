@@ -6,12 +6,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, ImageIcon, ZoomIn } from 'lucide-react';
+import { ArrowLeft, Calendar, ImageIcon, MessageSquare, ZoomIn } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
 import { AlbumWithImages } from '@/lib/api/gallery.types';
 import { ApiError } from '@/lib/api/types';
 import { motion } from 'framer-motion';
 
+import { CommentSection } from '@/components/comments/CommentSection';
+import { LikeButton } from '@/components/likes/LikeButton';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -172,6 +174,19 @@ export default function AlbumDetailPage() {
                                 <ImageIcon className="h-4 w-4" />
                                 <span>{album.images.length} {album.images.length === 1 ? 'image' : 'images'}</span>
                             </div>
+                            {album.contentId && (
+                                <span className="flex items-center gap-2">
+                                    <LikeButton
+                                        contentId={album.contentId}
+                                        initialCount={album.likeCount}
+                                        initialLiked={album.isLiked}
+                                    />
+                                </span>
+                            )}
+                            <span className="flex items-center gap-2 text-muted-foreground">
+                                <MessageSquare className="h-4 w-4" />
+                                <span>{album.commentCount}</span>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -251,6 +266,14 @@ export default function AlbumDetailPage() {
                 captions={{ descriptionTextAlign: 'center' }}
                 carousel={{ finite: true }}
             />
+
+            {album.contentId && (
+                <section className="px-4 pb-16">
+                    <div className="container mx-auto max-w-5xl">
+                        <CommentSection contentId={album.contentId} />
+                    </div>
+                </section>
+            )}
         </div>
     );
 }

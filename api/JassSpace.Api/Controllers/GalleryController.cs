@@ -38,7 +38,11 @@ public sealed class GalleryController(
                     a.Description,
                     a.CreatedAt,
                     a.UpdatedAt,
-                    a.Images.Count
+                    a.Images.Count,
+                    dbContext.Contents
+                        .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == a.Id)
+                        .Select(c => (Guid?)c.Id)
+                        .FirstOrDefault()
                 ))
                 .ToListAsync(cancellationToken);
 
@@ -64,9 +68,10 @@ public sealed class GalleryController(
     {
         try
         {
-            var album = await dbContext.Albums
+            var albumData = await dbContext.Albums
                 .Where(a => a.Id == albumId && a.IsActive)
-                .Select(a => new AlbumWithImagesResponse(
+                .Select(a => new
+                {
                     a.Id,
                     a.Name,
                     a.Slug,
@@ -74,7 +79,7 @@ public sealed class GalleryController(
                     a.Description,
                     a.CreatedAt,
                     a.UpdatedAt,
-                    a.Images
+                    Images = a.Images
                         .OrderBy(i => i.Order)
                         .Select(i => new ImageResponse(
                             i.Id,
@@ -86,15 +91,53 @@ public sealed class GalleryController(
                             i.CreatedAt
                         ))
                         .ToList()
-                ))
+                })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (album is null)
+            if (albumData is null)
             {
                 return NotFoundProblem("Album not found", $"No album found with ID '{albumId}'.");
             }
 
-            return OkEnvelope(album);
+            var contentId = await dbContext.Contents
+                .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
+                .Select(c => (Guid?)c.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var likeCount = 0;
+            var commentCount = 0;
+            var isLiked = false;
+
+            if (contentId.HasValue)
+            {
+                likeCount = await dbContext.Likes
+                    .CountAsync(l => l.ContentId == contentId.Value, cancellationToken);
+
+                commentCount = await dbContext.Comments
+                    .CountAsync(cm => cm.ContentId == contentId.Value && !cm.IsDeleted, cancellationToken);
+
+                if (Guid.TryParse(UserId, out var userGuid))
+                {
+                    isLiked = await dbContext.Likes
+                        .AnyAsync(l => l.ContentId == contentId.Value && l.UserId == userGuid, cancellationToken);
+                }
+            }
+
+            var response = new AlbumWithImagesResponse(
+                albumData.Id,
+                albumData.Name,
+                albumData.Slug,
+                albumData.Cover,
+                albumData.Description,
+                albumData.CreatedAt,
+                albumData.UpdatedAt,
+                albumData.Images,
+                contentId,
+                likeCount,
+                isLiked,
+                commentCount);
+
+            return OkEnvelope(response);
         }
         catch (Exception ex)
         {
@@ -218,7 +261,8 @@ public sealed class GalleryController(
                 album.Description,
                 album.CreatedAt,
                 album.UpdatedAt,
-                0 // No images yet
+                0, // No images yet
+                content.Id
             );
 
             return OkEnvelope(response);

@@ -1,6 +1,7 @@
 // Gallery API Types
 export interface Album {
     id: string;
+    contentId: string | null;
     name: string;
     slug: string;
     cover: string | null;
@@ -22,6 +23,10 @@ export interface Image {
 
 export interface AlbumWithImages {
     id: string;
+    contentId: string | null;
+    likeCount: number;
+    isLiked: boolean;
+    commentCount: number;
     name: string;
     slug: string;
     cover: string | null;

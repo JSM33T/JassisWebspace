@@ -245,7 +245,8 @@ public sealed class AdminGalleryController(
                     i.Description,
                     i.Order,
                     i.CreatedAt
-                )).ToList()
+                )).ToList(),
+                content.Id
             );
 
             return OkEnvelope(response);
@@ -435,7 +436,11 @@ public sealed class AdminGalleryController(
                 album.Description,
                 album.CreatedAt,
                 album.UpdatedAt,
-                imageCount
+                imageCount,
+                await dbContext.Contents
+                    .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
+                    .Select(c => (Guid?)c.Id)
+                    .FirstOrDefaultAsync(cancellationToken)
             );
 
             return OkEnvelope(response);

@@ -8,7 +8,8 @@ public record AlbumResponse(
     string? Description,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    int ImageCount
+    int ImageCount,
+    Guid? ContentId = null
 );
 
 public record ImageResponse(
@@ -29,5 +30,9 @@ public record AlbumWithImagesResponse(
     string? Description,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    List<ImageResponse> Images
+    List<ImageResponse> Images,
+    Guid? ContentId = null,
+    int LikeCount = 0,
+    bool IsLiked = false,
+    int CommentCount = 0
 );
