@@ -248,6 +248,7 @@ export default function AlbumDetailPage() {
                 animation={{ fade: 0 }}
                 controller={{ closeOnBackdropClick: true }}
                 captions={{ descriptionTextAlign: 'center' }}
+                carousel={{ finite: true }}
             />
         </div>
     );
