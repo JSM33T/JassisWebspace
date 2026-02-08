@@ -32,6 +32,7 @@ import { BlogAuthor, BlogCategory, BlogDetail, CreateBlogRequest } from "@/lib/a
 import { adminBlogService } from "@/lib/api/admin-blog.service";
 import { adminGalleryService } from "@/lib/api/admin-gallery.service";
 import Image from "next/image";
+import { ImageCropper } from "@/components/ui/image-cropper";
 
 const blogSchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -91,7 +92,32 @@ export function BlogForm({ initialData }: BlogFormProps) {
 
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [cropperOpen, setCropperOpen] = useState(false);
+    const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
 
+    const onCropComplete = (croppedBlob: Blob) => {
+        const file = new File([croppedBlob], "cropped-cover.jpg", { type: "image/jpeg" });
+        setSelectedImage(file);
+        setPreviewUrl(URL.createObjectURL(file));
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            alert("Please select an image file");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+            setTempImageSrc(reader.result?.toString() || null);
+            setCropperOpen(true);
+            e.target.value = ""; // Reset input
+        });
+        reader.readAsDataURL(file);
+    };
     const onSubmit = async (data: BlogFormValues) => {
         try {
             setLoading(true);
@@ -149,14 +175,6 @@ export function BlogForm({ initialData }: BlogFormProps) {
         }
     };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setSelectedImage(file);
-        setPreviewUrl(URL.createObjectURL(file));
-        // We don't set the form value yet, as it's not uploaded
-    };
 
     return (
         <Form {...form}>
@@ -469,6 +487,13 @@ export function BlogForm({ initialData }: BlogFormProps) {
                     </div>
                 </div>
             </form>
+            <ImageCropper
+                isOpen={cropperOpen}
+                onClose={() => setCropperOpen(false)}
+                imageSrc={tempImageSrc}
+                onCropComplete={onCropComplete}
+                aspectRatio={16 / 9}
+            />
         </Form>
     );
 }
