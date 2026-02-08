@@ -3,6 +3,7 @@ namespace JassSpace.Contracts.Requests;
 public record CreateBlogRequest(
     Guid? Id,
     string Title,
+    string? Slug,
     string? Excerpt,
     string Content,
     string? FeaturedImage,
@@ -13,6 +14,7 @@ public record CreateBlogRequest(
 
 public record UpdateBlogRequest(
     string Title,
+    string? Slug,
     string? Excerpt,
     string Content,
     string? FeaturedImage,

@@ -50,6 +50,7 @@ export interface BlogDetail {
 export interface CreateBlogRequest {
     id?: string;
     title: string;
+    slug?: string;
     excerpt?: string;
     content: string;
     featuredImage?: string;

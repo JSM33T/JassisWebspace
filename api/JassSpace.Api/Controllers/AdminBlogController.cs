@@ -106,7 +106,9 @@ public sealed class AdminBlogController(
         try
         {
             // Generate slug
-            var slug = GenerateSlug(request.Title);
+            var slug = !string.IsNullOrWhiteSpace(request.Slug) 
+                ? GenerateSlug(request.Slug) 
+                : GenerateSlug(request.Title);
             
             // Check if slug already exists
             var slugExists = await dbContext.Blogs
@@ -229,25 +231,28 @@ public sealed class AdminBlogController(
 
         try
         {
-            // Update slug if title changed
-            if (request.Title != blog.Title)
+            // Handle Slug Update
+            var targetSlug = !string.IsNullOrWhiteSpace(request.Slug)
+                ? GenerateSlug(request.Slug)
+                : (request.Title != blog.Title ? GenerateSlug(request.Title) : blog.Slug);
+
+            if (targetSlug != blog.Slug)
             {
-                blog.Title = request.Title;
-                var newSlug = GenerateSlug(request.Title);
-                
-                var slugExists = await dbContext.Blogs
-                    .AnyAsync(b => b.Slug == newSlug && b.Id != id, cancellationToken);
+                 var slugExists = await dbContext.Blogs
+                    .AnyAsync(b => b.Slug == targetSlug && b.Id != id, cancellationToken);
                 
                 if (!slugExists)
                 {
-                    blog.Slug = newSlug;
+                    blog.Slug = targetSlug;
                 }
                 else 
                 {
                      // If slug taken by another blog, append random
-                     blog.Slug = $"{newSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+                     blog.Slug = $"{targetSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
                 }
             }
+            
+            blog.Title = request.Title;
 
             // Handle Image Update - Delete old image if changed
             if (request.FeaturedImage != blog.FeaturedImage && !string.IsNullOrWhiteSpace(blog.FeaturedImage))

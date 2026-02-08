@@ -36,6 +36,7 @@ import { ImageCropper } from "@/components/ui/image-cropper";
 
 const blogSchema = z.object({
     title: z.string().min(1, "Title is required"),
+    slug: z.string().optional(),
     excerpt: z.string().optional(),
     content: z.string().optional(), // Content is optional for initial creation
     featuredImage: z.string().optional(),
@@ -64,6 +65,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
         resolver: zodResolver(blogSchema),
         defaultValues: {
             title: initialData?.title || "",
+            slug: initialData?.slug || "",
             excerpt: initialData?.excerpt || "",
             // Default content to empty string if not present
             content: initialData?.content || "",
@@ -146,6 +148,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
                 ...data,
                 id: blogId,
                 content: data.content || "", // Allow empty content for draft
+                slug: data.slug || undefined,
                 excerpt: data.excerpt || undefined,
                 featuredImage: featuredImageUrl || undefined,
                 categoryId: data.categoryId || undefined,
@@ -188,8 +191,28 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                 <FormItem>
                                     <FormLabel>Title</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Blog post title" {...field} />
+                                        <Input
+                                            placeholder="Blog post title"
+                                            {...field}
+                                        />
                                     </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="slug"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Slug</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="url-friendly-slug" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Leave empty to auto-generate from title.
+                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
