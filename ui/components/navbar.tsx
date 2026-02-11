@@ -30,7 +30,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
@@ -58,6 +58,7 @@ export function Navbar() {
     const navigationLinks = [
         { href: '/', label: 'Home', id: 'home' },
         { href: '/blog', label: 'Blogs', id: 'blogs' },
+        { href: '/contact', label: 'Contact', id: 'contact' },
     ];
 
     const studioMenuItems = [
@@ -72,6 +73,21 @@ export function Navbar() {
             label: 'Music',
             description: 'Explore our music collection',
             icon: Music,
+        },
+    ];
+
+    const workMenuItems = [
+        {
+            href: '/projects',
+            label: 'Projects',
+            description: 'View our completed projects',
+            icon: FolderCode,
+        },
+        {
+            href: '/services',
+            label: 'Services',
+            description: 'Explore the services we offer',
+            icon: Briefcase,
         },
     ];
 
@@ -145,6 +161,45 @@ export function Navbar() {
                                         {link.label}
                                     </Link>
                                 ))}
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+
+                                            className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
+                                            onMouseEnter={(e) => {
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                const parentRect = navRef.current?.getBoundingClientRect();
+                                                if (parentRect) {
+                                                    setHoverStyle({
+                                                        left: rect.left - parentRect.left,
+                                                        width: rect.width,
+                                                        opacity: 1,
+                                                    });
+                                                }
+                                                setHoveredLink('work');
+                                            }}
+                                        >
+                                            Work <ChevronDown className="h-3 w-3 inline ml-1" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-64" align="center">
+                                        {workMenuItems.map((item) => {
+                                            const Icon = item.icon;
+                                            return (
+                                                <DropdownMenuItem key={item.href} asChild>
+                                                    <Link href={item.href} className="cursor-pointer flex items-start gap-3 p-3">
+                                                        <Icon className="h-5 w-5 mt-0.5 text-primary" />
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{item.label}</span>
+                                                            <span className="text-xs text-muted-foreground">{item.description}</span>
+                                                        </div>
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
 
 
 
@@ -322,6 +377,22 @@ export function Navbar() {
                                                 ))}
 
 
+
+                                                {/* Work Menu Items */}
+                                                <div className="pl-3 pt-2 pb-1">
+                                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Work</p>
+                                                </div>
+                                                {workMenuItems.map((item) => {
+                                                    const Icon = item.icon;
+                                                    return (
+                                                        <SheetClose key={item.href} asChild>
+                                                            <Link href={item.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                                <Icon className="h-4 w-4 inline mr-2 text-primary" />
+                                                                {item.label}
+                                                            </Link>
+                                                        </SheetClose>
+                                                    );
+                                                })}
 
                                                 {/* Studio Menu Items */}
                                                 <div className="pl-3 pt-2 pb-1">

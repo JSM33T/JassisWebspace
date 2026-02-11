@@ -5,9 +5,9 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Music, ArrowLeft, Headphones, MoveUpRight } from 'lucide-react';
+import { FolderCode, ArrowLeft, Rocket, MoveUpRight } from 'lucide-react';
 
-export default function MusicPage() {
+export default function ProjectsPage() {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -27,14 +27,14 @@ export default function MusicPage() {
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="space-y-3">
                             <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-sm font-normal backdrop-blur-sm bg-background/50 border-border/50 gap-2 w-fit">
-                                <Music className="h-3.5 w-3.5 text-primary" />
-                                <span>Audio Library</span>
+                                <FolderCode className="h-3.5 w-3.5 text-primary" />
+                                <span>Portfolio</span>
                             </Badge>
                             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                                Music
+                                Projects
                             </h1>
                             <p className="text-lg text-muted-foreground max-w-2xl">
-                                Explore our collection of original tracks and curated playlists.
+                                A showcase of our innovative projects and technical solutions.
                             </p>
                         </div>
                         <Button variant="ghost" asChild className="rounded-full px-6">
@@ -50,34 +50,34 @@ export default function MusicPage() {
             {/* Coming Soon Card */}
             <section className="flex-1 flex items-center justify-center px-4 py-12">
                 <div className="container mx-auto max-w-7xl w-full">
-                    <Card className="max-w-2xl mx-auto rounded-3xl border bg-gradient-to-br from-neutral-100/50 to-white/50 dark:from-neutral-900/50 dark:to-neutral-950/50 hover:shadow-xl transition-all duration-500 backdrop-blur-md p-8 md:p-12 text-center group relative overflow-hidden">
+                    <Card className="max-w-2xl mx-auto rounded-3xl border bg-card/50 hover:bg-card/80 transition-all duration-500 hover:shadow-xl backdrop-blur-sm p-8 md:p-12 text-center group relative overflow-hidden">
                         <div className="absolute top-6 right-6 p-2 rounded-full border bg-background/50 group-hover:scale-110 transition-transform">
                             <MoveUpRight className="h-4 w-4 opacity-50" />
                         </div>
 
                         <CardHeader className="pb-4">
-                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-pink-500/10 mb-6 group-hover:scale-110 transition-transform duration-500">
-                                <Headphones className="h-10 w-10 text-pink-500" />
+                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mb-6 group-hover:rotate-12 transition-transform duration-500">
+                                <Rocket className="h-10 w-10 text-primary" />
                             </div>
-                            <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Tune In Soon</CardTitle>
+                            <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Coming Soon</CardTitle>
                             <CardDescription className="text-xl pt-4 max-w-md mx-auto leading-relaxed">
-                                We're preparing an immersive audio experience for you.
+                                We're currently curating our portfolio and building out comprehensive case studies.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-4">
-                            <p className="text-muted-foreground text-lg">
-                                From ambient soundscapes to high-energy tracks, our music library is getting a major upgrade.
+                            <p className="text-muted-foreground text-lg italic">
+                                "Great things are done by a series of small things brought together."
                             </p>
                         </CardContent>
                         <CardFooter className="flex flex-wrap items-center justify-center gap-4 pt-10">
-                            <Button size="lg" className="rounded-full px-8 bg-primary" asChild>
-                                <Link href="/gallery">
-                                    Explore Gallery
+                            <Button size="lg" className="rounded-full px-8" asChild>
+                                <Link href="/blog">
+                                    Read our Blog
                                 </Link>
                             </Button>
                             <Button size="lg" variant="outline" className="rounded-full px-8 bg-background/50" asChild>
-                                <Link href="/blog">
-                                    Read Blog
+                                <Link href="/about">
+                                    About Us
                                 </Link>
                             </Button>
                         </CardFooter>
