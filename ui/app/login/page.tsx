@@ -54,6 +54,7 @@ export default function LoginPage() {
                 login: true,
                 expiry: new Date(response.expiresAt),
                 role: response.user.roles?.[0] || 'user',
+                authMethod: response.user.authMethod || undefined // Track authentication method
             });
 
             toast.success('Login successful!');

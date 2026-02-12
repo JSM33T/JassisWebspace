@@ -1259,12 +1259,46 @@ public sealed class AuthController(
                 return BadRequestProblem("User not found");
             }
 
+            // Check current session's auth method to determine if current password is required
+            string? currentAuthMethod = null;
+            var sessionClaim = User.FindFirst("session_id")?.Value ?? User.FindFirst("sid")?.Value;
+            
+            logger.LogInformation("SetPassword: SessionClaim = {SessionClaim}", sessionClaim ?? "NULL");
+            
+            if (!string.IsNullOrEmpty(sessionClaim) && Guid.TryParse(sessionClaim, out var sessionId))
+            {
+                var session = await context.Sessions
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == user.Id, cancellationToken);
+                
+                if (session != null)
+                {
+                    currentAuthMethod = session.AuthMethod;
+                    logger.LogInformation("SetPassword: Found session with AuthMethod = {AuthMethod}", currentAuthMethod ?? "NULL");
+                }
+                else
+                {
+                    logger.LogWarning("SetPassword: Session not found for SessionId = {SessionId}, UserId = {UserId}", sessionId, user.Id);
+                }
+            }
+            else
+            {
+                logger.LogWarning("SetPassword: No valid session claim found in JWT");
+            }
+
+            // If user logged in via OAuth (Google/GitHub), they can set password without current password
+            // If user logged in via EmailPassword, they must provide current password
+            var isOAuthLogin = currentAuthMethod != null && currentAuthMethod != "EmailPassword";
             var hasExistingPassword = HasUsablePassword(user.PasswordHash);
 
-            if (hasExistingPassword)
+            logger.LogInformation("SetPassword: isOAuthLogin = {IsOAuth}, hasExistingPassword = {HasPassword}, currentAuthMethod = {AuthMethod}", 
+                isOAuthLogin, hasExistingPassword, currentAuthMethod ?? "NULL");
+
+            if (!isOAuthLogin && hasExistingPassword)
             {
                 if (string.IsNullOrEmpty(request.CurrentPassword))
                 {
+                    logger.LogWarning("SetPassword: Current password required but not provided for user {UserId}", user.Id);
                     return BadRequestProblem("Current password is required");
                 }
 
@@ -1272,6 +1306,10 @@ public sealed class AuthController(
                 {
                     return UnauthorizedProblem("Current password is incorrect");
                 }
+            }
+            else
+            {
+                logger.LogInformation("SetPassword: Allowing password set without current password (OAuth user or no existing password)");
             }
 
             // Validate new password length using existing app config fallback

@@ -14,6 +14,7 @@ export interface User {
     bio?: string;
     login: boolean;
     expiry?: Date;
+    authMethod?: string; // Track authentication method: "EmailPassword", "Google", "GitHub"
     // Additional optional fields
     role?: string;
     preferences?: Record<string, any>;
@@ -136,7 +137,8 @@ export function UserProvider({ children }: UserProviderProps) {
                                             email: userData.email,
                                             avatarUrl: userData.avatarUrl,
                                             login: true,
-                                            role: userData.roles?.[0] || 'user'
+                                            role: userData.roles?.[0] || 'user',
+                                            authMethod: userData.authMethod
                                         };
 
                                         setUser(restoredUser);
@@ -188,7 +190,8 @@ export function UserProvider({ children }: UserProviderProps) {
                                 email: userData.email,
                                 avatarUrl: userData.avatarUrl,
                                 login: true,
-                                role: userData.roles?.[0] || 'user'
+                                role: userData.roles?.[0] || 'user',
+                                authMethod: userData.authMethod
                             };
 
                             setUser(restoredUser);
@@ -234,7 +237,8 @@ export function UserProvider({ children }: UserProviderProps) {
                                         email: userData.email,
                                         avatarUrl: userData.avatarUrl,
                                         login: true,
-                                        role: userData.roles?.[0] || 'user'
+                                        role: userData.roles?.[0] || 'user',
+                                        authMethod: userData.authMethod
                                     };
 
                                     setUser(restoredUser);
@@ -282,7 +286,8 @@ export function UserProvider({ children }: UserProviderProps) {
                                         email: userData.email,
                                         avatarUrl: userData.avatarUrl,
                                         login: true,
-                                        role: userData.roles?.[0] || 'user'
+                                        role: userData.roles?.[0] || 'user',
+                                        authMethod: userData.authMethod
                                     };
 
                                     setUser(restoredUser);

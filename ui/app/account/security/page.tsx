@@ -108,7 +108,17 @@ export default function SecurityPage() {
             return;
         }
 
-        if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        // Check if user logged in via OAuth (Google/GitHub) or Email/Password
+        const isOAuthUser = user.authMethod !== "EmailPassword";
+
+        // For OAuth users, current password is not required
+        // For Email/Password users, current password is required
+        if (!isOAuthUser && !passwordData.currentPassword) {
+            toast.error("Current password is required");
+            return;
+        }
+
+        if (!passwordData.newPassword || !passwordData.confirmPassword) {
             toast.error("Please fill in all fields");
             return;
         }
@@ -215,24 +225,36 @@ export default function SecurityPage() {
                                     Change Password
                                 </CardTitle>
                                 <CardDescription>
-                                    Ensure your account is using a long, random password to stay secure.
+                                    {user?.authMethod === "EmailPassword"
+                                        ? "Ensure your account is using a long, random password to stay secure."
+                                        : "Set a password to enable email/password login for your account."}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Current Password</label>
-                                    <div className="relative">
-                                        <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            type="password"
-                                            name="currentPassword"
-                                            value={passwordData.currentPassword}
-                                            onChange={handlePasswordChange}
-                                            className="pl-9"
-                                            placeholder="Enter current password"
-                                        />
+                                {user?.authMethod !== "EmailPassword" && (
+                                    <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                                        <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                        <p className="text-sm text-blue-800 dark:text-blue-300">
+                                            You logged in with {user?.authMethod}. You can set a password to enable email/password login for your account.
+                                        </p>
                                     </div>
-                                </div>
+                                )}
+                                {user?.authMethod === "EmailPassword" && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Current Password</label>
+                                        <div className="relative">
+                                            <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                type="password"
+                                                name="currentPassword"
+                                                value={passwordData.currentPassword}
+                                                onChange={handlePasswordChange}
+                                                className="pl-9"
+                                                placeholder="Enter current password"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium">New Password</label>
@@ -268,7 +290,9 @@ export default function SecurityPage() {
                                         onClick={onSubmitPasswordChange}
                                         disabled={isLoading}
                                     >
-                                        {isLoading ? "Updating..." : "Update Password"}
+                                        {isLoading
+                                            ? (user?.authMethod === "EmailPassword" ? "Updating..." : "Setting...")
+                                            : (user?.authMethod === "EmailPassword" ? "Update Password" : "Set Password")}
                                     </Button>
                                 </div>
                             </CardContent>
