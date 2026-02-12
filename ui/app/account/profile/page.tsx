@@ -174,6 +174,7 @@ export default function ProfilePage() {
                     coverUrl: response.profile.coverUrl || undefined,
                     bio: response.profile.bio || undefined,
                     preferences: response.profile.preferences || undefined,
+                    authMethod: response.profile.authMethod || undefined,
                     // Ensure these are preserved/mapped correctly
                     role: response.profile.roles?.[0] || user.role,
                     login: user.login,
@@ -220,6 +221,7 @@ export default function ProfilePage() {
                     coverUrl: newCoverUrl,
                     bio: response.profile.bio || undefined,
                     preferences: response.profile.preferences || undefined,
+                    authMethod: response.profile.authMethod || undefined,
                     role: response.profile.roles?.[0] || user.role,
                     login: user.login,
                     expiry: user.expiry
@@ -263,6 +265,7 @@ export default function ProfilePage() {
                     coverUrl: response.profile.coverUrl || undefined,
                     bio: response.profile.bio || undefined,
                     preferences: response.profile.preferences || undefined,
+                    authMethod: response.profile.authMethod || undefined,
                     role: response.profile.roles?.[0] || user.role,
                     login: user.login,
                     expiry: user.expiry
