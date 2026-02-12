@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,27 +48,34 @@ export default function GalleryPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen pt-20 bg-gradient-to-b from-background to-muted/20">
+        <div className="flex flex-col min-h-screen bg-background/50">
+
+            {/* Ambient Background Glow (Same as services page) */}
+            <div className="fixed inset-0 z-[-1] pointer-events-none">
+                <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
+            </div>
+
             {/* Header */}
-            <section className="px-4 py-8 md:py-12">
-                <div className="container mx-auto max-w-7xl">
+            <section className="px-4 py-8 md:py-12 border-b bg-muted/30 backdrop-blur-sm">
+                <div className="container mx-auto max-w-7xl pt-16">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="space-y-3">
-                            <Badge variant="secondary" className="w-fit">
-                                <ImageIcon className="mr-2 h-3.5 w-3.5" />
-                                Creative Showcase
+                            <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-sm font-normal backdrop-blur-sm bg-background/50 border-border/50 gap-2 w-fit">
+                                <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                                <span>Creative Showcase</span>
                             </Badge>
-                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
+                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
                                 Gallery
                             </h1>
-                            <p className="text-base md:text-lg text-muted-foreground max-w-2xl">
-                                Explore our curated collection of albums and creative works
+                            <p className="text-lg text-muted-foreground max-w-2xl">
+                                Explore our curated collection of albums and creative works.
                             </p>
                         </div>
-                        <Button variant="outline" size="lg" asChild className="w-fit">
+                        <Button variant="ghost" asChild className="rounded-full px-6">
                             <Link href="/">
                                 <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Home
+                                Back
                             </Link>
                         </Button>
                     </div>
@@ -75,7 +83,7 @@ export default function GalleryPage() {
             </section>
 
             {/* Albums Grid */}
-            <section className="flex-1 px-4 pb-16">
+            <section className="flex-1 px-4 py-16">
                 <div className="container mx-auto max-w-7xl">
                     {loading && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -116,62 +124,73 @@ export default function GalleryPage() {
 
                     {!loading && !error && albums.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {albums.map((album) => (
-                                <Link 
-                                    key={album.id} 
-                                    href={`/gallery/${album.slug}`}
-                                    className="group block"
+                            {albums.map((album, index) => (
+                                <motion.div
+                                    key={album.id}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3, delay: index * 0.05 }}
                                 >
-                                    <div className="relative overflow-hidden rounded-xl bg-muted aspect-[4/3] mb-3">
-                                        {album.cover ? (
-                                            <>
-                                                <Image
-                                                    src={album.cover}
-                                                    alt={album.name}
-                                                    fill
-                                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                                                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                                    unoptimized
-                                                />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                    <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-                                                        <Eye className="h-4 w-4" />
-                                                        <span className="text-sm font-medium">View Album</span>
+                                    <Link
+                                        href={`/gallery/${album.slug}`}
+                                        className="group block h-full"
+                                    >
+                                        <div className="flex flex-col h-full rounded-3xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm overflow-hidden">
+                                            <div className="relative overflow-hidden bg-muted aspect-[4/3]">
+                                                {album.cover ? (
+                                                    <>
+                                                        <Image
+                                                            src={album.cover}
+                                                            alt={album.name}
+                                                            fill
+                                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                                            unoptimized
+                                                        />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                            <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
+                                                                <Eye className="h-4 w-4" />
+                                                                <span className="text-sm font-medium">View Album</span>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <div className="p-4 rounded-2xl border bg-background/50">
+                                                            <ImageIcon className="h-8 w-8 text-primary opacity-70" />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col flex-1 p-6 space-y-3">
+                                                <h3 className="font-medium text-lg leading-tight tracking-tight group-hover:text-primary transition-colors line-clamp-2">
+                                                    {album.name}
+                                                </h3>
+                                                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="p-1 rounded-full border bg-background/50">
+                                                            <Images className="h-3 w-3" />
+                                                        </div>
+                                                        <span>{album.imageCount}</span>
+                                                    </div>
+                                                    <span>•</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="p-1 rounded-full border bg-background/50">
+                                                            <Calendar className="h-3 w-3" />
+                                                        </div>
+                                                        <span>{formatDate(album.createdAt)}</span>
                                                     </div>
                                                 </div>
-                                            </>
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <div className="text-muted-foreground flex flex-col items-center gap-2">
-                                                    <ImageIcon className="h-12 w-12" />
-                                                    <span className="text-sm font-medium">No cover</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1.5 px-1">
-                                        <h3 className="font-semibold text-base leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                                            {album.name}
-                                        </h3>
-                                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                            <div className="flex items-center gap-1.5">
-                                                <Images className="h-3.5 w-3.5" />
-                                                <span>{album.imageCount}</span>
-                                            </div>
-                                            <span>•</span>
-                                            <div className="flex items-center gap-1.5">
-                                                <Calendar className="h-3.5 w-3.5" />
-                                                <span>{formatDate(album.createdAt)}</span>
+                                                {album.description && (
+                                                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                                                        {album.description}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
-                                        {album.description && (
-                                            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                                                {album.description}
-                                            </p>
-                                        )}
-                                    </div>
-                                </Link>
+                                    </Link>
+                                </motion.div>
                             ))}
                         </div>
                     )}

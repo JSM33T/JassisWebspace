@@ -101,7 +101,7 @@ export default function ServicesPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex flex-col min-h-screen pt-20 bg-background/50"
+            className="flex flex-col min-h-screen bg-background/50"
         >
             {/* Ambient Background Glow (Same as homepage) */}
             <div className="fixed inset-0 z-[-1] pointer-events-none">
@@ -111,7 +111,7 @@ export default function ServicesPage() {
 
             {/* Header */}
             <section className="px-4 py-8 md:py-12 border-b bg-muted/30 backdrop-blur-sm">
-                <div className="container mx-auto max-w-7xl">
+                <div className="container mx-auto max-w-7xl pt-16">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="space-y-3">
                             <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-sm font-normal backdrop-blur-sm bg-background/50 border-border/50 gap-2 w-fit">

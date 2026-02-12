@@ -110,10 +110,28 @@ export function CommentSection({ contentId }: CommentSectionProps) {
         }
     };
 
+    // Helper function to recursively collect all descendant comment IDs
+    const getAllDescendantIds = (commentId: string, allComments: CommentResponse[]): string[] => {
+        const ids: string[] = [commentId];
+        const children = allComments.filter(c => c.parentCommentId === commentId);
+
+        children.forEach(child => {
+            ids.push(...getAllDescendantIds(child.id, allComments));
+        });
+
+        return ids;
+    };
+
     const handleDelete = async (id: string) => {
         try {
             await commentService.deleteComment(id);
-            setComments(prev => prev.filter(c => c.id !== id));
+
+            // Get all descendant IDs (including the parent)
+            const idsToRemove = getAllDescendantIds(id, comments);
+
+            // Remove the comment and all its descendants
+            setComments(prev => prev.filter(c => !idsToRemove.includes(c.id)));
+
             toast.success('Comment deleted successfully');
         } catch (error) {
             console.error('Failed to delete comment', error);

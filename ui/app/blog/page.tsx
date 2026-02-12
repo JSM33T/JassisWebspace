@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -128,24 +129,37 @@ export default function BlogHomePage() {
     /* -------------------- render -------------------- */
 
     return (
-        <div className="flex flex-col min-h-screen pt-20 bg-gradient-to-b from-background to-muted/20">
+        <div className="flex flex-col min-h-screen bg-background/50">
+
+            {/* Ambient Background Glow (Same as services page) */}
+            <div className="fixed inset-0 z-[-1] pointer-events-none">
+                <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
+            </div>
 
             {/* Header */}
-            <section className="px-4 py-8 border-b">
-                <div className="container max-w-7xl mx-auto flex justify-between items-center">
-                    <div>
-                        <Badge variant="secondary" className="mb-2">
-                            <BookOpen className="mr-2 h-3.5 w-3.5" />
-                            Insights & Stories
-                        </Badge>
-                        <h1 className="text-4xl font-bold">Blog</h1>
+            <section className="px-4 py-8 md:py-12 border-b bg-muted/30 backdrop-blur-sm">
+                <div className="container mx-auto max-w-7xl pt-16">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="space-y-3">
+                            <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-sm font-normal backdrop-blur-sm bg-background/50 border-border/50 gap-2 w-fit">
+                                <BookOpen className="h-3.5 w-3.5 text-primary" />
+                                <span>Insights & Stories</span>
+                            </Badge>
+                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                                Blog
+                            </h1>
+                            <p className="text-lg text-muted-foreground max-w-2xl">
+                                Explore our latest articles, tutorials, and insights.
+                            </p>
+                        </div>
+                        <Button variant="ghost" asChild className="rounded-full px-6">
+                            <Link href="/">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back
+                            </Link>
+                        </Button>
                     </div>
-                    <Button variant="outline" asChild>
-                        <Link href="/">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Home
-                        </Link>
-                    </Button>
                 </div>
             </section>
 
@@ -211,56 +225,75 @@ export default function BlogHomePage() {
                     )}
 
                     {!loading && blogs.length > 0 && (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {blogs.map(blog => (
-                                <article key={blog.id} className="border rounded-xl overflow-hidden hover:shadow-lg transition">
-                                    <Link href={`/blog/${blog.slug}`}>
-                                        <div className="relative aspect-[16/10] bg-muted">
-                                            {blog.featuredImage ? (
-                                                <Image
-                                                    src={blog.featuredImage}
-                                                    alt={blog.title}
-                                                    fill
-                                                    className="object-cover"
-                                                    unoptimized
-                                                />
-                                            ) : (
-                                                <BookOpen className="m-auto h-12 w-12 text-muted-foreground" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {blogs.map((blog, index) => (
+                                <motion.div
+                                    key={blog.id}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                                >
+                                    <article
+                                        className="flex flex-col h-full rounded-3xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group overflow-hidden"
+                                    >
+                                        <Link href={`/blog/${blog.slug}`}>
+                                            <div className="relative aspect-[16/10] bg-muted overflow-hidden">
+                                                {blog.featuredImage ? (
+                                                    <Image
+                                                        src={blog.featuredImage}
+                                                        alt={blog.title}
+                                                        fill
+                                                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-full">
+                                                        <div className="p-4 rounded-2xl border bg-background/50">
+                                                            <BookOpen className="h-8 w-8 text-primary opacity-70" />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Link>
+
+                                        <div className="flex flex-col flex-1 p-8 space-y-4">
+                                            {blog.category && (
+                                                <Badge variant="secondary" className="rounded-full px-3 w-fit">
+                                                    {blog.category.name}
+                                                </Badge>
+                                            )}
+
+                                            <Link href={`/blog/${blog.slug}`}>
+                                                <h3 className="text-xl font-medium tracking-tight line-clamp-2 group-hover:text-primary transition-colors">
+                                                    {blog.title}
+                                                </h3>
+                                            </Link>
+
+                                            {blog.excerpt && (
+                                                <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                                                    {blog.excerpt}
+                                                </p>
+                                            )}
+
+                                            {blog.authors?.[0] && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleAuthorClick(
+                                                            blog.authors[0].userId,
+                                                            blog.authors[0].username
+                                                        )
+                                                    }
+                                                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mt-auto pt-2"
+                                                >
+                                                    <div className="p-1.5 rounded-full border bg-background/50">
+                                                        <User className="h-3 w-3" />
+                                                    </div>
+                                                    {blog.authors[0].displayName || blog.authors[0].username}
+                                                </button>
                                             )}
                                         </div>
-                                    </Link>
-
-                                    <div className="p-6 space-y-3">
-                                        {blog.category && (
-                                            <Badge variant="secondary">{blog.category.name}</Badge>
-                                        )}
-
-                                        <h3 className="text-xl font-semibold line-clamp-2">
-                                            {blog.title}
-                                        </h3>
-
-                                        {blog.excerpt && (
-                                            <p className="text-muted-foreground line-clamp-3 text-sm">
-                                                {blog.excerpt}
-                                            </p>
-                                        )}
-
-                                        {blog.authors?.[0] && (
-                                            <button
-                                                onClick={() =>
-                                                    handleAuthorClick(
-                                                        blog.authors[0].userId,
-                                                        blog.authors[0].username
-                                                    )
-                                                }
-                                                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
-                                            >
-                                                <User className="h-3.5 w-3.5" />
-                                                {blog.authors[0].displayName || blog.authors[0].username}
-                                            </button>
-                                        )}
-                                    </div>
-                                </article>
+                                    </article>
+                                </motion.div>
                             ))}
                         </div>
                     )}
