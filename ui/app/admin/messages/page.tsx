@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Mail, Calendar, ExternalLink } from "lucide-react";
+import { Search, Mail, Calendar, ExternalLink, Trash2 } from "lucide-react";
 import { adminContactService } from "@/lib/api/admin-contact.service";
 import { AdminContactMessage } from "@/lib/api/admin-contact.types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
     Table,
     TableBody,
@@ -18,12 +19,15 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 export default function AdminMessagesPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [messages, setMessages] = useState<AdminContactMessage[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedMessage, setSelectedMessage] = useState<AdminContactMessage | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const page = parseInt(searchParams.get("page") || "1", 10);
     const search = searchParams.get("search") || "";
@@ -58,6 +62,22 @@ export default function AdminMessagesPage() {
         }
         params.set("page", "1");
         router.replace(`?${params.toString()}`);
+    };
+
+    const handleDeleteMessage = async () => {
+        if (!selectedMessage) return;
+        try {
+            setDeleting(true);
+            await adminContactService.deleteMessage(selectedMessage.id);
+            setMessages((prev) => prev.filter((m) => m.id !== selectedMessage.id));
+            setSelectedMessage(null);
+            toast.success("Message deleted");
+        } catch (error) {
+            console.error("Failed to delete message", error);
+            toast.error("Failed to delete message");
+        } finally {
+            setDeleting(false);
+        }
     };
 
     return (
@@ -109,7 +129,11 @@ export default function AdminMessagesPage() {
                             </TableRow>
                         ) : (
                             messages.map((item) => (
-                                <TableRow key={item.id}>
+                                <TableRow
+                                    key={item.id}
+                                    className="cursor-pointer"
+                                    onClick={() => setSelectedMessage(item)}
+                                >
                                     <TableCell>
                                         <div className="space-y-1">
                                             <div className="font-medium">{item.name}</div>
@@ -127,7 +151,12 @@ export default function AdminMessagesPage() {
                                     </TableCell>
                                     <TableCell>
                                         {item.refUrl ? (
-                                            <Button variant="ghost" size="sm" asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                asChild
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 <Link href={item.refUrl} target="_blank" rel="noreferrer">
                                                     Open <ExternalLink className="ml-1 h-3.5 w-3.5" />
                                                 </Link>
@@ -176,6 +205,69 @@ export default function AdminMessagesPage() {
                     Next
                 </Button>
             </div>
+
+            <Dialog open={!!selectedMessage} onOpenChange={(open) => !open && setSelectedMessage(null)}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{selectedMessage?.purpose || "Message"}</DialogTitle>
+                        <DialogDescription>
+                            Full submission details.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedMessage && (
+                        <div className="space-y-4 text-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Name</p>
+                                    <p className="font-medium">{selectedMessage.name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Email</p>
+                                    <p className="font-medium">{selectedMessage.email}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Date</p>
+                                    <p className="font-medium">{new Date(selectedMessage.createdAt).toLocaleString()}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Reference</p>
+                                    {selectedMessage.refUrl ? (
+                                        <Link
+                                            href={selectedMessage.refUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="font-medium underline underline-offset-2"
+                                        >
+                                            Open Link
+                                        </Link>
+                                    ) : (
+                                        <p className="font-medium text-muted-foreground">N/A</p>
+                                    )}
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Message</p>
+                                <div className="max-h-[45vh] overflow-y-auto rounded-md border bg-muted/30 p-4 whitespace-pre-wrap leading-relaxed">
+                                    {selectedMessage.message}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteMessage}
+                            disabled={deleting}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {deleting ? "Deleting..." : "Delete Message"}
+                        </Button>
+                        <Button variant="outline" onClick={() => setSelectedMessage(null)}>
+                            Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

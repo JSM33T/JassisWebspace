@@ -171,49 +171,42 @@ export default function ContactPage() {
                 <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            {/* Header */}
-            <section className="px-4 py-8 md:py-12 border-b bg-muted/30 backdrop-blur-sm">
-                <div className="container mx-auto max-w-7xl pt-16">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="space-y-3">
+            <section className="flex-1 px-4 py-6 md:py-8">
+                <div className="container mx-auto max-w-7xl min-h-[calc(100vh-6rem)] pt-16 flex items-center">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full items-center">
+                        <div className="hidden lg:block space-y-6">
                             <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-sm font-normal backdrop-blur-sm bg-background/50 border-border/50 gap-2 w-fit">
                                 <Mail className="h-3.5 w-3.5 text-primary" />
                                 <span>Get in Touch</span>
                             </Badge>
-                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                                Contact Us
+                            <h1 className="text-4xl xl:text-5xl font-bold tracking-tight max-w-xl">
+                                Let&apos;s build something impactful.
                             </h1>
-                            <p className="text-lg text-muted-foreground max-w-2xl">
-                                Have a question or want to work together? Send us a message below.
+                            <p className="text-base text-muted-foreground max-w-xl">
+                                Share your idea, project scope, or service request and we&apos;ll reply with clear next steps.
                             </p>
+                            <Button variant="ghost" asChild className="rounded-full px-6 w-fit">
+                                <Link href="/">
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Back
+                                </Link>
+                            </Button>
                         </div>
-                        <Button variant="ghost" asChild className="rounded-full px-6">
-                            <Link href="/">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-            </section>
 
-            {/* Contact Form */}
-            <section className="flex-1 px-4 py-12">
-                <div className="container mx-auto max-w-7xl">
-                    <Card className="max-w-2xl mx-auto rounded-3xl border bg-card/50 backdrop-blur-sm shadow-xl p-8 md:p-12 relative overflow-hidden group">
+                        <Card className="w-full lg:ml-auto lg:max-w-xl rounded-3xl border bg-card/50 backdrop-blur-sm shadow-xl p-6 md:p-8 relative overflow-hidden group">
                         <div className="absolute top-6 right-6 p-2 rounded-full border bg-background/50 group-hover:scale-110 transition-transform">
                             <MoveUpRight className="h-4 w-4 opacity-50" />
                         </div>
 
-                        <CardHeader className="px-0 pt-0 pb-8">
+                        <CardHeader className="px-0 pt-0 pb-6">
                             <CardTitle className="text-2xl font-semibold tracking-tight">Send a Message</CardTitle>
                             <CardDescription className="text-base pt-2">
                                 Fill out the form below and we&apos;ll respond via email.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="px-0">
-                            <form ref={formRef} className="space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <form ref={formRef} className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2.5">
                                         <label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</label>
                                         <Input
@@ -244,7 +237,7 @@ export default function ContactPage() {
                                     <Select required onValueChange={handlePurposeChange} value={formData.purpose}>
                                         <SelectTrigger
                                             id="purpose"
-                                            className="h-12 rounded-2xl border-border/60 bg-background/70 px-4 shadow-sm transition-all focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
+                                            className="w-full h-12 rounded-2xl border-border/60 bg-background/70 px-4 shadow-sm transition-all focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
                                         >
                                             <SelectValue placeholder="Select a purpose" />
                                         </SelectTrigger>
@@ -275,7 +268,7 @@ export default function ContactPage() {
                                     <Textarea
                                         id="message"
                                         placeholder="Tell us more about what's on your mind..."
-                                        className="min-h-[180px] resize-none rounded-2xl border-border/60 bg-background/70 p-4 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40"
+                                        className="min-h-[130px] resize-none rounded-2xl border-border/60 bg-background/70 p-4 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40"
                                         required
                                         value={formData.message}
                                         onChange={handleChange}
@@ -305,7 +298,8 @@ export default function ContactPage() {
                                 </div>
                             </form>
                         </CardContent>
-                    </Card>
+                        </Card>
+                    </div>
                 </div>
             </section>
         </motion.div>

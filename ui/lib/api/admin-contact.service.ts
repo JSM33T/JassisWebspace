@@ -10,4 +10,8 @@ export const adminContactService = {
 
         return await apiClient.get<AdminContactMessage[]>(`/admin/contact?${query.toString()}`);
     },
+
+    async deleteMessage(id: string): Promise<void> {
+        await apiClient.delete<void>(`/admin/contact/${id}`);
+    },
 };

@@ -53,4 +53,20 @@ public sealed class AdminContactController(
 
         return PagedOk(items, page, pageSize, total);
     }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteMessage(Guid id, CancellationToken cancellationToken = default)
+    {
+        var message = await dbContext.Contacts.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (message is null)
+        {
+            return NotFoundProblem("Message not found", $"No message found with ID '{id}'.");
+        }
+
+        dbContext.Contacts.Remove(message);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
 }
