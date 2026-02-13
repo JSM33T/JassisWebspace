@@ -2,7 +2,8 @@ namespace JassSpace.Contracts.Requests;
 
 public record CreateAlbumRequest(
     string Name,
-    string? Description
+    string? Description,
+    List<Guid>? AuthorIds
 );
 
 public record AddImageToAlbumRequest(

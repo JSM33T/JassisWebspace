@@ -39,6 +39,15 @@ public sealed class GalleryController(
                     a.CreatedAt,
                     a.UpdatedAt,
                     a.Images.Count,
+                    a.Authors
+                        .OrderBy(ga => ga.Order)
+                        .Select(ga => new GalleryAuthorResponse(
+                            ga.UserId,
+                            ga.User.Username,
+                            ga.User.DisplayName,
+                            ga.Order
+                        ))
+                        .ToList(),
                     dbContext.Contents
                         .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == a.Id)
                         .Select(c => (Guid?)c.Id)
@@ -79,6 +88,15 @@ public sealed class GalleryController(
                     a.Description,
                     a.CreatedAt,
                     a.UpdatedAt,
+                    Authors = a.Authors
+                        .OrderBy(ga => ga.Order)
+                        .Select(ga => new GalleryAuthorResponse(
+                            ga.UserId,
+                            ga.User.Username,
+                            ga.User.DisplayName,
+                            ga.Order
+                        ))
+                        .ToList(),
                     Images = a.Images
                         .OrderBy(i => i.Order)
                         .Select(i => new ImageResponse(
@@ -132,6 +150,7 @@ public sealed class GalleryController(
                 albumData.CreatedAt,
                 albumData.UpdatedAt,
                 albumData.Images,
+                albumData.Authors,
                 contentId,
                 likeCount,
                 isLiked,
@@ -225,6 +244,32 @@ public sealed class GalleryController(
 
             dbContext.Albums.Add(album);
 
+            if (request.AuthorIds != null && request.AuthorIds.Count > 0)
+            {
+                var validAuthorIds = await dbContext.Users
+                    .Where(u => request.AuthorIds.Contains(u.Id))
+                    .Select(u => u.Id)
+                    .ToListAsync(cancellationToken);
+
+                for (int i = 0; i < request.AuthorIds.Count; i++)
+                {
+                    var authorId = request.AuthorIds[i];
+                    if (!validAuthorIds.Contains(authorId))
+                    {
+                        continue;
+                    }
+
+                    dbContext.GalleryAuthors.Add(new GalleryAuthor
+                    {
+                        Id = Guid.NewGuid(),
+                        AlbumId = album.Id,
+                        UserId = authorId,
+                        Order = i,
+                        CreatedAt = DateTimeOffset.UtcNow
+                    });
+                }
+            }
+
             // Automatically create a Content entry for the album
             // Ensure slug is unique in Content table
             var contentSlug = slug;
@@ -253,6 +298,17 @@ public sealed class GalleryController(
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
+            var authors = await dbContext.GalleryAuthors
+                .Where(ga => ga.AlbumId == album.Id)
+                .OrderBy(ga => ga.Order)
+                .Select(ga => new GalleryAuthorResponse(
+                    ga.UserId,
+                    ga.User.Username,
+                    ga.User.DisplayName,
+                    ga.Order
+                ))
+                .ToListAsync(cancellationToken);
+
             var response = new AlbumResponse(
                 album.Id,
                 album.Name,
@@ -262,6 +318,7 @@ public sealed class GalleryController(
                 album.CreatedAt,
                 album.UpdatedAt,
                 0, // No images yet
+                authors,
                 content.Id
             );
 

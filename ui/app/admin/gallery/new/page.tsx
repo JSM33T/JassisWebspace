@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,11 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { adminGalleryService } from "@/lib/api/admin-gallery.service";
+import { GalleryAuthor } from "@/lib/api/gallery.types";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
     slug: z.string().optional(),
     description: z.string().optional(),
+    authorIds: z.array(z.string()).optional(),
 });
 
 export default function CreateAlbumPage() {
@@ -39,6 +41,7 @@ export default function CreateAlbumPage() {
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagesPreview, setImagesPreview] = useState<string[]>([]);
+    const [authors, setAuthors] = useState<GalleryAuthor[]>([]);
 
     // Cropper state
     const [cropperOpen, setCropperOpen] = useState(false);
@@ -50,8 +53,22 @@ export default function CreateAlbumPage() {
             name: "",
             slug: "",
             description: "",
+            authorIds: [],
         },
     });
+
+    useEffect(() => {
+        const loadAuthors = async () => {
+            try {
+                const data = await adminGalleryService.getPotentialAuthors();
+                setAuthors(data);
+            } catch (error) {
+                console.error("Failed to load authors", error);
+            }
+        };
+
+        loadAuthors();
+    }, []);
 
     const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -102,6 +119,7 @@ export default function CreateAlbumPage() {
             await adminGalleryService.createAlbum({
                 name: values.name,
                 description: values.description,
+                authorIds: values.authorIds || [],
                 coverImage: coverFile || undefined,
                 imageFiles: imageFiles.length > 0 ? imageFiles : undefined,
                 imageTitles,
@@ -185,6 +203,41 @@ export default function CreateAlbumPage() {
                                 )}
                             />
 
+                            <FormField
+                                control={form.control}
+                                name="authorIds"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Authors</FormLabel>
+                                        <FormControl>
+                                            <div className="border rounded-md p-4 space-y-2 max-h-48 overflow-y-auto">
+                                                {authors.map((author) => (
+                                                    <div key={author.userId} className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={field.value?.includes(author.userId) || false}
+                                                            onChange={(e) => {
+                                                                const checked = e.target.checked;
+                                                                const current = field.value || [];
+                                                                const updated = checked
+                                                                    ? [...current, author.userId]
+                                                                    : current.filter((id) => id !== author.userId);
+                                                                field.onChange(updated);
+                                                            }}
+                                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                                        />
+                                                        <label className="text-sm font-medium leading-none">
+                                                            {author.displayName || author.username}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                             <div className="space-y-4">
                                 <FormLabel>Cover Image</FormLabel>
                                 <div className="flex items-center gap-4">
@@ -242,7 +295,7 @@ export default function CreateAlbumPage() {
                                         <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-20">
                                             <ImageIcon className="h-16 w-16 mb-4 opacity-20" />
                                             <p>No images added yet</p>
-                                            <p className="text-sm">Click "Add Images" to upload photos</p>
+                                            <p className="text-sm">Click &quot;Add Images&quot; to upload photos</p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

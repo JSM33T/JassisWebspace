@@ -31,6 +31,7 @@ public class JassSpaceDbContext : DbContext
     public DbSet<Blog> Blogs { get; set; }
     public DbSet<BlogCategory> BlogCategories { get; set; }
     public DbSet<BlogAuthor> BlogAuthors { get; set; }
+    public DbSet<GalleryAuthor> GalleryAuthors { get; set; }
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
     public DbSet<Contact> Contacts => Set<Contact>();
@@ -61,6 +62,7 @@ public class JassSpaceDbContext : DbContext
         ConfigureBlogEntity(modelBuilder);
         ConfigureBlogCategoryEntity(modelBuilder);
         ConfigureBlogAuthorEntity(modelBuilder);
+        ConfigureGalleryAuthorEntity(modelBuilder);
         ConfigureCommentEntity(modelBuilder);
         ConfigureLikeEntity(modelBuilder);
         ConfigureContactEntity(modelBuilder);
@@ -320,6 +322,11 @@ public class JassSpaceDbContext : DbContext
               .WithOne(i => i.Album)
               .HasForeignKey(i => i.AlbumId)
               .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasMany(a => a.Authors)
+              .WithOne(ga => ga.Album)
+              .HasForeignKey(ga => ga.AlbumId)
+              .OnDelete(DeleteBehavior.Cascade);
     }
 
     private void ConfigureImageEntity(ModelBuilder modelBuilder)
@@ -412,6 +419,22 @@ public class JassSpaceDbContext : DbContext
         entity.HasOne(ba => ba.User)
               .WithMany()
               .HasForeignKey(ba => ba.UserId)
+              .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureGalleryAuthorEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<GalleryAuthor>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.HasIndex(e => new { e.AlbumId, e.UserId }).IsUnique();
+
+        entity.HasIndex(e => new { e.AlbumId, e.Order });
+
+        entity.HasOne(ga => ga.User)
+              .WithMany()
+              .HasForeignKey(ga => ga.UserId)
               .OnDelete(DeleteBehavior.Cascade);
     }
 
