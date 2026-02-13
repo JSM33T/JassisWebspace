@@ -9,6 +9,7 @@ import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { buildMetadata } from "@/lib/seo";
+import { BackToTopProgress } from "@/components/back-to-top-progress";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -35,6 +36,7 @@ export default function RootLayout({
             <UserProvider>
               <Navbar />
               {children}
+              <BackToTopProgress />
               <Toaster position="bottom-right" richColors />
             </UserProvider>
           </AudioPlayerProvider>
