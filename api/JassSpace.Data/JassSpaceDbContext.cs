@@ -33,6 +33,7 @@ public class JassSpaceDbContext : DbContext
     public DbSet<BlogAuthor> BlogAuthors { get; set; }
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
+    public DbSet<Contact> Contacts => Set<Contact>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,6 +63,7 @@ public class JassSpaceDbContext : DbContext
         ConfigureBlogAuthorEntity(modelBuilder);
         ConfigureCommentEntity(modelBuilder);
         ConfigureLikeEntity(modelBuilder);
+        ConfigureContactEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
@@ -453,5 +455,34 @@ public class JassSpaceDbContext : DbContext
             .WithMany()
             .HasForeignKey(l => l.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureContactEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Contact>();
+
+        entity.HasKey(c => c.Id);
+
+        entity.Property(c => c.Name)
+              .HasMaxLength(120)
+              .IsRequired();
+
+        entity.Property(c => c.Email)
+              .HasMaxLength(320)
+              .IsRequired();
+
+        entity.Property(c => c.Purpose)
+              .HasMaxLength(100)
+              .IsRequired();
+
+        entity.Property(c => c.Message)
+              .HasMaxLength(5000)
+              .IsRequired();
+
+        entity.Property(c => c.RefUrl)
+              .HasMaxLength(2048);
+
+        entity.HasIndex(c => c.CreatedAt);
+        entity.HasIndex(c => c.Email);
     }
 }

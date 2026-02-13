@@ -1,18 +1,16 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -94,7 +92,42 @@ const services = [
 ];
 
 export default function ServicesPage() {
-    const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const serviceSlug = (title: string) =>
+        title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    const setServiceParam = (slug: string | null) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (slug) {
+            params.set('service', slug);
+        } else {
+            params.delete('service');
+        }
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
+
+    const openService = (service: typeof services[0]) => {
+        setServiceParam(serviceSlug(service.title));
+    };
+
+    const closeService = () => {
+        setServiceParam(null);
+    };
+
+    const goToContactWithRef = () => {
+        if (typeof window === 'undefined') {
+            router.push('/contact');
+            return;
+        }
+        router.push(`/contact?ref=${encodeURIComponent(window.location.href)}`);
+    };
+
+    const selectedService =
+        services.find((service) => serviceSlug(service.title) === searchParams.get('service')) || null;
 
     return (
         <motion.div
@@ -148,7 +181,7 @@ export default function ServicesPage() {
                             >
                                 <Card
                                     className={`flex flex-col h-full cursor-pointer rounded-3xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group ${service.status === 'Active' ? 'border-primary/20' : 'opacity-80'}`}
-                                    onClick={() => setSelectedService(service)}
+                                    onClick={() => openService(service)}
                                 >
                                     <CardHeader className="p-8">
                                         <div className="flex items-start justify-between gap-4 mb-4">
@@ -178,7 +211,7 @@ export default function ServicesPage() {
             </section>
 
             {/* Service Details Dialog */}
-            <Dialog open={!!selectedService} onOpenChange={(open) => !open && setSelectedService(null)}>
+            <Dialog open={!!selectedService} onOpenChange={(open) => !open && closeService()}>
                 <DialogContent className="sm:max-w-[50vw] rounded-3xl border bg-card/90 backdrop-blur-xl p-0 overflow-hidden">
                     <div className="p-10 space-y-8">
                         <DialogHeader>
@@ -205,14 +238,12 @@ export default function ServicesPage() {
                                 }
                             </div>
                             <div className="flex items-center justify-end gap-3">
-                                <Button variant="ghost" className="rounded-full px-8" onClick={() => setSelectedService(null)}>
+                                <Button variant="ghost" className="rounded-full px-8" onClick={closeService}>
                                     Close
                                 </Button>
-                                <Button className="rounded-full px-10 h-12 text-base" asChild>
-                                    <Link href="/contact">
-                                        <Send className="mr-2 h-4 w-4" />
-                                        Enquire Now
-                                    </Link>
+                                <Button className="rounded-full px-10 h-12 text-base" onClick={goToContactWithRef}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Enquire Now
                                 </Button>
                             </div>
                         </div>

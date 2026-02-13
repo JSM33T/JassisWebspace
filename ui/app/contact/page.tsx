@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,11 +13,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Mail, ArrowLeft, Send, CheckCircle2, MoveUpRight } from 'lucide-react';
 
 export default function ContactPage() {
+    const searchParams = useSearchParams();
+    const ref = searchParams.get('ref') || '';
+    const formRef = useRef<HTMLFormElement>(null);
+    const inferredPurpose = useMemo(() => {
+        if (!ref) {
+            return '';
+        }
+
+        try {
+            const sourceUrl = new URL(ref);
+            if (sourceUrl.pathname.startsWith('/projects')) {
+                return 'Project';
+            }
+            if (sourceUrl.pathname.startsWith('/services')) {
+                return 'Service';
+            }
+        } catch {
+            if (ref.includes('/projects')) {
+                return 'Project';
+            }
+            if (ref.includes('/services')) {
+                return 'Service';
+            }
+        }
+
+        return '';
+    }, [ref]);
     const [submitted, setSubmitted] = useState(false);
+    const [submissionMode, setSubmissionMode] = useState<'email' | 'saved' | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
-        purpose: '',
+        purpose: inferredPurpose,
         message: ''
     });
 
@@ -29,26 +58,67 @@ export default function ContactPage() {
         setFormData(prev => ({ ...prev, purpose: value }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const persistContactSubmission = async (messageToSave: string) => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) {
+            return;
+        }
 
-        // Construct mailto link
+        const endpoint = `${apiUrl.replace(/\/$/, '')}/contact`;
+        await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: formData.name,
+                email: formData.email,
+                purpose: formData.purpose,
+                message: messageToSave,
+                refUrl: ref || null,
+            }),
+        });
+    };
+
+    const composeEmail = () => {
+        const formEl = formRef.current;
+        if (formEl && !formEl.reportValidity()) {
+            return;
+        }
+
         const recipient = 'mail@jsm33t.com';
         const subject = encodeURIComponent(`Contact Form: ${formData.purpose} from ${formData.name}`);
         const body = encodeURIComponent(
             `Name: ${formData.name}\n` +
             `Email: ${formData.email}\n` +
             `Purpose: ${formData.purpose}\n\n` +
-            `Message:\n${formData.message}`
+            `Message:\n${formData.message}\n\n` +
+            `Ref: ${ref || 'N/A'}`
         );
 
         const mailtoUrl = `mailto:${recipient}?subject=${subject}&body=${body}`;
 
-        // Trigger mail client
         window.location.href = mailtoUrl;
-
-        // Show success state
+        setSubmissionMode('email');
         setSubmitted(true);
+    };
+
+    const saveProMessage = async () => {
+        const formEl = formRef.current;
+        if (formEl && !formEl.reportValidity()) {
+            return;
+        }
+
+        const professionalMessage =
+            `Hello JassSpace Team,\n\nI am reaching out regarding "${formData.purpose}".\n\nProject context:\n${formData.message}\n\nExpected outcome:\n- High-quality, production-ready implementation\n- Strong communication and delivery clarity\n\nPlease share next steps, estimated timeline, and engagement model.\n\nThanks,\n${formData.name}`;
+
+        try {
+            await persistContactSubmission(professionalMessage);
+            setSubmissionMode('saved');
+            setSubmitted(true);
+        } catch (error) {
+            console.error('Failed to persist contact submission', error);
+        }
     };
 
     if (submitted) {
@@ -69,9 +139,13 @@ export default function ContactPage() {
                         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-green-100 dark:bg-green-900/20 mb-6 scale-110 transition-transform">
                             <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
                         </div>
-                        <CardTitle className="text-3xl font-bold tracking-tight text-balance">Message Composed!</CardTitle>
+                        <CardTitle className="text-3xl font-bold tracking-tight text-balance">
+                            {submissionMode === 'saved' ? 'Message Saved!' : 'Message Composed!'}
+                        </CardTitle>
                         <CardDescription className="text-lg pt-4 leading-relaxed">
-                            We've opened your email client to send the message to <strong className="text-foreground">mail@jsm33t.com</strong>.
+                            {submissionMode === 'saved'
+                                ? 'Your professional message has been saved to our system.'
+                                : <>We&apos;ve opened your email client to send the message to <strong className="text-foreground">mail@jsm33t.com</strong>.</>}
                         </CardDescription>
                     </CardHeader>
                     <CardFooter className="flex justify-center pt-8">
@@ -134,25 +208,25 @@ export default function ContactPage() {
                         <CardHeader className="px-0 pt-0 pb-8">
                             <CardTitle className="text-2xl font-semibold tracking-tight">Send a Message</CardTitle>
                             <CardDescription className="text-base pt-2">
-                                Fill out the form below and we'll respond via email.
+                                Fill out the form below and we&apos;ll respond via email.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="px-0">
-                            <form onSubmit={handleSubmit} className="space-y-8">
+                            <form ref={formRef} className="space-y-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2.5">
-                                        <label htmlFor="name" className="text-sm font-medium tracking-tight text-muted-foreground/80">Name</label>
+                                        <label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</label>
                                         <Input
                                             id="name"
                                             placeholder="John Doe"
                                             required
                                             value={formData.name}
                                             onChange={handleChange}
-                                            className="rounded-xl border-border/50 bg-background/40 focus:bg-background/80 transition-all h-11"
+                                            className="h-12 rounded-2xl border-border/60 bg-background/70 px-4 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40"
                                         />
                                     </div>
                                     <div className="space-y-2.5">
-                                        <label htmlFor="email" className="text-sm font-medium tracking-tight text-muted-foreground/80">Email</label>
+                                        <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</label>
                                         <Input
                                             id="email"
                                             type="email"
@@ -160,18 +234,23 @@ export default function ContactPage() {
                                             required
                                             value={formData.email}
                                             onChange={handleChange}
-                                            className="rounded-xl border-border/50 bg-background/40 focus:bg-background/80 transition-all h-11"
+                                            className="h-12 rounded-2xl border-border/60 bg-background/70 px-4 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2.5">
-                                    <label htmlFor="purpose" className="text-sm font-medium tracking-tight text-muted-foreground/80">Purpose</label>
+                                    <label htmlFor="purpose" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Purpose</label>
                                     <Select required onValueChange={handlePurposeChange} value={formData.purpose}>
-                                        <SelectTrigger id="purpose" className="rounded-xl border-border/50 bg-background/40 focus:bg-background/80 transition-all h-11">
+                                        <SelectTrigger
+                                            id="purpose"
+                                            className="h-12 rounded-2xl border-border/60 bg-background/70 px-4 shadow-sm transition-all focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
+                                        >
                                             <SelectValue placeholder="Select a purpose" />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
+                                        <SelectContent className="rounded-2xl border-border/60 backdrop-blur-xl">
+                                            <SelectItem value="Project">Project</SelectItem>
+                                            <SelectItem value="Service">Service</SelectItem>
                                             <SelectItem value="General Inquiry">General Inquiry</SelectItem>
                                             <SelectItem value="New Project">New Project</SelectItem>
                                             <SelectItem value="Service Request">Service Request</SelectItem>
@@ -182,21 +261,48 @@ export default function ContactPage() {
                                 </div>
 
                                 <div className="space-y-2.5">
-                                    <label htmlFor="message" className="text-sm font-medium tracking-tight text-muted-foreground/80">Message</label>
+                                    <label htmlFor="ref" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reference URL</label>
+                                    <Input
+                                        id="ref"
+                                        value={ref || 'N/A'}
+                                        readOnly
+                                        className="h-12 rounded-2xl border-dashed border-border/60 bg-muted/40 px-4 text-muted-foreground shadow-sm"
+                                    />
+                                </div>
+
+                                <div className="space-y-2.5">
+                                    <label htmlFor="message" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Message</label>
                                     <Textarea
                                         id="message"
                                         placeholder="Tell us more about what's on your mind..."
-                                        className="min-h-[160px] resize-none rounded-xl border-border/50 bg-background/40 focus:bg-background/80 transition-all p-4"
+                                        className="min-h-[180px] resize-none rounded-2xl border-border/60 bg-background/70 p-4 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40"
                                         required
                                         value={formData.message}
                                         onChange={handleChange}
                                     />
                                 </div>
 
-                                <Button type="submit" size="lg" className="w-full rounded-full h-12 text-base font-medium transition-all group-hover:shadow-lg">
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Compose Email
-                                </Button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <Button
+                                        type="button"
+                                        size="lg"
+                                        className="w-full rounded-full h-12 text-base font-medium transition-all group-hover:shadow-lg"
+                                        onClick={composeEmail}
+                                    >
+                                        <Send className="mr-2 h-4 w-4" />
+                                        Compose Email
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="lg"
+                                        variant="outline"
+                                        className="w-full rounded-full h-12 text-base font-medium bg-background/70"
+                                        onClick={saveProMessage}
+                                    >
+                                        <Send className="mr-2 h-4 w-4" />
+                                        Send Pro Message
+                                    </Button>
+                                </div>
                             </form>
                         </CardContent>
                     </Card>
