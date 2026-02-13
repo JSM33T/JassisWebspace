@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Image, Users, ArrowRight } from "lucide-react";
+import { BookOpen, Image as GalleryIcon, Users, ArrowRight, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AdminPage() {
@@ -39,7 +39,7 @@ export default function AdminPage() {
                             <CardTitle className="text-sm font-medium">
                                 Gallery
                             </CardTitle>
-                            <Image className="h-4 w-4 text-pink-700" />
+                            <GalleryIcon className="h-4 w-4 text-pink-700" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">Manage Gallery</div>
@@ -68,6 +68,26 @@ export default function AdminPage() {
                             </p>
                             <div className="flex items-center text-sm text-orange-700 group-hover:translate-x-1 transition-transform">
                                 Go to Users <ArrowRight className="ml-2 h-4 w-4" />
+                            </div>
+                        </CardContent>
+                    </Link>
+                </Card>
+
+                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                    <Link href="/admin/messages">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Messages
+                            </CardTitle>
+                            <Mail className="h-4 w-4 text-cyan-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">View Messages</div>
+                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                                Review contact form submissions.
+                            </p>
+                            <div className="flex items-center text-sm text-cyan-500 group-hover:translate-x-1 transition-transform">
+                                Go to Messages <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>

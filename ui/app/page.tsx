@@ -176,7 +176,7 @@ export default function HomePage() {
                                     <Link href="https://twitter.com"><Twitter className="h-5 w-5" /></Link>
                                 </Button>
                                 <Button className="rounded-full px-6" asChild>
-                                    <Link href="mailto:contact@email.com">Say hello</Link>
+                                    <Link href="mailto:mail@jsm33t.com">Say hello</Link>
                                 </Button>
                             </div>
                         </div>
