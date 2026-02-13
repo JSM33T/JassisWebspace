@@ -23,6 +23,7 @@ public sealed class MediaController(
 {
     private const string GalleryBlobPrefix = "gallery/";
     private const string BlogBlobPrefix = "blog/";
+    private const string ProfilesBlobPrefix = "profiles/";
     private readonly string _containerName = blobSettings?.Value?.ContainerName ?? string.Empty;
 
     /// <summary>
@@ -78,9 +79,9 @@ public sealed class MediaController(
 
         try
         {
-            var uploadResult = await UploadFileAsync(file, $"{userId:N}-avatar", cancellationToken);
+            var uploadResult = await UploadFileAsync(file, EnsureProfilesBlobName($"{userId:N}-avatar"), cancellationToken);
 
-            var mediaUrl = MediaUrlHelper.BuildMediaUrl(Request, uploadResult.BlobName);
+            var mediaUrl = MediaUrlHelper.BuildMediaUrl(Request, StripProfilesPrefix(uploadResult.BlobName));
             var updateRequest = new UpdateProfileRequest(AvatarUrl: mediaUrl);
             var updateResponse = await profileRepository.UpdateProfileAsync(userId, updateRequest, cancellationToken);
 
@@ -122,9 +123,9 @@ public sealed class MediaController(
 
         try
         {
-            var uploadResult = await UploadFileAsync(file, $"{userId:N}-cover", cancellationToken);
+            var uploadResult = await UploadFileAsync(file, EnsureProfilesBlobName($"{userId:N}-cover"), cancellationToken);
 
-            var mediaUrl = MediaUrlHelper.BuildMediaUrl(Request, uploadResult.BlobName);
+            var mediaUrl = MediaUrlHelper.BuildMediaUrl(Request, StripProfilesPrefix(uploadResult.BlobName));
             var updateRequest = new UpdateProfileRequest(CoverUrl: mediaUrl);
             var updateResponse = await profileRepository.UpdateProfileAsync(userId, updateRequest, cancellationToken);
 
@@ -283,6 +284,11 @@ public sealed class MediaController(
         {
             yield return $"{BlogBlobPrefix}{normalized}";
         }
+
+        if (!normalized.StartsWith(ProfilesBlobPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            yield return $"{ProfilesBlobPrefix}{normalized}";
+        }
     }
 
     private static bool IsTruthy(string? value)
@@ -343,7 +349,7 @@ public sealed class MediaController(
     {
         if (MediaUrlHelper.TryExtractMediaBlobName(mediaReference, out var mediaBlobName))
         {
-            return await blobStorageService.GetImageAsync(mediaBlobName, cancellationToken);
+            return await TryResolveByCandidatesAsync(mediaBlobName, cancellationToken);
         }
 
         if (Uri.TryCreate(mediaReference, UriKind.Absolute, out _))
@@ -357,10 +363,40 @@ public sealed class MediaController(
 
         if (MediaUrlHelper.TryResolveBlobNameFromUrl(mediaReference, _containerName, out var blobName))
         {
-            return await blobStorageService.GetImageAsync(blobName, cancellationToken);
+            return await TryResolveByCandidatesAsync(blobName, cancellationToken);
         }
 
-        return await blobStorageService.GetImageAsync(mediaReference, cancellationToken);
+        return await TryResolveByCandidatesAsync(mediaReference, cancellationToken);
+    }
+
+    private async Task<CachedImageResult?> TryResolveByCandidatesAsync(string blobName, CancellationToken cancellationToken)
+    {
+        foreach (var candidateBlobName in BuildReadCandidates(blobName))
+        {
+            var candidate = await blobStorageService.GetImageAsync(candidateBlobName, cancellationToken);
+            if (candidate is not null)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static string EnsureProfilesBlobName(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(ProfilesBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized
+            : $"{ProfilesBlobPrefix}{normalized}";
+    }
+
+    private static string StripProfilesPrefix(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(ProfilesBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized[ProfilesBlobPrefix.Length..]
+            : normalized;
     }
 
     private IActionResult StreamCachedImage(
