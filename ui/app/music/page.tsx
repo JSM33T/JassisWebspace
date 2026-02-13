@@ -1,13 +1,36 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Music, ArrowLeft, Headphones, MoveUpRight } from 'lucide-react';
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Music, ArrowLeft, MoveUpRight } from 'lucide-react';
+import { musicTracks } from '@/data/tracks';
 
 export default function MusicPage() {
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+    const categories = useMemo(
+        () => ['all', ...Array.from(new Set(musicTracks.map((track) => track.category)))],
+        []
+    );
+
+    const filteredTracks = useMemo(
+        () =>
+            selectedCategory === 'all'
+                ? musicTracks
+                : musicTracks.filter((track) => track.category === selectedCategory),
+        [selectedCategory]
+    );
+
+    const formatCategory = (value: string) =>
+        value
+            .split('-')
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -34,7 +57,7 @@ export default function MusicPage() {
                                 Music
                             </h1>
                             <p className="text-lg text-muted-foreground max-w-2xl">
-                                Explore our collection of original tracks and curated playlists.
+                                Explore all published tracks from the catalog.
                             </p>
                         </div>
                         <Button variant="ghost" asChild className="rounded-full px-6">
@@ -47,41 +70,82 @@ export default function MusicPage() {
                 </div>
             </section>
 
-            {/* Coming Soon Card */}
-            <section className="flex-1 flex items-center justify-center px-4 py-12">
-                <div className="container mx-auto max-w-7xl w-full">
-                    <Card className="max-w-2xl mx-auto rounded-3xl border bg-gradient-to-br from-neutral-100/50 to-white/50 dark:from-neutral-900/50 dark:to-neutral-950/50 hover:shadow-xl transition-all duration-500 backdrop-blur-md p-8 md:p-12 text-center group relative overflow-hidden">
-                        <div className="absolute top-6 right-6 p-2 rounded-full border bg-background/50 group-hover:scale-110 transition-transform">
-                            <MoveUpRight className="h-4 w-4 opacity-50" />
-                        </div>
+            <section className="flex-1 px-4 py-12">
+                <div className="container mx-auto max-w-6xl">
+                    <div className="max-w-6xl mx-auto mb-6 flex flex-wrap gap-2">
+                        {categories.map((category) => {
+                            const isActive = selectedCategory === category;
+                            const count = category === 'all'
+                                ? musicTracks.length
+                                : musicTracks.filter((track) => track.category === category).length;
 
-                        <CardHeader className="pb-4">
-                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-pink-500/10 mb-6 group-hover:scale-110 transition-transform duration-500">
-                                <Headphones className="h-10 w-10 text-pink-500" />
-                            </div>
-                            <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Tune In Soon</CardTitle>
-                            <CardDescription className="text-xl pt-4 max-w-md mx-auto leading-relaxed">
-                                We&apos;re preparing an immersive audio experience for you.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <p className="text-muted-foreground text-lg">
-                                From ambient soundscapes to high-energy tracks, our music library is getting a major upgrade.
-                            </p>
-                        </CardContent>
-                        <CardFooter className="flex flex-wrap items-center justify-center gap-4 pt-10">
-                            <Button size="lg" className="rounded-full px-8 bg-primary" asChild>
-                                <Link href="/gallery">
-                                    Explore Gallery
-                                </Link>
-                            </Button>
-                            <Button size="lg" variant="outline" className="rounded-full px-8 bg-background/50" asChild>
-                                <Link href="/blog">
-                                    Read Blog
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                            return (
+                                <Button
+                                    key={category}
+                                    type="button"
+                                    variant={isActive ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setSelectedCategory(category)}
+                                    className="rounded-full h-8 px-4"
+                                >
+                                    {formatCategory(category)} ({count})
+                                </Button>
+                            );
+                        })}
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl mx-auto">
+                        {filteredTracks.map((track, index) => (
+                            <motion.div
+                                key={track.id}
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.25, delay: index * 0.02 }}
+                            >
+                                <Card className="flex flex-col h-full min-h-[220px] rounded-2xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group">
+                                    <CardHeader className="p-5">
+                                        <div className="flex items-start justify-between gap-3 mb-3">
+                                            <Badge variant="secondary" className="rounded-full px-3 capitalize">
+                                                {track.category}
+                                            </Badge>
+                                            <div className="p-2 rounded-full border bg-background/50 group-hover:scale-110 transition-transform">
+                                                <MoveUpRight className="h-4 w-4 opacity-60" />
+                                            </div>
+                                        </div>
+                                        <CardTitle className="text-lg font-semibold tracking-tight line-clamp-1">
+                                            {track.title}
+                                        </CardTitle>
+                                        <CardDescription className="text-sm pt-1 leading-relaxed line-clamp-2">
+                                            {track.description}
+                                        </CardDescription>
+                                        <div className="pt-3 flex flex-wrap gap-2">
+                                            {track.tags.slice(0, 3).map((tag) => (
+                                                <Badge key={tag} variant="outline" className="rounded-full">
+                                                    {tag}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </CardHeader>
+                                    <CardFooter className="mt-auto px-5 pb-5 pt-0 flex flex-wrap items-center justify-between gap-2">
+                                        <div className="text-xs text-muted-foreground line-clamp-1">
+                                            {track.artists.map((artist) => artist.name).join(', ')}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="rounded-full text-xs">
+                                                {track.releaseDate}
+                                            </Badge>
+                                            {track.links[0] ? (
+                                                <Button asChild size="sm" className="rounded-full h-8 px-4">
+                                                    <Link href={track.links[0].url} target="_blank" rel="noreferrer">
+                                                        Listen
+                                                    </Link>
+                                                </Button>
+                                            ) : null}
+                                        </div>
+                                    </CardFooter>
+                                </Card>
+                            </motion.div>
+                        ))}
+                    </div>
                 </div>
             </section>
         </motion.div>

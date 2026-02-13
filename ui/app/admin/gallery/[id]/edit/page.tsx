@@ -26,13 +26,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { adminGalleryService } from "@/lib/api/admin-gallery.service";
 import { galleryService } from "@/lib/api/gallery.service";
-import { AlbumWithImages, Image as GalleryImage } from "@/lib/api/gallery.types";
+import { AlbumWithImages, GalleryAuthor, Image as GalleryImage } from "@/lib/api/gallery.types";
 import { Separator } from "@/components/ui/separator";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
     slug: z.string().optional(),
     description: z.string().optional(),
+    authorIds: z.array(z.string()).optional(),
 });
 
 export default function EditAlbumPage() {
@@ -43,6 +44,7 @@ export default function EditAlbumPage() {
     const [loading, setLoading] = useState(true);
     const [savingDetails, setSavingDetails] = useState(false);
     const [uploadingImages, setUploadingImages] = useState(false);
+    const [authors, setAuthors] = useState<GalleryAuthor[]>([]);
 
     const [album, setAlbum] = useState<AlbumWithImages | null>(null);
     const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -73,12 +75,26 @@ export default function EditAlbumPage() {
             name: "",
             slug: "",
             description: "",
+            authorIds: [],
         },
     });
 
     useEffect(() => {
         loadAlbum();
     }, [albumId]);
+
+    useEffect(() => {
+        const loadAuthors = async () => {
+            try {
+                const data = await adminGalleryService.getPotentialAuthors();
+                setAuthors(data);
+            } catch (error) {
+                console.error("Failed to load authors", error);
+            }
+        };
+
+        loadAuthors();
+    }, []);
 
     const loadAlbum = async () => {
         try {
@@ -89,6 +105,7 @@ export default function EditAlbumPage() {
                 name: data.name,
                 slug: data.slug,
                 description: data.description || "",
+                authorIds: data.authors?.map((a) => a.userId) || [],
             });
             if (data.cover) {
                 setCoverPreview(`${data.cover}?t=${new Date().getTime()}`);
@@ -212,6 +229,7 @@ export default function EditAlbumPage() {
                 name: values.name,
                 slug: values.slug,
                 description: values.description,
+                authorIds: values.authorIds || [],
                 coverImage: coverFile || undefined,
             });
             toast.success("Album details updated");
@@ -332,6 +350,41 @@ export default function EditAlbumPage() {
                                                         className="resize-none min-h-[100px]"
                                                         {...field}
                                                     />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="authorIds"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Authors</FormLabel>
+                                                <FormControl>
+                                                    <div className="border rounded-md p-4 space-y-2 max-h-40 overflow-y-auto">
+                                                        {authors.map((author) => (
+                                                            <div key={author.userId} className="flex items-center space-x-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={field.value?.includes(author.userId) || false}
+                                                                    onChange={(e) => {
+                                                                        const checked = e.target.checked;
+                                                                        const current = field.value || [];
+                                                                        const updated = checked
+                                                                            ? [...current, author.userId]
+                                                                            : current.filter((id) => id !== author.userId);
+                                                                        field.onChange(updated);
+                                                                    }}
+                                                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                                                />
+                                                                <label className="text-sm font-medium leading-none">
+                                                                    {author.displayName || author.username}
+                                                                </label>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>

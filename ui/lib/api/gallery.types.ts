@@ -1,4 +1,11 @@
 // Gallery API Types
+export interface GalleryAuthor {
+    userId: string;
+    username: string;
+    displayName: string | null;
+    order: number;
+}
+
 export interface Album {
     id: string;
     contentId: string | null;
@@ -9,6 +16,7 @@ export interface Album {
     createdAt: string;
     updatedAt: string | null;
     imageCount: number;
+    authors: GalleryAuthor[];
 }
 
 export interface Image {
@@ -34,12 +42,14 @@ export interface AlbumWithImages {
     createdAt: string;
     updatedAt: string | null;
     images: Image[];
+    authors: GalleryAuthor[];
 }
 
 export interface CreateAlbumRequest {
     name: string;
     slug?: string;
     description?: string;
+    authorIds?: string[];
 }
 
 export interface AddImageRequest {

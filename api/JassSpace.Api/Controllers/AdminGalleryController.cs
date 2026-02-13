@@ -26,6 +26,25 @@ public sealed class AdminGalleryController(
     IHttpContextAccessor httpContextAccessor)
     : BaseApiController
 {
+    [HttpGet("authors")]
+    [ProducesResponseType(typeof(ApiResponse<List<GalleryAuthorResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAuthors(CancellationToken cancellationToken = default)
+    {
+        var authors = await dbContext.Users
+            .AsNoTracking()
+            .Where(u => u.UserRoles.Any(ur => ur.Role.Name == "admin" || ur.Role.Name == "mod"))
+            .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
+            .Select(u => new GalleryAuthorResponse(
+                u.Id,
+                u.Username,
+                u.DisplayName ?? $"{u.FirstName} {u.LastName}".Trim(),
+                0
+            ))
+            .ToListAsync(cancellationToken);
+
+        return OkEnvelope(authors);
+    }
+
     private string GetBaseUrl()
     {
         var request = httpContextAccessor.HttpContext?.Request;
@@ -118,6 +137,7 @@ public sealed class AdminGalleryController(
         [FromForm] List<string>? imageTitles,
         [FromForm] List<string>? imageDescriptions,
         [FromForm] List<int>? imageOrders,
+        [FromForm] List<Guid>? authorIds,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -166,6 +186,46 @@ public sealed class AdminGalleryController(
             };
 
             dbContext.Albums.Add(album);
+
+            var authorResponses = new List<GalleryAuthorResponse>();
+            if (authorIds is { Count: > 0 })
+            {
+                var validAuthors = await dbContext.Users
+                    .Where(u => authorIds.Contains(u.Id))
+                    .Select(u => new
+                    {
+                        u.Id,
+                        u.Username,
+                        u.DisplayName
+                    })
+                    .ToListAsync(cancellationToken);
+
+                for (int i = 0; i < authorIds.Count; i++)
+                {
+                    var authorId = authorIds[i];
+                    var matched = validAuthors.FirstOrDefault(u => u.Id == authorId);
+                    if (matched is null)
+                    {
+                        continue;
+                    }
+
+                    dbContext.GalleryAuthors.Add(new GalleryAuthor
+                    {
+                        Id = Guid.NewGuid(),
+                        AlbumId = album.Id,
+                        UserId = authorId,
+                        Order = i,
+                        CreatedAt = DateTimeOffset.UtcNow
+                    });
+
+                    authorResponses.Add(new GalleryAuthorResponse(
+                        matched.Id,
+                        matched.Username,
+                        matched.DisplayName,
+                        i
+                    ));
+                }
+            }
 
             // Create Content entry
             var contentSlug = targetSlug;
@@ -246,6 +306,7 @@ public sealed class AdminGalleryController(
                     i.Order,
                     i.CreatedAt
                 )).ToList(),
+                authorResponses,
                 content.Id
             );
 
@@ -360,9 +421,11 @@ public sealed class AdminGalleryController(
         [FromForm] string? description,
         [FromForm] IFormFile? coverImage,
         [FromForm] bool? isActive,
+        [FromForm] List<Guid>? authorIds,
         CancellationToken cancellationToken = default)
     {
         var album = await dbContext.Albums
+            .Include(a => a.Authors)
             .FirstOrDefaultAsync(a => a.Id == albumId, cancellationToken);
 
         if (album is null)
@@ -423,10 +486,58 @@ public sealed class AdminGalleryController(
 
             album.UpdatedAt = DateTimeOffset.UtcNow;
 
+            var requestAuthorIds = authorIds ?? new List<Guid>();
+            var authorsToRemove = album.Authors.Where(a => !requestAuthorIds.Contains(a.UserId)).ToList();
+            foreach (var author in authorsToRemove)
+            {
+                dbContext.GalleryAuthors.Remove(author);
+            }
+
+            var existingAuthorUserIds = album.Authors.Select(a => a.UserId).ToList();
+            var newAuthorUserIds = requestAuthorIds.Where(uid => !existingAuthorUserIds.Contains(uid)).ToList();
+            if (newAuthorUserIds.Count > 0)
+            {
+                var existingUsers = await dbContext.Users
+                    .Where(u => newAuthorUserIds.Contains(u.Id))
+                    .Select(u => u.Id)
+                    .ToListAsync(cancellationToken);
+
+                var orderByUserId = requestAuthorIds
+                    .Select((id, index) => new { id, index })
+                    .ToDictionary(x => x.id, x => x.index);
+
+                foreach (var userId in newAuthorUserIds)
+                {
+                    if (!existingUsers.Contains(userId))
+                    {
+                        continue;
+                    }
+
+                    dbContext.GalleryAuthors.Add(new GalleryAuthor
+                    {
+                        Id = Guid.NewGuid(),
+                        AlbumId = albumId,
+                        UserId = userId,
+                        Order = orderByUserId[userId],
+                        CreatedAt = DateTimeOffset.UtcNow
+                    });
+                }
+            }
+
             await dbContext.SaveChangesAsync(cancellationToken);
 
             var imageCount = await dbContext.Images
                 .CountAsync(i => i.AlbumId == albumId, cancellationToken);
+            var authors = await dbContext.GalleryAuthors
+                .Where(ga => ga.AlbumId == albumId)
+                .OrderBy(ga => ga.Order)
+                .Select(ga => new GalleryAuthorResponse(
+                    ga.UserId,
+                    ga.User.Username,
+                    ga.User.DisplayName,
+                    ga.Order
+                ))
+                .ToListAsync(cancellationToken);
 
             var response = new AlbumResponse(
                 album.Id,
@@ -437,6 +548,7 @@ public sealed class AdminGalleryController(
                 album.CreatedAt,
                 album.UpdatedAt,
                 imageCount,
+                authors,
                 await dbContext.Contents
                     .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
                     .Select(c => (Guid?)c.Id)

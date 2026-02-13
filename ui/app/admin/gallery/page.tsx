@@ -98,8 +98,13 @@ export default function AdminGalleryPage() {
                                 <p className="text-sm text-muted-foreground line-clamp-2">
                                     {album.description || "No description"}
                                 </p>
+                                {album.authors.length > 0 && (
+                                    <p className="mt-2 text-xs text-muted-foreground line-clamp-1">
+                                        By {album.authors.map((a) => a.displayName || a.username).join(", ")}
+                                    </p>
+                                )}
                                 <div className="mt-2 text-xs text-muted-foreground">
-                                    {album.imageCount} images • {new Date(album.createdAt).toLocaleDateString()}
+                                    {album.imageCount} images - {new Date(album.createdAt).toLocaleDateString()}
                                 </div>
                             </CardContent>
                             <CardFooter className="flex justify-end gap-2">
@@ -125,3 +130,4 @@ export default function AdminGalleryPage() {
         </div>
     );
 }
+

@@ -235,6 +235,11 @@ export default function AlbumDetailPage() {
                                 <span>{album.commentCount}</span>
                             </span>
                         </div>
+                        {album.authors.length > 0 && (
+                            <div className="mt-4 text-sm text-muted-foreground">
+                                By {album.authors.map((a) => a.displayName || a.username).join(', ')}
+                            </div>
+                        )}
                     </div>
                 </div>
             </motion.section>

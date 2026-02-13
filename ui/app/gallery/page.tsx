@@ -167,6 +167,11 @@ export default function GalleryPage() {
                                                 <h3 className="font-medium text-lg leading-tight tracking-tight group-hover:text-primary transition-colors line-clamp-2">
                                                     {album.name}
                                                 </h3>
+                                                {album.authors.length > 0 && (
+                                                    <p className="text-sm text-muted-foreground line-clamp-1">
+                                                        By {album.authors.map((a) => a.displayName || a.username).join(', ')}
+                                                    </p>
+                                                )}
                                                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                                                     <div className="flex items-center gap-1.5">
                                                         <div className="p-1 rounded-full border bg-background/50">

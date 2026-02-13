@@ -101,7 +101,7 @@ export default function HomePage() {
                 >
                     {/* 1. Featured Work (Wide Card) */}
                     <motion.div variants={cardVariants} className="md:col-span-2 group relative overflow-hidden rounded-3xl border bg-card/50 hover:bg-card/80 transition-colors p-8 backdrop-blur-sm">
-                        <Link href="/work" className="absolute inset-0 z-10" />
+                        <Link href="/projects" className="absolute inset-0 z-10" />
                         <div className="flex flex-col h-full justify-between">
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">

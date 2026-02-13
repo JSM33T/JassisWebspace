@@ -1,10 +1,11 @@
-import { AlbumWithImages, Image } from "./gallery.types";
-import { post, put, del } from "./client";
+import { AlbumWithImages, GalleryAuthor, Image } from "./gallery.types";
+import { post, put, del, get } from "./client";
 
 export interface CreateAlbumRequest {
     name: string;
     slug?: string;
     description?: string;
+    authorIds?: string[];
     coverImage?: File;
     imageFiles?: File[];
     imageTitles?: string[];
@@ -13,11 +14,20 @@ export interface CreateAlbumRequest {
 }
 
 class AdminGalleryService {
+    async getPotentialAuthors(): Promise<GalleryAuthor[]> {
+        return get<GalleryAuthor[]>('/admin/gallery/authors');
+    }
+
     async createAlbum(data: CreateAlbumRequest): Promise<AlbumWithImages> {
         const formData = new FormData();
         formData.append('name', data.name);
         if (data.slug) formData.append('slug', data.slug);
         if (data.description) formData.append('description', data.description);
+        if (data.authorIds) {
+            data.authorIds.forEach((authorId) => {
+                formData.append('authorIds', authorId);
+            });
+        }
         if (data.coverImage) formData.append('coverImage', data.coverImage);
 
         if (data.imageFiles) {
@@ -52,6 +62,11 @@ class AdminGalleryService {
         if (data.name) formData.append('name', data.name);
         if (data.slug !== undefined) formData.append('slug', data.slug || "");
         if (data.description !== undefined) formData.append('description', data.description);
+        if (data.authorIds) {
+            data.authorIds.forEach((authorId) => {
+                formData.append('authorIds', authorId);
+            });
+        }
         if (data.coverImage) formData.append('coverImage', data.coverImage);
         if (data.isActive !== undefined) formData.append('isActive', data.isActive.toString());
 
