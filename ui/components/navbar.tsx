@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -32,16 +32,19 @@ import {
 } from '@/components/ui/sheet';
 import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
+import { cn } from '@/lib/utils';
 
 export function Navbar() {
     const { user, logout, isAuthenticated } = useUser();
     const { togglePlayer, hasSource, isOpen } = useAudioPlayer();
     const router = useRouter();
+    const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+    const [isNavbarHidden, setIsNavbarHidden] = useState(false);
 
     const handleLogout = async () => {
         setShowLogoutDialog(false);
@@ -95,6 +98,14 @@ export function Navbar() {
 
     const aboutLink = { href: '/about', label: 'About', id: 'about' };
 
+    const isActivePath = (href: string) => {
+        if (href === '/') return pathname === '/';
+        return pathname === href || pathname.startsWith(`${href}/`);
+    };
+
+    const navDropdownContentClassName =
+        "w-72 rounded-2xl border border-border/60 bg-background/70 p-2 text-foreground shadow-xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60";
+
 
     const roleDisplayName =
         normalizedRole === 'admin'
@@ -107,11 +118,37 @@ export function Navbar() {
                         ? normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1)
                         : 'User';
 
+    useEffect(() => {
+        let lastScrollY = window.scrollY || document.documentElement.scrollTop;
+
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+
+            if (currentScrollY < 12) {
+                setIsNavbarHidden(false);
+                lastScrollY = currentScrollY;
+                return;
+            }
+
+            if (currentScrollY > lastScrollY) {
+                setIsNavbarHidden(true);
+            } else if (currentScrollY < lastScrollY) {
+                setIsNavbarHidden(false);
+            }
+
+            lastScrollY = currentScrollY;
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
 
 
     return (
         <>
-            <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-5xl px-4">
+            <nav className={`fixed top-4 left-1/2 z-50 w-full max-w-5xl px-4 transition-transform duration-300 ${isNavbarHidden ? "-translate-x-1/2 -translate-y-28" : "-translate-x-1/2 translate-y-0"}`}>
                 {/* Gradient border wrapper */}
                 <div className="p-[1px] rounded-full bg-gradient-to-br from-primary/15 via-primary/10 to-primary/12">
                     <div className="bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 rounded-full shadow-lg shadow-black/5 px-6 lg:px-8">
@@ -167,8 +204,7 @@ export function Navbar() {
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <button
-
-                                            className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
+                                            className="group relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
                                             onMouseEnter={(e) => {
                                                 const rect = e.currentTarget.getBoundingClientRect();
                                                 const parentRect = navRef.current?.getBoundingClientRect();
@@ -182,16 +218,29 @@ export function Navbar() {
                                                 setHoveredLink('work');
                                             }}
                                         >
-                                            Work <ChevronDown className="h-3 w-3 inline ml-1" />
+                                            Work <ChevronDown className="ml-1 inline h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                         </button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-64" align="center">
+                                    <DropdownMenuContent
+                                        className={navDropdownContentClassName}
+                                        align="center"
+                                        sideOffset={12}
+                                        collisionPadding={16}
+                                    >
                                         {workMenuItems.map((item) => {
                                             const Icon = item.icon;
+                                            const isActive = isActivePath(item.href);
                                             return (
                                                 <DropdownMenuItem key={item.href} asChild>
-                                                    <Link href={item.href} className="cursor-pointer flex items-start gap-3 p-3">
-                                                        <Icon className="h-5 w-5 mt-0.5 text-primary" />
+                                                    <Link
+                                                        href={item.href}
+                                                        className={cn(
+                                                            "flex cursor-pointer items-start gap-3 rounded-xl border border-transparent p-3 transition-colors",
+                                                            "hover:border-border/50 hover:bg-accent/60",
+                                                            isActive && "border-border/70 bg-accent/70"
+                                                        )}
+                                                    >
+                                                        <Icon className={cn("mt-0.5 h-5 w-5 text-primary", isActive && "text-foreground")} />
                                                         <div className="flex flex-col">
                                                             <span className="font-medium">{item.label}</span>
                                                             <span className="text-xs text-muted-foreground">{item.description}</span>
@@ -208,8 +257,7 @@ export function Navbar() {
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <button
-
-                                            className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
+                                            className="group relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
                                             onMouseEnter={(e) => {
                                                 const rect = e.currentTarget.getBoundingClientRect();
                                                 const parentRect = navRef.current?.getBoundingClientRect();
@@ -223,16 +271,29 @@ export function Navbar() {
                                                 setHoveredLink('resources');
                                             }}
                                         >
-                                            Studio <ChevronDown className="h-3 w-3 inline ml-1" />
+                                            Studio <ChevronDown className="ml-1 inline h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                         </button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-64" align="center">
+                                    <DropdownMenuContent
+                                        className={navDropdownContentClassName}
+                                        align="center"
+                                        sideOffset={12}
+                                        collisionPadding={16}
+                                    >
                                         {studioMenuItems.map((item) => {
                                             const Icon = item.icon;
+                                            const isActive = isActivePath(item.href);
                                             return (
                                                 <DropdownMenuItem key={item.href} asChild>
-                                                    <Link href={item.href} className="cursor-pointer flex items-start gap-3 p-3">
-                                                        <Icon className="h-5 w-5 mt-0.5 text-primary" />
+                                                    <Link
+                                                        href={item.href}
+                                                        className={cn(
+                                                            "flex cursor-pointer items-start gap-3 rounded-xl border border-transparent p-3 transition-colors",
+                                                            "hover:border-border/50 hover:bg-accent/60",
+                                                            isActive && "border-border/70 bg-accent/70"
+                                                        )}
+                                                    >
+                                                        <Icon className={cn("mt-0.5 h-5 w-5 text-primary", isActive && "text-foreground")} />
                                                         <div className="flex flex-col">
                                                             <span className="font-medium">{item.label}</span>
                                                             <span className="text-xs text-muted-foreground">{item.description}</span>
@@ -350,19 +411,29 @@ export function Navbar() {
                             </div>
 
                             {/* Mobile Menu */}
-                            <div className="md:hidden">
+                            <div className="md:hidden flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 px-2 hover:bg-accent/50"
+                                    onClick={togglePlayer}
+                                    title={hasSource ? "Toggle audio player" : "Open audio player"}
+                                >
+                                    <Music className={`h-4 w-4 ${isOpen ? 'text-primary' : ''}`} />
+                                </Button>
+                                <ModeToggle />
                                 <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                                     <SheetTrigger asChild>
                                         <Button variant="outline" size="icon">
                                             <Menu className="h-4 w-4" />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="right" className="w-[300px]">
+                                    <SheetContent side="right" className="h-full w-[300px] overflow-y-auto">
                                         <SheetHeader>
                                             <SheetTitle>Menu</SheetTitle>
                                             <SheetDescription>Navigate through the app</SheetDescription>
                                         </SheetHeader>
-                                        <div className="mt-6 space-y-4">
+                                        <div className="mt-6 space-y-4 pl-2 pr-3 pb-6">
                                             {isAuthenticated && user && (
                                                 <div className="flex items-center gap-3 pb-4 border-b">
                                                     <Avatar>
