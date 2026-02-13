@@ -77,12 +77,12 @@ export function Navbar() {
     ];
 
     const workMenuItems = [
-        {
-            href: '/projects',
-            label: 'Projects',
-            description: 'View our completed projects',
-            icon: FolderCode,
-        },
+        // {
+        //     href: '/projects',
+        //     label: 'Projects',
+        //     description: 'View our completed projects',
+        //     icon: FolderCode,
+        // },
         {
             href: '/services',
             label: 'Services',
