@@ -15,33 +15,20 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { FolderCode, ArrowLeft, MoveUpRight, Rocket, Send } from 'lucide-react';
+import { projects as tempProjects, type Project as TempProject } from '../../data/temp_projects';
 
-const projects = [
-    {
-        id: 'ecommerce-analytics-dashboard',
-        title: 'E-commerce Analytics Dashboard',
-        description: 'Real-time sales, inventory, and campaign tracking for multi-store retail operations.',
-        details: 'Built with Next.js and PostgreSQL to unify order data, ad spend, and customer cohorts.\n\n### Highlights\n- Real-time KPI tracking\n- Multi-store aggregation\n- Campaign attribution insights\n\n![Analytics preview](/globe.svg)',
-        status: 'Live',
-        stack: ['Next.js', 'PostgreSQL', 'Redis'],
-    },
-    {
-        id: 'fleet-iot-monitoring-platform',
-        title: 'Fleet IoT Monitoring Platform',
-        description: 'Connected dashboard for GPS telemetry, route optimization, and predictive maintenance alerts.',
-        details: 'Integrated sensor streams with a low-latency event pipeline and operator-focused control center UX.\n\n### Highlights\n- Route deviation alerts\n- Predictive maintenance windows\n- Live fleet health map',
-        status: 'Live',
-        stack: ['React', 'Node.js', 'Kafka'],
-    },
-    {
-        id: 'ai-support-assistant',
-        title: 'AI Support Assistant',
-        description: 'Context-aware support copilot with retrieval pipelines for internal knowledge bases.',
-        details: 'Implemented hybrid search and workflow guardrails to improve answer quality and reduce escalations.\n\n### Highlights\n- RAG with internal docs\n- Escalation confidence scoring\n- Human handoff workflows',
-        status: 'In Progress',
-        stack: ['OpenAI', 'LangChain', 'Vector DB'],
-    },
-];
+type ProjectCard = TempProject & { id: string };
+
+const makeProjectId = (title: string) =>
+    title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+const projects: ProjectCard[] = tempProjects.map((project) => ({
+    ...project,
+    id: makeProjectId(project.title),
+}));
 
 export default function ProjectsPage() {
     const router = useRouter();
@@ -113,8 +100,8 @@ export default function ProjectsPage() {
             </section>
 
             <section className="flex-1 px-4 py-12">
-                <div className="container mx-auto max-w-7xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="container mx-auto max-w-6xl">
+                    <div className="grid grid-cols-1 gap-6 max-w-5xl mx-auto">
                         {projects.map((project, index) => (
                             <motion.div
                                 key={project.title}
@@ -128,11 +115,11 @@ export default function ProjectsPage() {
                                 >
                                     <CardHeader className="p-8">
                                         <div className="flex items-start justify-between gap-4 mb-4">
-                                            <div className="p-3 rounded-2xl border bg-background/50 group-hover:scale-110 transition-transform">
-                                                <Rocket className="h-5 w-5 text-primary opacity-70" />
-                                            </div>
-                                            <Badge variant={project.status === 'Live' ? 'default' : 'secondary'} className="rounded-full px-3">
-                                                {project.status}
+                                        <div className="p-3 rounded-2xl border bg-background/50 group-hover:scale-110 transition-transform">
+                                            <Rocket className="h-5 w-5 text-primary opacity-70" />
+                                        </div>
+                                            <Badge variant="secondary" className="rounded-full px-3">
+                                                {project.highlight || 'Project'}
                                             </Badge>
                                         </div>
                                         <CardTitle className="text-xl font-medium tracking-tight group-hover:text-primary transition-colors">
@@ -160,8 +147,8 @@ export default function ProjectsPage() {
                     <div className="p-10 space-y-8 overflow-y-auto max-h-[85vh]">
                         <DialogHeader>
                             <div className="flex items-center gap-3 mb-4">
-                                <Badge variant={selectedProject?.status === 'Live' ? 'default' : 'secondary'} className="rounded-full">
-                                    {selectedProject?.status}
+                                <Badge variant="secondary" className="rounded-full">
+                                    {selectedProject?.highlight || 'Project'}
                                 </Badge>
                                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Project Details</span>
                             </div>
@@ -177,7 +164,7 @@ export default function ProjectsPage() {
 
                         <div className="pt-8 border-t flex flex-col gap-6">
                             <div className="flex flex-wrap gap-2">
-                                {selectedProject?.stack.map((tech) => (
+                                {selectedProject?.tech?.map((tech) => (
                                     <Badge key={tech} variant="outline" className="rounded-full">
                                         {tech}
                                     </Badge>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "./override.css";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/contexts/UserContext";
