@@ -26,6 +26,8 @@ public sealed class AdminGalleryController(
     IHttpContextAccessor httpContextAccessor)
     : BaseApiController
 {
+    private const string GalleryBlobPrefix = "gallery/";
+
     [HttpGet("authors")]
     [ProducesResponseType(typeof(ApiResponse<List<GalleryAuthorResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuthors(
@@ -72,7 +74,8 @@ public sealed class AdminGalleryController(
 
     private string GetFullMediaUrl(string blobName)
     {
-        return $"{GetBaseUrl()}/media/{blobName}";
+        var publicBlobName = StripGalleryPrefix(blobName);
+        return $"{GetBaseUrl()}/media/{publicBlobName}";
     }
 
     private async Task<BlobUploadResult> UploadFileAsync(IFormFile file, string? blobName, CancellationToken cancellationToken)
@@ -86,7 +89,7 @@ public sealed class AdminGalleryController(
             processedStream,
             file.FileName,
             "image/webp", // Force WebP content type
-            blobName,
+            string.IsNullOrWhiteSpace(blobName) ? null : EnsureGalleryBlobName(blobName),
             cancellationToken);
     }
 
@@ -747,8 +750,32 @@ public sealed class AdminGalleryController(
         var marker = "/media/";
         var index = url.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
         if (index == -1) return null;
-        
-        return url.Substring(index + marker.Length);
+
+        var blobName = url[(index + marker.Length)..].Trim();
+        if (string.IsNullOrWhiteSpace(blobName))
+        {
+            return null;
+        }
+
+        return EnsureGalleryBlobName(blobName);
+    }
+
+    private static string EnsureGalleryBlobName(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized
+            : $"{GalleryBlobPrefix}{normalized}";
+    }
+
+    private static string StripGalleryPrefix(string blobName)
+    {
+        if (blobName.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return blobName[GalleryBlobPrefix.Length..];
+        }
+
+        return blobName;
     }
 
     /// <summary>

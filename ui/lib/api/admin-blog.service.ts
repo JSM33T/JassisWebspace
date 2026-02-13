@@ -50,6 +50,16 @@ class AdminBlogService {
         // Waiting... I'll add GET to the controller as it is safer for admin to see unpublished blogs.
         return get<BlogDetail>(`/admin/blog/${id}`);
     }
+
+    async uploadImage(file: File, fileName?: string): Promise<{ publicId: string, url: string }> {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (fileName) {
+            formData.append('fileName', fileName);
+        }
+
+        return post<{ publicId: string, url: string }>('/admin/blog/upload-image', formData);
+    }
 }
 
 export const adminBlogService = new AdminBlogService();

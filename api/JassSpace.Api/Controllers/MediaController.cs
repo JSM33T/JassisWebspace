@@ -21,6 +21,8 @@ public sealed class MediaController(
     IOptions<AzureBlobStorageSettings> blobSettings)
     : BaseApiController
 {
+    private const string GalleryBlobPrefix = "gallery/";
+    private const string BlogBlobPrefix = "blog/";
     private readonly string _containerName = blobSettings?.Value?.ContainerName ?? string.Empty;
 
     /// <summary>
@@ -198,7 +200,7 @@ public sealed class MediaController(
     /// <summary>
     /// Retrieves an image by its blob name. Uses the local cache when possible.
     /// </summary>
-    [HttpGet("{blobName}")]
+    [HttpGet("{*blobName}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -214,9 +216,21 @@ public sealed class MediaController(
 
         var wantsThumb = IsTruthy(thumb);
 
-        var cachedImage = wantsThumb
-            ? await blobStorageService.GetThumbnailAsync(blobName, cancellationToken)
-            : await blobStorageService.GetImageAsync(blobName, cancellationToken);
+        CachedImageResult? cachedImage = null;
+        string? resolvedBlobName = null;
+
+        foreach (var candidateBlobName in BuildReadCandidates(blobName))
+        {
+            cachedImage = wantsThumb
+                ? await blobStorageService.GetThumbnailAsync(candidateBlobName, cancellationToken)
+                : await blobStorageService.GetImageAsync(candidateBlobName, cancellationToken);
+
+            if (cachedImage is not null)
+            {
+                resolvedBlobName = candidateBlobName;
+                break;
+            }
+        }
 
         if (cachedImage is null)
         {
@@ -232,7 +246,7 @@ public sealed class MediaController(
 
         return StreamCachedImage(
             resourceType: "blob image",
-            cacheIdentifier: wantsThumb ? $"{blobName} (thumb)" : blobName,
+            cacheIdentifier: wantsThumb ? $"{resolvedBlobName ?? blobName} (thumb)" : (resolvedBlobName ?? blobName),
             cachedImage,
             notFoundTitle: "Image not found",
             notFoundDetail: $"No cached file available for blob name '{blobName}'.",
@@ -243,12 +257,33 @@ public sealed class MediaController(
     /// Retrieves a thumbnail variant for an image by its blob name.
     /// Prefer this endpoint over <c>?thumb=1</c> if you have a caching layer that ignores query strings.
     /// </summary>
-    [HttpGet("thumb/{blobName}")]
+    [HttpGet("thumb/{*blobName}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public Task<IActionResult> GetImageThumb(string blobName, CancellationToken cancellationToken = default)
         => GetImage(blobName, thumb: "true", cancellationToken);
+
+    private static IEnumerable<string> BuildReadCandidates(string requestedBlobName)
+    {
+        var normalized = requestedBlobName.Trim().TrimStart('/').Replace('\\', '/');
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            yield break;
+        }
+
+        yield return normalized;
+
+        if (!normalized.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            yield return $"{GalleryBlobPrefix}{normalized}";
+        }
+
+        if (!normalized.StartsWith(BlogBlobPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            yield return $"{BlogBlobPrefix}{normalized}";
+        }
+    }
 
     private static bool IsTruthy(string? value)
     {

@@ -21,9 +21,14 @@ namespace JassSpace.Api.Controllers;
 public sealed class AdminBlogController(
     JassSpaceDbContext dbContext,
     ILogger<AdminBlogController> logger,
-    IAzureBlobStorageService blobStorageService)
+    IAzureBlobStorageService blobStorageService,
+    IImageProcessingService imageProcessingService,
+    IHttpContextAccessor httpContextAccessor)
     : BaseApiController
 {
+    private const string BlogBlobPrefix = "blog/";
+    private const string MediaPathPrefix = "/media/";
+
     /// <summary>
     /// Get all blog categories
     /// </summary>
@@ -215,6 +220,40 @@ public sealed class AdminBlogController(
     }
 
     /// <summary>
+    /// Upload an image for blog use and get back the media controller URL.
+    /// </summary>
+    [HttpPost("upload-image")]
+    [ProducesResponseType(typeof(ApiResponse<MediaUploadResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadBlogImage(
+        [FromForm] IFormFile? file,
+        [FromForm] string? fileName,
+        CancellationToken cancellationToken = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequestProblem("No file uploaded", "Provide a non-empty file in the request body.");
+        }
+
+        try
+        {
+            var baseName = !string.IsNullOrWhiteSpace(fileName) ? fileName : Guid.NewGuid().ToString();
+            var uploadResult = await UploadBlogFileAsync(file, baseName, cancellationToken);
+            var mediaUrl = BuildBlogMediaUrl(uploadResult.BlobName);
+            var response = new MediaUploadResponse(uploadResult.BlobName, mediaUrl);
+            return OkEnvelope(response);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Blog image upload failed");
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Image upload failed",
+                "An unexpected error occurred while uploading the image.");
+        }
+    }
+
+    /// <summary>
     /// Create a new blog post
     /// </summary>
     [HttpPost]
@@ -255,7 +294,7 @@ public sealed class AdminBlogController(
                 Slug = slug,
                 Excerpt = request.Excerpt,
                 Content = request.Content,
-                FeaturedImage = request.FeaturedImage,
+                FeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage),
                 CategoryId = request.CategoryId,
                 IsPublished = request.IsPublished,
                 PublishedAt = request.IsPublished ? now : null,
@@ -385,7 +424,11 @@ public sealed class AdminBlogController(
             {
                 try 
                 {
-                    await blobStorageService.DeleteBlobByUrlAsync(blog.FeaturedImage, cancellationToken);
+                    var oldFeaturedBlobName = ExtractBlogBlobNameFromMediaUrl(blog.FeaturedImage);
+                    if (!string.IsNullOrWhiteSpace(oldFeaturedBlobName))
+                    {
+                        await blobStorageService.DeleteBlobAsync(oldFeaturedBlobName, cancellationToken);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -396,7 +439,7 @@ public sealed class AdminBlogController(
 
             blog.Excerpt = request.Excerpt;
             blog.Content = request.Content;
-            blog.FeaturedImage = request.FeaturedImage;
+            blog.FeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage);
             blog.CategoryId = request.CategoryId;
             
             // Handle Publishing logic
@@ -510,25 +553,22 @@ public sealed class AdminBlogController(
             // Handle Orphaned Content Images (Cleanup)
             try
             {
-                // 1. Get all blobs associated with this blog's content (prefix: blog-{id}-)
-                var prefix = $"blog-{id}-";
-                var storedBlobs = await blobStorageService.ListBlobsByPrefixAsync(prefix, cancellationToken);
+                // 1. Get all blobs associated with this blog's content (legacy and foldered naming)
+                var legacyPrefix = $"blog-{id}-";
+                var folderPrefix = $"blog/blog-{id}-";
+                var storedBlobs = (await blobStorageService.ListBlobsByPrefixAsync(folderPrefix, cancellationToken))
+                    .Concat(await blobStorageService.ListBlobsByPrefixAsync(legacyPrefix, cancellationToken))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
                 
                 if (storedBlobs.Any())
                 {
                     // 2. Identify images currently used in the new content
                     var usedBlobNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    
-                    if (!string.IsNullOrWhiteSpace(request.Content))
+
+                    foreach (var blobName in ExtractBlobNamesFromContent(request.Content))
                     {
-                        // Find all instances of strings starting with the prefix in the content
-                        // This captures the filenames from URLs like https://.../blog-{id}-{timestamp}.jpg
-                        // and also from local proxy URLs
-                        var matches = Regex.Matches(request.Content, $"{Regex.Escape(prefix)}[a-zA-Z0-9\\-_\\.]+", RegexOptions.IgnoreCase);
-                        foreach (Match match in matches)
-                        {
-                            usedBlobNames.Add(match.Value);
-                        }
+                        usedBlobNames.Add(blobName);
                     }
 
                     // 3. Find orphans (Stored but not Used)
@@ -587,7 +627,11 @@ public sealed class AdminBlogController(
             {
                  try 
                 {
-                    await blobStorageService.DeleteBlobByUrlAsync(blog.FeaturedImage, cancellationToken);
+                    var featuredBlobName = ExtractBlogBlobNameFromMediaUrl(blog.FeaturedImage);
+                    if (!string.IsNullOrWhiteSpace(featuredBlobName))
+                    {
+                        await blobStorageService.DeleteBlobAsync(featuredBlobName, cancellationToken);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -627,7 +671,7 @@ public sealed class AdminBlogController(
     // Helper to get response DTO
     private async Task<BlogDetailResponse?> GetBlogWithDetails(Guid blogId, CancellationToken cancellationToken)
     {
-        return await dbContext.Blogs
+        var response = await dbContext.Blogs
             .AsNoTracking()
             .Where(b => b.Id == blogId)
             .Select(b => new BlogDetailResponse(
@@ -661,6 +705,118 @@ public sealed class AdminBlogController(
                 0
             ))
             .FirstOrDefaultAsync(cancellationToken);
+
+        return response is null
+            ? null
+            : response with { FeaturedImage = NormalizeBlogMediaUrl(response.FeaturedImage) };
+    }
+
+    private string GetBaseUrl()
+    {
+        var request = httpContextAccessor.HttpContext?.Request;
+        if (request == null) return "http://localhost:5283";
+        return $"{request.Scheme}://{request.Host}";
+    }
+
+    private string BuildBlogMediaUrl(string blobName)
+    {
+        var publicBlobName = StripBlogPrefix(blobName);
+        return $"{GetBaseUrl()}{MediaPathPrefix}{publicBlobName}";
+    }
+
+    private async Task<BlobUploadResult> UploadBlogFileAsync(IFormFile file, string? blobName, CancellationToken cancellationToken)
+    {
+        await using var stream = file.OpenReadStream();
+        await using var processedStream = await imageProcessingService.ProcessImageAsync(stream, cancellationToken);
+
+        return await blobStorageService.UploadImageAsync(
+            processedStream,
+            file.FileName,
+            "image/webp",
+            string.IsNullOrWhiteSpace(blobName) ? null : EnsureBlogBlobName(blobName),
+            cancellationToken);
+    }
+
+    private IEnumerable<string> ExtractBlobNamesFromContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            yield break;
+        }
+
+        // Parse /media/... links from markdown/html and map to storage blob names.
+        var matches = Regex.Matches(content, @"/media/([^\s\)""'<>]+)", RegexOptions.IgnoreCase);
+        foreach (Match match in matches)
+        {
+            var candidate = match.Groups[1].Value;
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                continue;
+            }
+
+            var trimmed = candidate.Split('?', '#')[0].Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                continue;
+            }
+
+            yield return EnsureBlogBlobName(trimmed);
+            yield return StripBlogPrefix(trimmed);
+        }
+    }
+
+    private static string EnsureBlogBlobName(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(BlogBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized
+            : $"{BlogBlobPrefix}{normalized}";
+    }
+
+    private static string StripBlogPrefix(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(BlogBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized[BlogBlobPrefix.Length..]
+            : normalized;
+    }
+
+    private static string? NormalizeBlogMediaUrl(string? mediaUrl)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl))
+        {
+            return mediaUrl;
+        }
+
+        var trimmed = mediaUrl.Trim();
+        if (!MediaUrlHelper.TryExtractMediaBlobName(trimmed, out var blobName))
+        {
+            return trimmed;
+        }
+
+        var publicBlobName = StripBlogPrefix(blobName);
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
+        {
+            return $"{absolute.Scheme}://{absolute.Authority}{MediaPathPrefix}{publicBlobName}";
+        }
+
+        return $"{MediaPathPrefix}{publicBlobName}";
+    }
+
+    private static string? ExtractBlogBlobNameFromMediaUrl(string? mediaUrl)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl))
+        {
+            return null;
+        }
+
+        if (!MediaUrlHelper.TryExtractMediaBlobName(mediaUrl.Trim(), out var blobName))
+        {
+            return null;
+        }
+
+        return EnsureBlogBlobName(blobName);
     }
 
     /// <summary>

@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import { Disc3, Music2 } from "lucide-react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Disc3, Music2, Pause, Play, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import {
     Sheet,
     SheetContent,
@@ -9,6 +9,8 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 type OpenPlayerInput = {
     url: string;
@@ -27,10 +29,14 @@ type AudioPlayerContextValue = {
 const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
 
 export function AudioPlayerProvider({ children }: { children: React.ReactNode }) {
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [currentUrl, setCurrentUrl] = useState<string>("");
     const [currentTitle, setCurrentTitle] = useState<string>("");
     const [currentArtist, setCurrentArtist] = useState<string>("");
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
 
     const openPlayer = useCallback((input: OpenPlayerInput | string, title?: string, artist?: string) => {
         if (typeof input === "string") {
@@ -58,6 +64,65 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     }, []);
 
     const hasSource = !!currentUrl.trim();
+    const seekMax = duration > 0 ? duration : 1;
+
+    useEffect(() => {
+        if (!hasSource) {
+            setIsPlaying(false);
+            setCurrentTime(0);
+            setDuration(0);
+            return;
+        }
+
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        audio.play().catch(() => {
+            setIsPlaying(false);
+        });
+    }, [currentUrl, hasSource]);
+
+    const handlePlayPause = useCallback(() => {
+        const audio = audioRef.current;
+        if (!audio || !hasSource) return;
+
+        if (audio.paused) {
+            audio.play().catch(() => {
+                setIsPlaying(false);
+            });
+            return;
+        }
+
+        audio.pause();
+    }, [hasSource]);
+
+    const handleSeek = useCallback((values: number[]) => {
+        const next = values[0] ?? 0;
+        const audio = audioRef.current;
+        if (!audio || !hasSource) return;
+        audio.currentTime = next;
+        setCurrentTime(next);
+    }, [hasSource]);
+
+    const seekBy = useCallback((offsetSeconds: number) => {
+        const audio = audioRef.current;
+        if (!audio || !hasSource) return;
+        const next = Math.max(0, Math.min((audio.duration || 0), audio.currentTime + offsetSeconds));
+        audio.currentTime = next;
+        setCurrentTime(next);
+    }, [hasSource]);
+
+    const formatTime = (seconds: number) => {
+        if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
+        const s = Math.floor(seconds);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        if (h > 0) {
+            return `${h}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+        }
+        return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+    };
 
     const value = useMemo(
         () => ({
@@ -73,6 +138,41 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     return (
         <AudioPlayerContext.Provider value={value}>
             {children}
+            <audio
+                ref={audioRef}
+                src={currentUrl || undefined}
+                preload="metadata"
+                className="hidden"
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onEnded={() => setIsPlaying(false)}
+                onLoadedMetadata={(e) => {
+                    const nextDuration = e.currentTarget.duration || 0;
+                    setDuration(nextDuration);
+                }}
+                onTimeUpdate={(e) => {
+                    setCurrentTime(e.currentTarget.currentTime || 0);
+                }}
+            >
+                Your browser does not support the audio element.
+            </audio>
+
+            {hasSource && isPlaying ? (
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(true)}
+                    className="fixed right-0 top-1/2 z-40 -translate-y-1/2 rounded-l-xl border border-r-0 bg-background/95 px-2 py-3 shadow-lg backdrop-blur-sm transition hover:bg-background"
+                    title="Music is playing. Open player"
+                >
+                    <span className="flex flex-col items-center gap-1 text-[11px] font-medium">
+                        <Volume2 className="h-3.5 w-3.5 text-primary" />
+                        <span className="[writing-mode:vertical-rl] [text-orientation:mixed]">
+                            Music is playing
+                        </span>
+                    </span>
+                </button>
+            ) : null}
+
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetContent side="right" className="w-full sm:max-w-md border-l bg-gradient-to-b from-background to-muted/40">
                     <SheetHeader>
@@ -86,7 +186,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
                         <div className="rounded-2xl border bg-card/70 p-5">
                             <div className="mb-5 flex items-center gap-4">
                                 <div className="flex h-14 w-14 items-center justify-center rounded-xl border bg-background/70">
-                                    <Disc3 className="h-6 w-6 text-primary" />
+                                    <Disc3 className={`h-6 w-6 text-primary ${isPlaying ? "animate-spin" : ""}`} />
                                 </div>
                                 <div className="min-w-0">
                                     <p className="truncate text-base font-semibold">{currentTitle || ""}</p>
@@ -94,16 +194,50 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
                                 </div>
                             </div>
                             {hasSource ? (
-                                <audio
-                                    key={currentUrl}
-                                    controls
-                                    autoPlay
-                                    preload="metadata"
-                                    className="w-full"
-                                    src={currentUrl}
-                                >
-                                    Your browser does not support the audio element.
-                                </audio>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Slider
+                                            value={[Math.min(currentTime, seekMax)]}
+                                            min={0}
+                                            max={seekMax}
+                                            step={0.1}
+                                            onValueChange={handleSeek}
+                                        />
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span>{formatTime(currentTime)}</span>
+                                            <span>{formatTime(duration)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="outline"
+                                            className="rounded-full"
+                                            onClick={() => seekBy(-10)}
+                                        >
+                                            <SkipBack className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            className="h-11 w-11 rounded-full"
+                                            onClick={handlePlayPause}
+                                        >
+                                            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="outline"
+                                            className="rounded-full"
+                                            onClick={() => seekBy(10)}
+                                        >
+                                            <SkipForward className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="text-sm text-muted-foreground">
                                     Select a track to start playback.

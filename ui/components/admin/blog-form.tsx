@@ -30,7 +30,6 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { BlogAuthor, BlogCategory, BlogDetail, CreateBlogRequest } from "@/lib/api/blog.types";
 import { adminBlogService } from "@/lib/api/admin-blog.service";
-import { adminGalleryService } from "@/lib/api/admin-gallery.service";
 import Image from "next/image";
 import { ImageCropper } from "@/components/ui/image-cropper";
 import { toast } from "sonner";
@@ -224,7 +223,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
             if (selectedImage) {
                 try {
                     // Upload image with blogId as filename
-                    const { url } = await adminGalleryService.uploadImage(selectedImage, blogId);
+                    const { url } = await adminBlogService.uploadImage(selectedImage, blogId);
                     featuredImageUrl = url;
                 } catch (error) {
                     console.error("Failed to upload image", error);
@@ -343,7 +342,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                                                     const timestamp = Date.now();
                                                                     const fileName = `blog-${blogId}-${timestamp}`;
 
-                                                                    const { url } = await adminGalleryService.uploadImage(file, fileName);
+                                                                    const { url } = await adminBlogService.uploadImage(file, fileName);
 
                                                                     // Insert markdown into textarea
                                                                     const textarea = document.getElementById("content-textarea") as HTMLTextAreaElement;

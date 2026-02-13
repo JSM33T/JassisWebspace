@@ -18,6 +18,9 @@ public sealed class GalleryController(
     ILogger<GalleryController> logger)
     : BaseApiController
 {
+    private const string GalleryBlobPrefix = "gallery/";
+    private const string MediaPathPrefix = "/media/";
+
     /// <summary>
     /// Gets all albums with their image counts.
     /// </summary>
@@ -55,7 +58,11 @@ public sealed class GalleryController(
                 ))
                 .ToListAsync(cancellationToken);
 
-            return OkEnvelope(albums);
+            var normalizedAlbums = albums
+                .Select(a => a with { Cover = NormalizeGalleryMediaUrl(a.Cover) })
+                .ToList();
+
+            return OkEnvelope(normalizedAlbums);
         }
         catch (Exception ex)
         {
@@ -145,11 +152,13 @@ public sealed class GalleryController(
                 albumData.Id,
                 albumData.Name,
                 albumData.Slug,
-                albumData.Cover,
+                NormalizeGalleryMediaUrl(albumData.Cover),
                 albumData.Description,
                 albumData.CreatedAt,
                 albumData.UpdatedAt,
-                albumData.Images,
+                albumData.Images
+                    .Select(i => i with { Url = NormalizeGalleryMediaUrl(i.Url) ?? i.Url })
+                    .ToList(),
                 albumData.Authors,
                 contentId,
                 likeCount,
@@ -201,7 +210,11 @@ public sealed class GalleryController(
                 ))
                 .ToListAsync(cancellationToken);
 
-            return OkEnvelope(images);
+            var normalizedImages = images
+                .Select(i => i with { Url = NormalizeGalleryMediaUrl(i.Url) ?? i.Url })
+                .ToList();
+
+            return OkEnvelope(normalizedImages);
         }
         catch (Exception ex)
         {
@@ -367,7 +380,7 @@ public sealed class GalleryController(
             {
                 Id = Guid.NewGuid(),
                 AlbumId = albumId,
-                Url = request.Url,
+                Url = NormalizeGalleryMediaUrl(request.Url) ?? request.Url,
                 Title = request.Title,
                 Description = request.Description,
                 Order = request.Order,
@@ -416,5 +429,35 @@ public sealed class GalleryController(
         slug = slug.Trim('-');
 
         return slug;
+    }
+
+    private static string? NormalizeGalleryMediaUrl(string? mediaUrl)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl))
+        {
+            return mediaUrl;
+        }
+
+        var trimmed = mediaUrl.Trim();
+        if (!MediaUrlHelper.TryExtractMediaBlobName(trimmed, out var blobName))
+        {
+            return trimmed;
+        }
+
+        var publicBlobName = StripGalleryPrefix(blobName);
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
+        {
+            return $"{absolute.Scheme}://{absolute.Authority}{MediaPathPrefix}{publicBlobName}";
+        }
+
+        return $"{MediaPathPrefix}{publicBlobName}";
+    }
+
+    private static string StripGalleryPrefix(string blobName)
+    {
+        return blobName.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? blobName[GalleryBlobPrefix.Length..]
+            : blobName;
     }
 }

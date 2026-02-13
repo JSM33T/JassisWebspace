@@ -6,7 +6,7 @@ import {
   ArrowRight, 
   Sparkles, 
   Music, 
-  Images, // Changed from Camera to Images for a gallery vibe
+  Images,
   MoveUpRight, 
   Github, 
   Twitter 

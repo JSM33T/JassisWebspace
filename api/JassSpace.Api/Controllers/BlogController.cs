@@ -18,6 +18,9 @@ public sealed class BlogController(
     ILogger<BlogController> logger)
     : BaseApiController
 {
+    private const string BlogBlobPrefix = "blog/";
+    private const string MediaPathPrefix = "/media/";
+
     /// <summary>
     /// Gets all published blogs with optional filters (search, date range, category).
     /// </summary>
@@ -116,7 +119,11 @@ public sealed class BlogController(
                 ))
                 .ToListAsync(cancellationToken);
 
-            return OkEnvelope(blogs);
+            var normalizedBlogs = blogs
+                .Select(b => b with { FeaturedImage = NormalizeBlogMediaUrl(b.FeaturedImage) })
+                .ToList();
+
+            return OkEnvelope(normalizedBlogs);
         }
         catch (Exception ex)
         {
@@ -183,7 +190,7 @@ public sealed class BlogController(
                 return NotFoundProblem("Blog not found", $"No published blog found with slug '{slug}'.");
             }
 
-            return OkEnvelope(blog);
+            return OkEnvelope(blog with { FeaturedImage = NormalizeBlogMediaUrl(blog.FeaturedImage) });
         }
         catch (Exception ex)
         {
@@ -293,7 +300,11 @@ public sealed class BlogController(
                 ))
                 .ToListAsync(cancellationToken);
 
-            return OkEnvelope(blogs);
+            var normalizedBlogs = blogs
+                .Select(b => b with { FeaturedImage = NormalizeBlogMediaUrl(b.FeaturedImage) })
+                .ToList();
+
+            return OkEnvelope(normalizedBlogs);
         }
         catch (Exception ex)
         {
@@ -362,7 +373,7 @@ public sealed class BlogController(
                 Slug = slug,
                 Excerpt = request.Excerpt,
                 Content = request.Content,
-                FeaturedImage = request.FeaturedImage,
+                FeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage),
                 CategoryId = request.CategoryId,
                 IsPublished = request.IsPublished,
                 PublishedAt = request.IsPublished ? now : null,
@@ -432,7 +443,7 @@ public sealed class BlogController(
                 ))
                 .FirstAsync(cancellationToken);
 
-            return OkEnvelope(createdBlog);
+            return OkEnvelope(createdBlog with { FeaturedImage = NormalizeBlogMediaUrl(createdBlog.FeaturedImage) });
         }
         catch (Exception ex)
         {
@@ -550,5 +561,36 @@ public sealed class BlogController(
         }
 
         return slug;
+    }
+
+    private static string? NormalizeBlogMediaUrl(string? mediaUrl)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl))
+        {
+            return mediaUrl;
+        }
+
+        var trimmed = mediaUrl.Trim();
+        if (!MediaUrlHelper.TryExtractMediaBlobName(trimmed, out var blobName))
+        {
+            return trimmed;
+        }
+
+        var publicBlobName = StripBlogPrefix(blobName);
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
+        {
+            return $"{absolute.Scheme}://{absolute.Authority}{MediaPathPrefix}{publicBlobName}";
+        }
+
+        return $"{MediaPathPrefix}{publicBlobName}";
+    }
+
+    private static string StripBlogPrefix(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(BlogBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized[BlogBlobPrefix.Length..]
+            : normalized;
     }
 }

@@ -42,7 +42,6 @@ export const musicTracks: Track[] = [
 		tags: ['orchestral', 'ambient', 'epic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/melancholy.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/originals/JSM33T%20-%20Melancholy.mp3',
 		links: [
 			{
 				type: 'youtube',
@@ -80,7 +79,6 @@ export const musicTracks: Track[] = [
 		tags: ['ambient', 'nature', 'dreamy', 'meditation'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/singularity.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/originals/Singularity.mp3',
 		links: [
 			{
 				type: 'youtube',
@@ -114,7 +112,6 @@ export const musicTracks: Track[] = [
 		tags: ['electronic', 'remix', 'dance'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/tu_hai_ki_nahi.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_2/06.%20TU%20HAI%20KI%20NAHI%20%28REMIX%29%20-%20JSM33T%20AND%20SAI%20SUNDAR.mp3',
 		links: [
 			// {
 			// 	type: 'soundcloud',
@@ -137,7 +134,6 @@ export const musicTracks: Track[] = [
 		tags: ['electronic', 'remix', 'dance'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/so_far_away_remix.png',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_2/So%20Far%20Away%20%28Jsm33t%20Bootleg%29.mp3',
 		links: [
 			{
 				type: 'soundcloud',
@@ -160,7 +156,6 @@ export const musicTracks: Track[] = [
 		tags: ['dnb', 'remix', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos3.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_3/03.%20Titli%20%28DnB%29%20-%20Jsm33t.mp3',
 		links: [
 			{
 				type: 'soundcloud',
@@ -183,7 +178,6 @@ export const musicTracks: Track[] = [
 		tags: ['dnb', 'remix', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos3.jpg',
 		featured: false,
-		playFile: 'http://localhost:5283/bootleg/stream/bootleg/audio/default/e14c1f971df14d7ba8b6625572b9a283.mp3?token=Ym9vdGxlZy9hdWRpby9kZWZhdWx0L2UxNGMxZjk3MWRmMTRkN2JhOGI2NjI1NTcyYjlhMjgzLm1wM3wxNzcwOTk5ODA3.6RHqYSH2_OpVsIciXKfN3a5uzhsZ9az2LAr0SODsIX0',
 		links: [
 			{
 				type: 'soundcloud',
@@ -206,7 +200,6 @@ export const musicTracks: Track[] = [
 		tags: ['dnb', 'remix', 'orchestral', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos3.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_3/01.%20Kabhi%20Jo%20Baadal%20Barse%20%28Orchestral%20Rendition%29%20-%20Jsm33t.mp3',
 		links: [
 			{
 				type: 'soundcloud',
@@ -229,7 +222,6 @@ export const musicTracks: Track[] = [
 		tags: ['dnb', 'remix', 'emotional', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos3.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/snippets/ID%20-%20BEKHAYALI%20%28Orchestral%20Rendition%29%20%20Snippet%20%28hearthis.at%29.mp3',
 		links: [
 			{
 				type: 'soundcloud',
@@ -253,7 +245,6 @@ export const musicTracks: Track[] = [
 		tags: ['dnb', 'remix', 'romantic', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos3.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/snippets/JSM33T%20x%20MARAASIM%20-%20DHADAK%20teaser%20%28hearthis.at%29.mp3',
 		links: [
 			{
 				type: 'soundcloud',
@@ -274,7 +265,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/pee_loon_remix.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/01%20Pee%20Loon%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/pee-loon-remix', label: 'Listen on SoundCloud' }
 		]
@@ -291,7 +281,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos2.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/02%20Hum%20Jee%20Lenge%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/hum-jee-lenge-remix', label: 'Listen on SoundCloud' }
 		]
@@ -308,7 +297,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos2.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/03%20Tu%20Jo%20Hai%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/tu-jo-hai-remix', label: 'Listen on SoundCloud' }
 		]
@@ -325,7 +313,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/tujhe_sochta_hoon.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/04%20Tujhe%20Sochta%20Hoon%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/tujhe-sochta-hoon-remix', label: 'Listen on SoundCloud' }
 		]
@@ -345,7 +332,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'collab', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos1.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/05%20Dil%20De%20Diya%20Hai%20%28Remix%29%20-%20JSM33T%20Ft.%20Lakshay%20Chaudhary.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/dil-de-diya-hai-remix', label: 'Listen on SoundCloud' }
 		]
@@ -362,7 +348,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'edm'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos1.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/06%20How%20Deep%20Is%20Your%20Love%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/how-deep-is-your-love-remix', label: 'Listen on SoundCloud' }
 		]
@@ -379,7 +364,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'emotional'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos1.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/07%20Khair%20mangdi%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/khair-mangdi-remix', label: 'Listen on SoundCloud' }
 		]
@@ -396,7 +380,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'dark', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos2.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/08%20Wajah%20Tum%20Ho%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/wajah-tum-ho-remix', label: 'Listen on SoundCloud' }
 		]
@@ -413,7 +396,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'pop', 'edm'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/shape_of_you.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/09%20Shape%20Of%20You%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/shape-of-you-remix', label: 'Listen on SoundCloud' }
 		]
@@ -430,7 +412,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'emotional', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos2.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/10%20Tujhe%20Bhula%20Diya%20%28Remix%29%20-%20JSM33T.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/tujhe-bhula-diya-remix', label: 'Listen on SoundCloud' }
 		]
@@ -447,7 +428,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'extended', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/pee_loon_remix.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_1/JSM33T%20-%20Pee%20Loon%20%28Extended%20Mix%29.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/pee-loon-extended-mix', label: 'Listen on SoundCloud' }
 		]
@@ -464,7 +444,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'emotional', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos2.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_2/02.%20HUMNAVA%20MERE%20%28REMIX%29%20-%20JSM33T.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/humnava-mere-remix', label: 'Listen on SoundCloud' }
 		]
@@ -481,7 +460,6 @@ export const musicTracks: Track[] = [
 		tags: ['remix', 'romantic', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos2.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_2/07.%20TERA%20ZIKR%20%28REMIX%29%20-%20JSM33T.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/tera-zikr-remix', label: 'Listen on SoundCloud' }
 		]
@@ -498,7 +476,6 @@ export const musicTracks: Track[] = [
 		tags: ['podcast', 'deep house'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/radio.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/radio/DJ%20Vector%20-%20Deep%20House%20Podcast.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/djvector/deep-house-podcast', label: 'Listen on SoundCloud' }
 		]
@@ -515,7 +492,6 @@ export const musicTracks: Track[] = [
 		tags: ['podcast', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/radio.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/radio/Electronyk%20Podcast%20-%20%20Electronic%20Maestro.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/electronyk/electronic-maestro', label: 'Listen on SoundCloud' }
 		]
@@ -532,7 +508,6 @@ export const musicTracks: Track[] = [
 		tags: ['feature', 'radio', 'dnb'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/radio.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/radio/RadioMirchi%2098.3fm-%20Bulleya%20DnB%20Remix.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/bulleya-dnb-radio-feature', label: 'Listen on SoundCloud' }
 		]
@@ -549,7 +524,6 @@ export const musicTracks: Track[] = [
 		tags: ['feature', 'radio'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/radio.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/radio/RadioMirchi%2098.3fm-%20Pee%20Loon.mp3',
 		links: [
 			{ type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/pee-loon-radio-feature', label: 'Listen on SoundCloud' }
 		]
@@ -566,7 +540,6 @@ export const musicTracks: Track[] = [
 		tags: ['feature', 'radio'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/radio.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/radio/RadioMirchi%2098.3fm-%20Tujhe%20Bhula%20Diya.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/tujhe-bhula-diya-radio-feature', label: 'Listen on SoundCloud' }
 		]
@@ -583,7 +556,6 @@ export const musicTracks: Track[] = [
 		tags: ['feature', 'radio'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/radio.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/radio/RadioMirchi%2098.3fm-%20Wajah%20Tum%20Ho.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/wajah-tum-ho-radio-feature', label: 'Listen on SoundCloud' }
 		]
@@ -600,7 +572,6 @@ export const musicTracks: Track[] = [
 		tags: ['feature', 'radio'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/radio.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/radio/RadioMirchi%2098.3fm-%20Young%20Again.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/young-again-radio-feature', label: 'Listen on SoundCloud' }
 		]
@@ -617,7 +588,6 @@ export const musicTracks: Track[] = [
 		tags: ['feature', 'radio'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/radio.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/radio/RadioMirchi%2098.3fm-%20Zara%20Zara.mp3',
 		links: [
 			// { type: 'soundcloud', url: 'https://soundcloud.com/jsm33t/zara-zara-radio-feature', label: 'Listen on SoundCloud' }
 		]
