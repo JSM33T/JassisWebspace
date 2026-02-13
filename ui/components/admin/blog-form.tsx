@@ -33,6 +33,7 @@ import { adminBlogService } from "@/lib/api/admin-blog.service";
 import { adminGalleryService } from "@/lib/api/admin-gallery.service";
 import Image from "next/image";
 import { ImageCropper } from "@/components/ui/image-cropper";
+import { toast } from "sonner";
 
 const blogSchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -57,6 +58,9 @@ export function BlogForm({ initialData }: BlogFormProps) {
     const [categories, setCategories] = useState<BlogCategory[]>([]);
     const [authors, setAuthors] = useState<BlogAuthor[]>([]);
     const [authorSearch, setAuthorSearch] = useState("");
+    const [categoryEditorName, setCategoryEditorName] = useState("");
+    const [categoryEditorDescription, setCategoryEditorDescription] = useState("");
+    const [savingCategory, setSavingCategory] = useState(false);
     const [uploading, setUploading] = useState(false);
 
     // Determine if we are in "Edit" mode (have an existing blog ID)
@@ -102,6 +106,80 @@ export function BlogForm({ initialData }: BlogFormProps) {
 
         return () => clearTimeout(timeoutId);
     }, [authorSearch]);
+
+    const selectedCategoryId = form.watch("categoryId");
+
+    useEffect(() => {
+        if (!selectedCategoryId) {
+            setCategoryEditorName("");
+            setCategoryEditorDescription("");
+            return;
+        }
+
+        const selected = categories.find((c) => c.id === selectedCategoryId);
+        if (!selected) return;
+        setCategoryEditorName(selected.name);
+        setCategoryEditorDescription(selected.description || "");
+    }, [selectedCategoryId, categories]);
+
+    const reloadCategories = async () => {
+        const cats = await adminBlogService.getAllCategories();
+        setCategories(cats);
+        return cats;
+    };
+
+    const handleCreateCategory = async () => {
+        if (!categoryEditorName.trim()) {
+            toast.error("Category name is required");
+            return;
+        }
+
+        try {
+            setSavingCategory(true);
+            const created = await adminBlogService.createCategory({
+                name: categoryEditorName.trim(),
+                description: categoryEditorDescription.trim() || undefined,
+            });
+            const cats = await reloadCategories();
+            form.setValue("categoryId", created.id, { shouldDirty: true });
+            const selected = cats.find((c) => c.id === created.id);
+            setCategoryEditorName(selected?.name || created.name);
+            setCategoryEditorDescription(selected?.description || "");
+            toast.success("Category created");
+        } catch (error) {
+            console.error("Failed to create category", error);
+            toast.error("Failed to create category");
+        } finally {
+            setSavingCategory(false);
+        }
+    };
+
+    const handleUpdateCategory = async () => {
+        if (!selectedCategoryId) {
+            toast.error("Select a category to update");
+            return;
+        }
+
+        if (!categoryEditorName.trim()) {
+            toast.error("Category name is required");
+            return;
+        }
+
+        try {
+            setSavingCategory(true);
+            await adminBlogService.updateCategory(selectedCategoryId, {
+                name: categoryEditorName.trim(),
+                description: categoryEditorDescription.trim() || undefined,
+            });
+            await reloadCategories();
+            toast.success("Category updated");
+        } catch (error) {
+            console.error("Failed to update category", error);
+            toast.error("Failed to update category");
+        } finally {
+            setSavingCategory(false);
+        }
+    };
 
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -416,6 +494,49 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                     </FormItem>
                                 )}
                             />
+
+                            <Card className="p-4 space-y-3">
+                                <div>
+                                    <FormLabel>Manage Categories</FormLabel>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Create a new category or update the selected one.
+                                    </p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Input
+                                        placeholder="Category name"
+                                        value={categoryEditorName}
+                                        onChange={(e) => setCategoryEditorName(e.target.value)}
+                                    />
+                                    <Textarea
+                                        placeholder="Category description (optional)"
+                                        value={categoryEditorDescription}
+                                        onChange={(e) => setCategoryEditorDescription(e.target.value)}
+                                        className="min-h-[80px]"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleCreateCategory}
+                                        disabled={savingCategory}
+                                    >
+                                        {savingCategory && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                                        Create
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={handleUpdateCategory}
+                                        disabled={savingCategory || !selectedCategoryId}
+                                    >
+                                        {savingCategory && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                                        Update Selected
+                                    </Button>
+                                </div>
+                            </Card>
 
                             <FormField
                                 control={form.control}

@@ -47,6 +47,114 @@ public sealed class AdminBlogController(
         return OkEnvelope(categories);
     }
 
+    [HttpPost("categories")]
+    [ProducesResponseType(typeof(ApiResponse<BlogCategoryResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateCategory(
+        [FromBody] CreateBlogCategoryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequestProblem("Invalid category name", "Category name cannot be empty.");
+        }
+
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var category = new BlogCategory
+            {
+                Id = Guid.NewGuid(),
+                Name = request.Name.Trim(),
+                Slug = await GenerateUniqueCategorySlug(request.Name, cancellationToken),
+                Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            dbContext.BlogCategories.Add(category);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return OkEnvelope(new BlogCategoryResponse(
+                category.Id,
+                category.Name,
+                category.Slug,
+                category.Description,
+                category.CreatedAt,
+                category.UpdatedAt
+            ));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to create blog category");
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to create category",
+                "An unexpected error occurred while creating the category.");
+        }
+    }
+
+    [HttpPut("categories/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<BlogCategoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCategory(
+        Guid id,
+        [FromBody] CreateBlogCategoryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequestProblem("Invalid category name", "Category name cannot be empty.");
+        }
+
+        var category = await dbContext.BlogCategories
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (category is null)
+        {
+            return NotFoundProblem("Category not found", $"No category found with ID '{id}'.");
+        }
+
+        try
+        {
+            var normalizedName = request.Name.Trim();
+            if (!string.Equals(category.Name, normalizedName, StringComparison.Ordinal))
+            {
+                var targetSlug = GenerateSlug(normalizedName);
+                var slugExists = await dbContext.BlogCategories
+                    .AnyAsync(c => c.Slug == targetSlug && c.Id != id, cancellationToken);
+
+                category.Slug = slugExists
+                    ? $"{targetSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}"
+                    : targetSlug;
+            }
+
+            category.Name = normalizedName;
+            category.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            category.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return OkEnvelope(new BlogCategoryResponse(
+                category.Id,
+                category.Name,
+                category.Slug,
+                category.Description,
+                category.CreatedAt,
+                category.UpdatedAt
+            ));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to update blog category {CategoryId}", id);
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to update category",
+                "An unexpected error occurred while updating the category.");
+        }
+    }
+
     /// <summary>
     /// Get list of users who can be blog authors (admin or mod roles)
     /// </summary>
@@ -565,6 +673,21 @@ public sealed class AdminBlogController(
         slug = Regex.Replace(slug, @"\s+", "-");
         slug = Regex.Replace(slug, @"-+", "-");
         slug = slug.Trim('-');
+        return slug;
+    }
+
+    private async Task<string> GenerateUniqueCategorySlug(string name, CancellationToken cancellationToken)
+    {
+        var baseSlug = GenerateSlug(name);
+        var slug = baseSlug;
+        var counter = 1;
+
+        while (await dbContext.BlogCategories.AnyAsync(c => c.Slug == slug, cancellationToken))
+        {
+            slug = $"{baseSlug}-{counter}";
+            counter++;
+        }
+
         return slug;
     }
 }

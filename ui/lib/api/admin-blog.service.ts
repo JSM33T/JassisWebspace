@@ -18,6 +18,14 @@ class AdminBlogService {
         return post<BlogDetail>('/admin/blog', data);
     }
 
+    async createCategory(data: { name: string; description?: string }): Promise<BlogCategory> {
+        return post<BlogCategory>('/admin/blog/categories', data);
+    }
+
+    async updateCategory(id: string, data: { name: string; description?: string }): Promise<BlogCategory> {
+        return put<BlogCategory>(`/admin/blog/categories/${id}`, data);
+    }
+
     async updateBlog(id: string, data: CreateBlogRequest): Promise<BlogDetail> {
         return put<BlogDetail>(`/admin/blog/${id}`, data);
     }
