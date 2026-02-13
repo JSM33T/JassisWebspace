@@ -411,19 +411,29 @@ export function Navbar() {
                             </div>
 
                             {/* Mobile Menu */}
-                            <div className="md:hidden">
+                            <div className="md:hidden flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 px-2 hover:bg-accent/50"
+                                    onClick={togglePlayer}
+                                    title={hasSource ? "Toggle audio player" : "Open audio player"}
+                                >
+                                    <Music className={`h-4 w-4 ${isOpen ? 'text-primary' : ''}`} />
+                                </Button>
+                                <ModeToggle />
                                 <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                                     <SheetTrigger asChild>
                                         <Button variant="outline" size="icon">
                                             <Menu className="h-4 w-4" />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="right" className="w-[300px]">
+                                    <SheetContent side="right" className="h-full w-[300px] overflow-y-auto">
                                         <SheetHeader>
                                             <SheetTitle>Menu</SheetTitle>
                                             <SheetDescription>Navigate through the app</SheetDescription>
                                         </SheetHeader>
-                                        <div className="mt-6 space-y-4">
+                                        <div className="mt-6 space-y-4 pl-2 pr-3 pb-6">
                                             {isAuthenticated && user && (
                                                 <div className="flex items-center gap-3 pb-4 border-b">
                                                     <Avatar>
