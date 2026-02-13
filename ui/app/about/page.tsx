@@ -18,7 +18,7 @@ export default function AboutPage() {
                     </h1>
 
                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                        We're building the future of modern web applications.
+                        We&apos;re building the future of modern web applications.
                         Passionate about technology, driven by innovation.
                     </p>
 

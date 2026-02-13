@@ -48,7 +48,6 @@ const cardVariants = {
 export default function HomePage() {
     return (
         <div className="min-h-screen w-full bg-background text-foreground selection:bg-primary/10 selection:text-primary overflow-x-hidden">
-            
             {/* Ambient Background Glow */}
             <div className="fixed inset-0 z-[-1] pointer-events-none">
                 <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
@@ -107,7 +106,7 @@ export default function HomePage() {
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
                                     <h3 className="text-xl font-medium tracking-tight">Selected Projects</h3>
-                                    <p className="text-sm text-muted-foreground">What I've been building lately</p>
+                                    <p className="text-sm text-muted-foreground">What I&apos;ve been building lately</p>
                                 </div>
                                 <div className="p-2 rounded-full border bg-background/50 group-hover:scale-110 transition-transform">
                                     <MoveUpRight className="h-4 w-4 opacity-50" />
@@ -167,7 +166,7 @@ export default function HomePage() {
                     {/* 4. Socials / Contact (Wide Card) */}
                     <motion.div variants={cardVariants} className="md:col-span-2 group relative overflow-hidden rounded-3xl border bg-card/50 p-8 hover:bg-card/80 transition-colors backdrop-blur-sm">
                         <div className="flex flex-col h-full justify-center items-center text-center space-y-4">
-                            <h3 className="text-xl font-medium">Let's connect</h3>
+                            <h3 className="text-xl font-medium">Let&apos;s connect</h3>
                             <div className="flex gap-3">
                                 <Button variant="outline" size="icon" className="rounded-full h-10 w-10 bg-background/50" asChild>
                                     <Link href="https://github.com"><Github className="h-5 w-5" /></Link>

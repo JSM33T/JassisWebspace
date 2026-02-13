@@ -11,7 +11,6 @@ import { Separator } from '@/components/ui/separator';
 import {
     ArrowLeft,
     Calendar,
-    User,
     Clock,
     BookOpen,
     Users,

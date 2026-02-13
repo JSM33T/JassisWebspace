@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, ImageIcon, MessageSquare, ZoomIn } from 'lucide-react';
+import { ArrowLeft, Calendar, ImageIcon, MessageSquare, Share2, ZoomIn } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
 import { AlbumWithImages } from '@/lib/api/gallery.types';
 import { ApiError } from '@/lib/api/types';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 import { CommentSection } from '@/components/comments/CommentSection';
 import { LikeButton } from '@/components/likes/LikeButton';
@@ -19,27 +20,34 @@ import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
 import Captions from "yet-another-react-lightbox/plugins/captions";
+import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
+import Counter from "yet-another-react-lightbox/plugins/counter";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
 import "yet-another-react-lightbox/plugins/captions.css";
 
 export default function AlbumDetailPage() {
     const params = useParams();
     const slug = params.slug as string;
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     const [album, setAlbum] = useState<AlbumWithImages | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Lightbox state
-    const [index, setIndex] = useState(-1);
-
-    useEffect(() => {
-        if (slug) {
-            loadAlbum();
+    const setImageParam = (imageId: string | null) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (imageId) {
+            params.set('image', imageId);
+        } else {
+            params.delete('image');
         }
-    }, [slug]);
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    };
 
-    const loadAlbum = async () => {
+    const loadAlbum = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -67,7 +75,13 @@ export default function AlbumDetailPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [slug]);
+
+    useEffect(() => {
+        if (slug) {
+            loadAlbum();
+        }
+    }, [slug, loadAlbum]);
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -138,6 +152,39 @@ export default function AlbumDetailPage() {
         title: image.title,
         description: image.description
     }));
+
+    const selectedImageId = searchParams.get('image');
+    const selectedIndex = selectedImageId
+        ? album.images.findIndex((image) => image.id === selectedImageId)
+        : -1;
+    const isLightboxOpen = selectedIndex >= 0;
+    const selectedImage = isLightboxOpen ? album.images[selectedIndex] : null;
+
+    const handleShareCurrentImage = async () => {
+        if (!selectedImage || typeof window === 'undefined') {
+            return;
+        }
+
+        const shareUrl = window.location.href;
+        const shareTitle = selectedImage.title || `${album.name} image`;
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: shareTitle,
+                    text: `Check out this image from ${album.name}`,
+                    url: shareUrl,
+                });
+                return;
+            }
+
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success('Share link copied to clipboard');
+        } catch (error) {
+            console.error('Failed to share image', error);
+            toast.error('Failed to share image link');
+        }
+    };
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -215,7 +262,7 @@ export default function AlbumDetailPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.5, delay: i * 0.1 }}
                                     className="break-inside-avoid group cursor-zoom-in relative rounded-xl overflow-hidden bg-muted"
-                                    onClick={() => setIndex(i)}
+                                    onClick={() => setImageParam(image.id)}
                                 >
                                     <div className="relative w-full">
                                         <Image
@@ -256,15 +303,40 @@ export default function AlbumDetailPage() {
             </section>
 
             <Lightbox
-                open={index >= 0}
-                index={index}
-                close={() => setIndex(-1)}
+                open={isLightboxOpen}
+                index={isLightboxOpen ? selectedIndex : 0}
+                close={() => setImageParam(null)}
                 slides={slides}
-                plugins={[Zoom, Thumbnails, Captions]}
+                plugins={[Zoom, Thumbnails, Captions, Fullscreen, Counter]}
                 animation={{ fade: 0 }}
                 controller={{ closeOnBackdropClick: true }}
                 captions={{ descriptionTextAlign: 'center' }}
                 carousel={{ finite: true }}
+                counter={{ container: { style: { top: "unset", bottom: 0 } } }}
+                toolbar={{
+                    buttons: [
+                        "fullscreen",
+                        <button
+                            key="share-image"
+                            type="button"
+                            className="yarl__button"
+                            title="Share image"
+                            aria-label="Share image"
+                            onClick={handleShareCurrentImage}
+                        >
+                            <Share2 className="h-5 w-5" />
+                        </button>,
+                        "close",
+                    ],
+                }}
+                on={{
+                    view: ({ index }) => {
+                        const imageId = album.images[index]?.id;
+                        if (imageId) {
+                            setImageParam(imageId);
+                        }
+                    },
+                }}
             />
 
             {album.contentId && (

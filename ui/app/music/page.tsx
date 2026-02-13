@@ -61,7 +61,7 @@ export default function MusicPage() {
                             </div>
                             <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Tune In Soon</CardTitle>
                             <CardDescription className="text-xl pt-4 max-w-md mx-auto leading-relaxed">
-                                We're preparing an immersive audio experience for you.
+                                We&apos;re preparing an immersive audio experience for you.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-4">

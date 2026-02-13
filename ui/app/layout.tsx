@@ -6,16 +6,14 @@ import { Toaster } from "sonner";
 import { UserProvider } from "@/contexts/UserContext";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { buildMetadata } from "@/lib/seo";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "JassSpace - Build something amazing",
-  description: "The modern platform for building scalable applications",
-};
+export const metadata: Metadata = buildMetadata();
 
 export default function RootLayout({
   children,
