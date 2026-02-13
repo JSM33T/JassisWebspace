@@ -34,6 +34,7 @@ public sealed class AuthController(
 {
     private const string GitHubUserAgent = "JassSpaceApp/1.0";
     private const string ExternalAvatarUserAgent = "JassSpaceAvatarFetcher/1.0";
+    private const string ProfilesBlobPrefix = "profiles/";
     private readonly string _containerName = blobSettings?.Value?.ContainerName ?? string.Empty;
 
     /// <summary>
@@ -2083,10 +2084,10 @@ public sealed class AuthController(
                 sourceStream,
                 $"{provider}-avatar{GetExtensionFromContentType(resolvedContentType)}",
                 resolvedContentType,
-                $"{userId:N}-avatar",
+                EnsureProfilesBlobName($"{userId:N}-avatar"),
                 cancellationToken);
 
-            return MediaUrlHelper.BuildMediaUrl(Request, uploadResult.BlobName);
+            return MediaUrlHelper.BuildMediaUrl(Request, StripProfilesPrefix(uploadResult.BlobName));
         }
         catch (Exception ex)
         {
@@ -2159,6 +2160,22 @@ public sealed class AuthController(
         }
 
         return string.Empty;
+    }
+
+    private static string EnsureProfilesBlobName(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(ProfilesBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized
+            : $"{ProfilesBlobPrefix}{normalized}";
+    }
+
+    private static string StripProfilesPrefix(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(ProfilesBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized[ProfilesBlobPrefix.Length..]
+            : normalized;
     }
 
     private async Task<AuthResponse> GenerateAuthResponse(User user, string authMethod, CancellationToken cancellationToken)

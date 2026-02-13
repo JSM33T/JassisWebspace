@@ -8,3 +8,4 @@
 .context
 .cache/
 .logs/
+artifacts/
