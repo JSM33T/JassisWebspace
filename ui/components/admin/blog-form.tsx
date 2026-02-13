@@ -56,6 +56,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<BlogCategory[]>([]);
     const [authors, setAuthors] = useState<BlogAuthor[]>([]);
+    const [authorSearch, setAuthorSearch] = useState("");
     const [uploading, setUploading] = useState(false);
 
     // Determine if we are in "Edit" mode (have an existing blog ID)
@@ -77,20 +78,30 @@ export function BlogForm({ initialData }: BlogFormProps) {
     });
 
     useEffect(() => {
-        const loadData = async () => {
+        const loadCategories = async () => {
             try {
-                const [cats, auths] = await Promise.all([
-                    adminBlogService.getAllCategories(),
-                    adminBlogService.getPotentialAuthors(),
-                ]);
+                const cats = await adminBlogService.getAllCategories();
                 setCategories(cats);
-                setAuthors(auths);
             } catch (error) {
-                console.error("Failed to load dependency data", error);
+                console.error("Failed to load categories", error);
             }
         };
-        loadData();
+
+        loadCategories();
     }, []);
+
+    useEffect(() => {
+        const timeoutId = setTimeout(async () => {
+            try {
+                const auths = await adminBlogService.getPotentialAuthors(authorSearch.trim() || undefined);
+                setAuthors(auths);
+            } catch (error) {
+                console.error("Failed to load authors", error);
+            }
+        }, 250);
+
+        return () => clearTimeout(timeoutId);
+    }, [authorSearch]);
 
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -413,7 +424,13 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                     <FormItem>
                                         <FormLabel>Authors</FormLabel>
                                         <FormControl>
-                                            <div className="border rounded-md p-4 space-y-2 max-h-48 overflow-y-auto">
+                                            <div className="border rounded-md p-4 space-y-3 max-h-56 overflow-y-auto">
+                                                <Input
+                                                    placeholder="Search authors..."
+                                                    value={authorSearch}
+                                                    onChange={(e) => setAuthorSearch(e.target.value)}
+                                                    className="h-8"
+                                                />
                                                 {authors.map((author) => (
                                                     <div key={author.userId} className="flex items-center space-x-2">
                                                         <input
@@ -434,6 +451,9 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                                         </label>
                                                     </div>
                                                 ))}
+                                                {authors.length === 0 && (
+                                                    <p className="text-xs text-muted-foreground">No authors found.</p>
+                                                )}
                                             </div>
                                         </FormControl>
                                         <FormMessage />

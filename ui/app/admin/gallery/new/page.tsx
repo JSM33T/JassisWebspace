@@ -42,6 +42,7 @@ export default function CreateAlbumPage() {
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagesPreview, setImagesPreview] = useState<string[]>([]);
     const [authors, setAuthors] = useState<GalleryAuthor[]>([]);
+    const [authorSearch, setAuthorSearch] = useState("");
 
     // Cropper state
     const [cropperOpen, setCropperOpen] = useState(false);
@@ -58,17 +59,17 @@ export default function CreateAlbumPage() {
     });
 
     useEffect(() => {
-        const loadAuthors = async () => {
+        const timeoutId = setTimeout(async () => {
             try {
-                const data = await adminGalleryService.getPotentialAuthors();
+                const data = await adminGalleryService.getPotentialAuthors(authorSearch.trim() || undefined);
                 setAuthors(data);
             } catch (error) {
                 console.error("Failed to load authors", error);
             }
-        };
+        }, 250);
 
-        loadAuthors();
-    }, []);
+        return () => clearTimeout(timeoutId);
+    }, [authorSearch]);
 
     const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -210,7 +211,13 @@ export default function CreateAlbumPage() {
                                     <FormItem>
                                         <FormLabel>Authors</FormLabel>
                                         <FormControl>
-                                            <div className="border rounded-md p-4 space-y-2 max-h-48 overflow-y-auto">
+                                            <div className="border rounded-md p-4 space-y-3 max-h-56 overflow-y-auto">
+                                                <Input
+                                                    placeholder="Search authors..."
+                                                    value={authorSearch}
+                                                    onChange={(e) => setAuthorSearch(e.target.value)}
+                                                    className="h-8"
+                                                />
                                                 {authors.map((author) => (
                                                     <div key={author.userId} className="flex items-center space-x-2">
                                                         <input
@@ -231,6 +238,9 @@ export default function CreateAlbumPage() {
                                                         </label>
                                                     </div>
                                                 ))}
+                                                {authors.length === 0 && (
+                                                    <p className="text-xs text-muted-foreground">No authors found.</p>
+                                                )}
                                             </div>
                                         </FormControl>
                                         <FormMessage />

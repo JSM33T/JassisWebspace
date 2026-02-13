@@ -6,8 +6,12 @@ class AdminBlogService {
         return get<BlogCategory[]>('/admin/blog/categories');
     }
 
-    async getPotentialAuthors(): Promise<BlogAuthor[]> {
-        return get<BlogAuthor[]>('/admin/blog/authors');
+    async getPotentialAuthors(search?: string): Promise<BlogAuthor[]> {
+        const queryParams = new URLSearchParams();
+        if (search) queryParams.append('search', search);
+        queryParams.append('take', '100');
+        const query = queryParams.toString();
+        return get<BlogAuthor[]>(`/admin/blog/authors${query ? `?${query}` : ''}`);
     }
 
     async createBlog(data: CreateBlogRequest): Promise<BlogDetail> {

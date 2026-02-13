@@ -28,12 +28,30 @@ public sealed class AdminGalleryController(
 {
     [HttpGet("authors")]
     [ProducesResponseType(typeof(ApiResponse<List<GalleryAuthorResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAuthors(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetAuthors(
+        [FromQuery] string? search = null,
+        [FromQuery] int take = 100,
+        CancellationToken cancellationToken = default)
     {
-        var authors = await dbContext.Users
+        take = Math.Clamp(take, 1, 200);
+        var query = dbContext.Users
             .AsNoTracking()
             .Where(u => u.UserRoles.Any(ur => ur.Role.Name == "admin" || ur.Role.Name == "mod"))
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search.Trim()}%";
+            query = query.Where(u =>
+                EF.Functions.ILike(u.Username, pattern) ||
+                EF.Functions.ILike(u.DisplayName ?? string.Empty, pattern) ||
+                EF.Functions.ILike(u.FirstName ?? string.Empty, pattern) ||
+                EF.Functions.ILike(u.LastName ?? string.Empty, pattern));
+        }
+
+        var authors = await query
             .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
+            .Take(take)
             .Select(u => new GalleryAuthorResponse(
                 u.Id,
                 u.Username,

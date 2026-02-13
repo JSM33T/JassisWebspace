@@ -14,8 +14,12 @@ export interface CreateAlbumRequest {
 }
 
 class AdminGalleryService {
-    async getPotentialAuthors(): Promise<GalleryAuthor[]> {
-        return get<GalleryAuthor[]>('/admin/gallery/authors');
+    async getPotentialAuthors(search?: string): Promise<GalleryAuthor[]> {
+        const queryParams = new URLSearchParams();
+        if (search) queryParams.append('search', search);
+        queryParams.append('take', '100');
+        const query = queryParams.toString();
+        return get<GalleryAuthor[]>(`/admin/gallery/authors${query ? `?${query}` : ''}`);
     }
 
     async createAlbum(data: CreateAlbumRequest): Promise<AlbumWithImages> {
