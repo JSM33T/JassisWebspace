@@ -183,7 +183,7 @@ export const musicTracks: Track[] = [
 		tags: ['dnb', 'remix', 'electronic'],
 		coverArt: 'https://cdn.jsm33t.com/media/images/recuerdos3.jpg',
 		featured: false,
-		playFile: 'https://cdn.jsm33t.com/media/music/recuerdos_3/06.%20Bulleya%20%28DnB%29%20-%20Jsm33t.mp3',
+		playFile: 'http://localhost:5283/bootleg/stream/bootleg/audio/default/e14c1f971df14d7ba8b6625572b9a283.mp3?token=Ym9vdGxlZy9hdWRpby9kZWZhdWx0L2UxNGMxZjk3MWRmMTRkN2JhOGI2NjI1NTcyYjlhMjgzLm1wM3wxNzcwOTk5ODA3.6RHqYSH2_OpVsIciXKfN3a5uzhsZ9az2LAr0SODsIX0',
 		links: [
 			{
 				type: 'soundcloud',

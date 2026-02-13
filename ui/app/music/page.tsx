@@ -6,11 +6,13 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Music, ArrowLeft, MoveUpRight } from 'lucide-react';
+import { Music, ArrowLeft, MoveUpRight, Play } from 'lucide-react';
 import { musicTracks } from '@/data/tracks';
+import { useTrackPlayer } from '@/hooks/use-audio-player';
 
 export default function MusicPage() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const { playTrack } = useTrackPlayer();
 
     const categories = useMemo(
         () => ['all', ...Array.from(new Set(musicTracks.map((track) => track.category)))],
@@ -133,10 +135,27 @@ export default function MusicPage() {
                                             <Badge variant="outline" className="rounded-full text-xs">
                                                 {track.releaseDate}
                                             </Badge>
+                                            {track.playFile ? (
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    className="rounded-full h-8 px-4"
+                                                    onClick={() =>
+                                                        playTrack({
+                                                            title: track.title,
+                                                            artist: track.artists.map((artist) => artist.name).join(", "),
+                                                            playFile: track.playFile,
+                                                        })
+                                                    }
+                                                >
+                                                    <Play className="mr-1 h-3.5 w-3.5" />
+                                                    Play
+                                                </Button>
+                                            ) : null}
                                             {track.links[0] ? (
                                                 <Button asChild size="sm" className="rounded-full h-8 px-4">
                                                     <Link href={track.links[0].url} target="_blank" rel="noreferrer">
-                                                        Listen
+                                                        Open
                                                     </Link>
                                                 </Button>
                                             ) : null}

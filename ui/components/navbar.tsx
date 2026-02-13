@@ -34,9 +34,11 @@ import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSig
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
+import { useAudioPlayer } from '@/hooks/use-audio-player';
 
 export function Navbar() {
     const { user, logout, isAuthenticated } = useUser();
+    const { togglePlayer, hasSource, isOpen } = useAudioPlayer();
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -264,6 +266,15 @@ export function Navbar() {
 
                             {/* Right Side - Icons */}
                             <div className="hidden md:flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 px-2 hover:bg-accent/50"
+                                    onClick={togglePlayer}
+                                    title={hasSource ? "Toggle audio player" : "Open audio player"}
+                                >
+                                    <Music className={`h-4 w-4 ${isOpen ? 'text-primary' : ''}`} />
+                                </Button>
                                 <ModeToggle />
                                 {isAuthenticated ? (
                                     <DropdownMenu>

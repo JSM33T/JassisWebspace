@@ -79,8 +79,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.Configure<IpGeolocationOptions>(builder.Configuration.GetSection("IpGeolocation"));
+builder.Services.Configure<BootlegStreamingSettings>(builder.Configuration.GetSection("BootlegStreaming"));
 builder.Services.AddSingleton<IClientIpResolver, ClientIpResolver>();
 builder.Services.AddSingleton<IIpGeolocationService, IpGeolocationService>();
+builder.Services.AddSingleton<IBootlegTokenService, BootlegTokenService>();
 
 // Add custom app services (example)
 // builder.Services.AddSingleton<ILoggingService, LoggingService>();

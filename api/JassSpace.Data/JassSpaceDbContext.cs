@@ -32,6 +32,7 @@ public class JassSpaceDbContext : DbContext
     public DbSet<BlogCategory> BlogCategories { get; set; }
     public DbSet<BlogAuthor> BlogAuthors { get; set; }
     public DbSet<GalleryAuthor> GalleryAuthors { get; set; }
+    public DbSet<BootlegAsset> BootlegAssets { get; set; }
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
     public DbSet<Contact> Contacts => Set<Contact>();
@@ -63,6 +64,7 @@ public class JassSpaceDbContext : DbContext
         ConfigureBlogCategoryEntity(modelBuilder);
         ConfigureBlogAuthorEntity(modelBuilder);
         ConfigureGalleryAuthorEntity(modelBuilder);
+        ConfigureBootlegAssetEntity(modelBuilder);
         ConfigureCommentEntity(modelBuilder);
         ConfigureLikeEntity(modelBuilder);
         ConfigureContactEntity(modelBuilder);
@@ -436,6 +438,32 @@ public class JassSpaceDbContext : DbContext
               .WithMany()
               .HasForeignKey(ga => ga.UserId)
               .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureBootlegAssetEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<BootlegAsset>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Folder)
+            .HasMaxLength(128)
+            .IsRequired();
+
+        entity.Property(e => e.BlobName)
+            .HasMaxLength(512)
+            .IsRequired();
+
+        entity.Property(e => e.OriginalFileName)
+            .HasMaxLength(512)
+            .IsRequired();
+
+        entity.Property(e => e.ContentType)
+            .HasMaxLength(128)
+            .IsRequired();
+
+        entity.HasIndex(e => e.BlobName).IsUnique();
+        entity.HasIndex(e => new { e.Folder, e.CreatedAt });
     }
 
     private void SeedRoles(ModelBuilder modelBuilder)

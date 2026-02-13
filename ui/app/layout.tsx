@@ -5,6 +5,7 @@ import "./override.css";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/contexts/UserContext";
+import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { buildMetadata } from "@/lib/seo";
@@ -30,11 +31,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <UserProvider>
-            <Navbar />
-            {children}
-            <Toaster position="bottom-right" richColors />
-          </UserProvider>
+          <AudioPlayerProvider>
+            <UserProvider>
+              <Navbar />
+              {children}
+              <Toaster position="bottom-right" richColors />
+            </UserProvider>
+          </AudioPlayerProvider>
         </ThemeProvider>
       </body>
     </html>

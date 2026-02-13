@@ -76,7 +76,7 @@ namespace JassSpace.Infra
             // Generate blob name if not provided
             var effectiveBlobName = string.IsNullOrWhiteSpace(blobName)
                 ? $"{Guid.NewGuid():N}{GetExtensionFromContentType(contentType)}"
-                : SanitizeBlobName(blobName);
+                : NormalizeBlobNameForStorage(blobName);
 
             // Read stream into memory for both upload and cache
             byte[] fileBytes;
@@ -489,6 +489,22 @@ namespace JassSpace.Infra
             return true;
         }
 
+        private static string NormalizeBlobNameForStorage(string blobName)
+        {
+            var normalized = blobName.Trim().Replace('\\', '/');
+            while (normalized.StartsWith('/'))
+            {
+                normalized = normalized[1..];
+            }
+
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                throw new InvalidOperationException("Invalid blob name.");
+            }
+
+            return normalized;
+        }
+
         private static string SanitizeBlobName(string blobName)
         {
             return blobName.Replace('\\', '_').Replace('/', '_').Replace(':', '_');
@@ -528,6 +544,14 @@ namespace JassSpace.Infra
                 "image/bmp" => ".bmp",
                 "image/tiff" => ".tiff",
                 "image/svg+xml" => ".svg",
+                "audio/mpeg" => ".mp3",
+                "audio/mp4" => ".m4a",
+                "audio/aac" => ".aac",
+                "audio/wav" => ".wav",
+                "audio/x-wav" => ".wav",
+                "audio/ogg" => ".ogg",
+                "audio/webm" => ".webm",
+                "audio/flac" => ".flac",
                 _ => ".jpg"
             };
         }
@@ -545,6 +569,13 @@ namespace JassSpace.Infra
                 "bmp" => "image/bmp",
                 "tiff" => "image/tiff",
                 "svg" => "image/svg+xml",
+                "mp3" => "audio/mpeg",
+                "m4a" => "audio/mp4",
+                "aac" => "audio/aac",
+                "wav" => "audio/wav",
+                "ogg" => "audio/ogg",
+                "webm" => "audio/webm",
+                "flac" => "audio/flac",
                 _ => "application/octet-stream"
             };
         }
