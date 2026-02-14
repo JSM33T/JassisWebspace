@@ -1,70 +1,74 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Users, Target, Heart, Rocket } from 'lucide-react';
+import { Heart } from 'lucide-react';
 
 export default function AboutPage() {
     return (
-        <div className="flex flex-col min-h-screen">
-            {/* Hero Section */}
-            <section className="flex-1 flex items-center justify-center px-4 py-20 md:py-32">
-                <div className="container mx-auto text-center space-y-8">
-                    <div className="inline-flex items-center rounded-full border px-4 py-1.5 text-sm font-medium mb-4">
-                        <Heart className="mr-2 h-4 w-4" />
-                        Our Story
-                    </div>
+        <div className="min-h-screen bg-background/50 px-4 py-8">
+            <section className="container mx-auto max-w-7xl min-h-[calc(100vh-6rem)] pt-16 flex items-center">
+                <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 w-full items-center">
+                    <div className="space-y-7">
+                        <div className="inline-flex items-center rounded-full border bg-background/60 px-4 py-1.5 text-sm font-medium">
+                            <Heart className="mr-2 h-4 w-4 text-primary" />
+                            About Me
+                        </div>
 
-                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-                        About Us
-                    </h1>
+                        <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
+                            Building thoughtful digital experiences.
+                        </h1>
 
-                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                        We&apos;re building the future of modern web applications.
-                        Passionate about technology, driven by innovation.
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 max-w-4xl mx-auto">
-                        {/* Mission Card */}
-                        <div className="p-6 rounded-lg border bg-card text-card-foreground">
-                            <Target className="h-8 w-8 mb-4 mx-auto text-primary" />
-                            <h3 className="text-lg font-semibold mb-2">Our Mission</h3>
-                            <p className="text-sm text-muted-foreground">
-                                To empower developers with cutting-edge tools and platforms
-                                that make building applications faster and more enjoyable.
+                        <div className="space-y-4 text-muted-foreground">
+                            <p className="text-lg">
+                                I&apos;m focused on creating products that feel clean, useful, and human. My work sits at the intersection of design, engineering, and storytelling.
+                            </p>
+                            <p>
+                                From early ideas to production-ready features, I care about details that make software enjoyable to use and easy to scale.
                             </p>
                         </div>
 
-                        {/* Team Card */}
-                        <div className="p-6 rounded-lg border bg-card text-card-foreground">
-                            <Users className="h-8 w-8 mb-4 mx-auto text-primary" />
-                            <h3 className="text-lg font-semibold mb-2">Our Team</h3>
-                            <p className="text-sm text-muted-foreground">
-                                A diverse group of talented individuals working together
-                                to create exceptional experiences for our users.
-                            </p>
-                        </div>
-
-                        {/* Vision Card */}
-                        <div className="p-6 rounded-lg border bg-card text-card-foreground">
-                            <Rocket className="h-8 w-8 mb-4 mx-auto text-primary" />
-                            <h3 className="text-lg font-semibold mb-2">Our Vision</h3>
-                            <p className="text-sm text-muted-foreground">
-                                To become the leading platform for developers worldwide,
-                                setting new standards in innovation and user experience.
-                            </p>
+                        <div className="flex flex-wrap gap-3 pt-2">
+                            <Button size="lg" asChild>
+                                <Link href="/contact">Let&apos;s Talk</Link>
+                            </Button>
+                            <Button size="lg" variant="outline" asChild>
+                                <Link href="/projects">View Work</Link>
+                            </Button>
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
-                        <Button size="lg" asChild>
-                            <Link href="/signup">
-                                Join Our Team
-                            </Link>
-                        </Button>
-                        <Button size="lg" variant="outline" asChild>
-                            <Link href="/">
-                                Back to Home
-                            </Link>
-                        </Button>
+                    <div className="relative mx-auto w-full max-w-xl h-[420px] lg:h-[500px]">
+                        <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-primary/10 via-transparent to-blue-500/10 blur-2xl" />
+
+                        <div className="absolute left-8 top-10 h-60 w-60 overflow-hidden rounded-full border border-border/60 bg-card shadow-xl">
+                            <Image
+                                src="/file.svg"
+                                alt="Placeholder profile visual"
+                                fill
+                                className="object-cover p-10"
+                                sizes="(max-width: 1024px) 240px, 260px"
+                            />
+                        </div>
+
+                        <div className="absolute right-8 top-24 h-44 w-44 overflow-hidden rounded-full border border-border/60 bg-card shadow-xl">
+                            <Image
+                                src="/next.svg"
+                                alt="Placeholder design visual"
+                                fill
+                                className="object-cover p-8"
+                                sizes="(max-width: 1024px) 170px, 180px"
+                            />
+                        </div>
+
+                        <div className="absolute bottom-8 right-20 h-40 w-40 overflow-hidden rounded-full border border-border/60 bg-card shadow-xl">
+                            <Image
+                                src="/globe.svg"
+                                alt="Placeholder creativity visual"
+                                fill
+                                className="object-cover p-8"
+                                sizes="(max-width: 1024px) 150px, 160px"
+                            />
+                        </div>
                     </div>
                 </div>
             </section>
