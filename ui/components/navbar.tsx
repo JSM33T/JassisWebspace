@@ -63,7 +63,6 @@ export function Navbar() {
     const navigationLinks = [
         { href: '/', label: 'Home', id: 'home' },
         { href: '/blog', label: 'Blogs', id: 'blogs' },
-        { href: '/contact', label: 'Contact', id: 'contact' },
     ];
 
     const studioMenuItems = [
@@ -96,7 +95,32 @@ export function Navbar() {
         },
     ];
 
-    const aboutLink = { href: '/about', label: 'About', id: 'about' };
+    const aboutMenuItems = [
+        {
+            href: '/about',
+            label: 'About',
+            description: 'Learn about JassSpace and our mission',
+            icon: Sparkles,
+        },
+        {
+            href: '/contact',
+            label: 'Contact',
+            description: 'Get in touch with our team',
+            icon: Briefcase,
+        },
+        {
+            href: '/privacy',
+            label: 'Privacy Policy',
+            description: 'See how we handle your data',
+            icon: Shield,
+        },
+        {
+            href: '/faq',
+            label: 'FAQ',
+            description: 'Common questions and answers',
+            icon: BookOpen,
+        },
+    ];
 
     const isActivePath = (href: string) => {
         if (href === '/') return pathname === '/';
@@ -305,24 +329,56 @@ export function Navbar() {
                                         <DropdownMenuSeparator />
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                                <Link
-                                    href={aboutLink.href}
-                                    className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                    onMouseEnter={(e) => {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const parentRect = navRef.current?.getBoundingClientRect();
-                                        if (parentRect) {
-                                            setHoverStyle({
-                                                left: rect.left - parentRect.left,
-                                                width: rect.width,
-                                                opacity: 1,
-                                            });
-                                        }
-                                        setHoveredLink(aboutLink.id);
-                                    }}
-                                >
-                                    {aboutLink.label}
-                                </Link>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            className="group relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
+                                            onMouseEnter={(e) => {
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                const parentRect = navRef.current?.getBoundingClientRect();
+                                                if (parentRect) {
+                                                    setHoverStyle({
+                                                        left: rect.left - parentRect.left,
+                                                        width: rect.width,
+                                                        opacity: 1,
+                                                    });
+                                                }
+                                                setHoveredLink('about');
+                                            }}
+                                        >
+                                            About <ChevronDown className="ml-1 inline h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        className={navDropdownContentClassName}
+                                        align="center"
+                                        sideOffset={12}
+                                        collisionPadding={16}
+                                    >
+                                        {aboutMenuItems.map((item) => {
+                                            const Icon = item.icon;
+                                            const isActive = isActivePath(item.href);
+                                            return (
+                                                <DropdownMenuItem key={item.href} asChild>
+                                                    <Link
+                                                        href={item.href}
+                                                        className={cn(
+                                                            "flex cursor-pointer items-start gap-3 rounded-xl border border-transparent p-3 transition-colors",
+                                                            "hover:border-border/50 hover:bg-accent/60",
+                                                            isActive && "border-border/70 bg-accent/70"
+                                                        )}
+                                                    >
+                                                        <Icon className={cn("mt-0.5 h-5 w-5 text-primary", isActive && "text-foreground")} />
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{item.label}</span>
+                                                            <span className="text-xs text-muted-foreground">{item.description}</span>
+                                                        </div>
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
 
                             {/* Right Side - Icons */}
@@ -492,11 +548,20 @@ export function Navbar() {
                                                     );
                                                 })}
 
-                                                <SheetClose asChild>
-                                                    <Link href={aboutLink.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                        {aboutLink.label}
-                                                    </Link>
-                                                </SheetClose>
+                                                <div className="pl-3 pt-2 pb-1">
+                                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">About</p>
+                                                </div>
+                                                {aboutMenuItems.map((item) => {
+                                                    const Icon = item.icon;
+                                                    return (
+                                                        <SheetClose key={item.href} asChild>
+                                                            <Link href={item.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
+                                                                <Icon className="h-4 w-4 inline mr-2 text-primary" />
+                                                                {item.label}
+                                                            </Link>
+                                                        </SheetClose>
+                                                    );
+                                                })}
                                             </div>
 
                                             {isAuthenticated ? (
