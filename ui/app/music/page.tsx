@@ -6,12 +6,14 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Music, ArrowLeft, MoveUpRight, Play } from 'lucide-react';
-import { musicTracks } from '@/data/tracks';
+import { musicTracks, type Track } from '@/data/tracks';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
 
 export default function MusicPage() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [streamTrack, setStreamTrack] = useState<Track | null>(null);
     const { playTrack } = useTrackPlayer();
 
     const categories = useMemo(
@@ -104,7 +106,13 @@ export default function MusicPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.25, delay: index * 0.02 }}
                             >
-                                <Card className="flex flex-col h-full min-h-[220px] rounded-2xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group">
+                                <Card
+                                    className={`flex flex-col h-full min-h-[220px] rounded-2xl border backdrop-blur-sm group transition-all duration-300 ${
+                                        track.playFile
+                                            ? 'bg-card/50 hover:bg-card/80 hover:shadow-lg'
+                                            : 'bg-card/30 opacity-60 saturate-50'
+                                    }`}
+                                >
                                     <CardHeader className="p-5">
                                         <div className="flex items-start justify-between gap-3 mb-3">
                                             <Badge variant="secondary" className="rounded-full px-3 capitalize">
@@ -114,6 +122,11 @@ export default function MusicPage() {
                                                 <MoveUpRight className="h-4 w-4 opacity-60" />
                                             </div>
                                         </div>
+                                        {!track.playFile ? (
+                                            <Badge variant="outline" className="w-fit rounded-full text-xs">
+                                                Inactive
+                                            </Badge>
+                                        ) : null}
                                         <CardTitle className="text-lg font-semibold tracking-tight line-clamp-1">
                                             {track.title}
                                         </CardTitle>
@@ -153,13 +166,17 @@ export default function MusicPage() {
                                                     Play
                                                 </Button>
                                             ) : null}
-                                            {track.links.map((link) => (
-                                                <Button key={`${track.id}-${link.type}-${link.url}`} asChild size="sm" variant="outline" className="rounded-full h-8 px-4 capitalize">
-                                                    <Link href={link.url} target="_blank" rel="noreferrer">
-                                                        {formatLinkType(link.type)}
-                                                    </Link>
+                                            {track.links.length > 0 ? (
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="rounded-full h-8 px-4"
+                                                    onClick={() => setStreamTrack(track)}
+                                                >
+                                                    Stream options
                                                 </Button>
-                                            ))}
+                                            ) : null}
                                         </div>
                                     </CardFooter>
                                 </Card>
@@ -168,6 +185,25 @@ export default function MusicPage() {
                     </div>
                 </div>
             </section>
+            <Dialog open={!!streamTrack} onOpenChange={(open) => !open && setStreamTrack(null)}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>{streamTrack?.title || 'Stream options'}</DialogTitle>
+                        <DialogDescription>
+                            Open this track on your preferred platform.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-wrap gap-2">
+                        {streamTrack?.links.map((link) => (
+                            <Button key={`${streamTrack.id}-${link.type}-${link.url}`} asChild size="sm" className="rounded-full capitalize">
+                                <Link href={link.url} target="_blank" rel="noreferrer">
+                                    {formatLinkType(link.type)}
+                                </Link>
+                            </Button>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </motion.div>
     );
 }
