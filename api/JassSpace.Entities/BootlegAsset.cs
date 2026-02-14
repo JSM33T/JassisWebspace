@@ -10,4 +10,7 @@ public class BootlegAsset
     public long SizeBytes { get; set; }
     public Guid? UploadedByUserId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+
+    // Navigation properties
+    public ICollection<Track> Tracks { get; set; } = new List<Track>();
 }

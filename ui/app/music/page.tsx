@@ -1,40 +1,92 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Music, ArrowLeft, MoveUpRight, Play } from 'lucide-react';
-import { musicTracks, type Track } from '@/data/tracks';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { Disc3, Music, ArrowLeft, Play } from 'lucide-react';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
+import { musicService } from '@/lib/api/music.service';
+import { MusicTrack } from '@/lib/api/music.types';
+import { toast } from 'sonner';
 
 export default function MusicPage() {
+    const router = useRouter();
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
-    const [streamTrack, setStreamTrack] = useState<Track | null>(null);
+    const [tracks, setTracks] = useState<MusicTrack[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
     const { playTrack } = useTrackPlayer();
 
     const categories = useMemo(
-        () => ['all', ...Array.from(new Set(musicTracks.map((track) => track.category)))],
-        []
+        () => ['all', ...Array.from(new Set(tracks.map((track) => track.category)))],
+        [tracks]
     );
 
     const filteredTracks = useMemo(
         () =>
             selectedCategory === 'all'
-                ? musicTracks
-                : musicTracks.filter((track) => track.category === selectedCategory),
-        [selectedCategory]
+                ? tracks
+                : tracks.filter((track) => track.category === selectedCategory),
+        [selectedCategory, tracks]
     );
+
+    useEffect(() => {
+        let active = true;
+
+        const loadTracks = async () => {
+            try {
+                setLoading(true);
+                const data = await musicService.getTracks({ page: 1, pageSize: 100 });
+                if (active) {
+                    setTracks(data);
+                }
+            } catch (error) {
+                console.error('Failed to load tracks', error);
+                toast.error('Failed to load music tracks');
+            } finally {
+                if (active) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadTracks();
+        return () => {
+            active = false;
+        };
+    }, []);
 
     const formatCategory = (value: string) =>
         value
             .split('-')
             .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
             .join(' ');
-    const formatLinkType = (value: string) => value.replaceAll('-', ' ');
+
+    const handlePlay = async (track: MusicTrack) => {
+        if (!track.hasPlayableSource) {
+            return;
+        }
+
+        try {
+            setPlayingTrackId(track.id);
+            const playLink = await musicService.createPlayLink(track.id);
+            playTrack({
+                title: track.title,
+                artist: track.authors.map((author) => author.displayName || author.username).join(', '),
+                playFile: playLink.streamUrl,
+            });
+        } catch (error) {
+            console.error('Failed to generate play link', error);
+            toast.error('Unable to play this track right now');
+        } finally {
+            setPlayingTrackId(null);
+        }
+    };
 
     return (
         <motion.div
@@ -81,8 +133,8 @@ export default function MusicPage() {
                         {categories.map((category) => {
                             const isActive = selectedCategory === category;
                             const count = category === 'all'
-                                ? musicTracks.length
-                                : musicTracks.filter((track) => track.category === category).length;
+                                ? tracks.length
+                                : tracks.filter((track) => track.category === category).length;
 
                             return (
                                 <Button
@@ -98,6 +150,16 @@ export default function MusicPage() {
                             );
                         })}
                     </div>
+                    {loading ? (
+                        <div className="max-w-6xl mx-auto py-10 text-center text-muted-foreground">
+                            Loading tracks...
+                        </div>
+                    ) : null}
+                    {!loading && filteredTracks.length === 0 ? (
+                        <div className="max-w-6xl mx-auto py-10 text-center text-muted-foreground">
+                            No tracks found.
+                        </div>
+                    ) : null}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl mx-auto">
                         {filteredTracks.map((track, index) => (
                             <motion.div
@@ -107,103 +169,79 @@ export default function MusicPage() {
                                 transition={{ duration: 0.25, delay: index * 0.02 }}
                             >
                                 <Card
-                                    className={`flex flex-col h-full min-h-[220px] rounded-2xl border backdrop-blur-sm group transition-all duration-300 ${
-                                        track.playFile
+                                    className={`h-full rounded-2xl border backdrop-blur-sm transition-all duration-300 ${
+                                        track.hasPlayableSource
                                             ? 'bg-card/50 hover:bg-card/80 hover:shadow-lg'
                                             : 'bg-card/30 opacity-60 saturate-50'
                                     }`}
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => router.push(`/music/${track.slug}`)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            router.push(`/music/${track.slug}`);
+                                        }
+                                    }}
                                 >
-                                    <CardHeader className="p-5">
-                                        <div className="flex items-start justify-between gap-3 mb-3">
-                                            <Badge variant="secondary" className="rounded-full px-3 capitalize">
-                                                {track.category}
-                                            </Badge>
-                                            <div className="p-2 rounded-full border bg-background/50 group-hover:scale-110 transition-transform">
-                                                <MoveUpRight className="h-4 w-4 opacity-60" />
-                                            </div>
+                                    <div className="p-4 flex items-start gap-4">
+                                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border bg-muted">
+                                            {track.cover ? (
+                                                <Image
+                                                    src={track.cover}
+                                                    alt={track.title}
+                                                    fill
+                                                    className="object-cover"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                                                    <Disc3 className="h-8 w-8" />
+                                                </div>
+                                            )}
                                         </div>
-                                        {!track.playFile ? (
-                                            <Badge variant="outline" className="w-fit rounded-full text-xs">
-                                                Inactive
-                                            </Badge>
-                                        ) : null}
-                                        <CardTitle className="text-lg font-semibold tracking-tight line-clamp-1">
-                                            {track.title}
-                                        </CardTitle>
-                                        <CardDescription className="text-sm pt-1 leading-relaxed line-clamp-2">
-                                            {track.description}
-                                        </CardDescription>
-                                        <div className="pt-3 flex flex-wrap gap-2">
-                                            {track.tags.slice(0, 3).map((tag) => (
-                                                <Badge key={tag} variant="outline" className="rounded-full">
-                                                    {tag}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </CardHeader>
-                                    <CardFooter className="mt-auto px-5 pb-5 pt-0 flex flex-wrap items-center justify-between gap-2">
-                                        <div className="text-xs text-muted-foreground line-clamp-1">
-                                            {track.artists.map((artist) => artist.name).join(', ')}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="rounded-full text-xs">
-                                                {track.releaseDate}
-                                            </Badge>
-                                            {track.playFile ? (
+
+                                        <div className="flex min-w-0 flex-1 flex-col">
+                                            <CardTitle className="text-lg font-semibold tracking-tight line-clamp-1">
+                                                {track.title}
+                                            </CardTitle>
+                                            <CardDescription className="text-sm pt-1 leading-relaxed line-clamp-2">
+                                                {track.description}
+                                            </CardDescription>
+                                            <p className="pt-2 text-xs text-muted-foreground line-clamp-1">
+                                                {track.authors.map((author) => author.displayName || author.username).join(', ')}
+                                            </p>
+                                            <div className="pt-3 flex items-center gap-2">
                                                 <Button
                                                     type="button"
                                                     size="sm"
                                                     className="rounded-full h-8 px-4"
-                                                    onClick={() =>
-                                                        playTrack({
-                                                            title: track.title,
-                                                            artist: track.artists.map((artist) => artist.name).join(', '),
-                                                            playFile: track.playFile,
-                                                        })
-                                                    }
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        void handlePlay(track);
+                                                    }}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === 'Enter' || event.key === ' ') {
+                                                            event.stopPropagation();
+                                                        }
+                                                    }}
+                                                    disabled={!track.hasPlayableSource || playingTrackId === track.id}
                                                 >
                                                     <Play className="mr-1 h-3.5 w-3.5 fill-current" />
-                                                    Play
+                                                    {playingTrackId === track.id ? 'Loading...' : 'Play'}
                                                 </Button>
-                                            ) : null}
-                                            {track.links.length > 0 ? (
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="rounded-full h-8 px-4"
-                                                    onClick={() => setStreamTrack(track)}
-                                                >
-                                                    Stream options
+                                                <Button asChild type="button" size="sm" variant="outline" className="rounded-full h-8 px-4">
+                                                    <Link href={`/music/${track.slug}`}>Open</Link>
                                                 </Button>
-                                            ) : null}
+                                            </div>
                                         </div>
-                                    </CardFooter>
+                                    </div>
                                 </Card>
                             </motion.div>
                         ))}
                     </div>
                 </div>
             </section>
-            <Dialog open={!!streamTrack} onOpenChange={(open) => !open && setStreamTrack(null)}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>{streamTrack?.title || 'Stream options'}</DialogTitle>
-                        <DialogDescription>
-                            Open this track on your preferred platform.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-wrap gap-2">
-                        {streamTrack?.links.map((link) => (
-                            <Button key={`${streamTrack.id}-${link.type}-${link.url}`} asChild size="sm" className="rounded-full capitalize">
-                                <Link href={link.url} target="_blank" rel="noreferrer">
-                                    {formatLinkType(link.type)}
-                                </Link>
-                            </Button>
-                        ))}
-                    </div>
-                </DialogContent>
-            </Dialog>
         </motion.div>
     );
 }

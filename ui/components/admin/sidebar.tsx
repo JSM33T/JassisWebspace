@@ -37,10 +37,10 @@ const routes = [
         color: "text-cyan-500",
     },
     {
-        label: "Bootleg",
+        label: "Music",
         icon: Music2,
-        href: "/admin/bootleg",
-        color: "text-violet-400",
+        href: "/admin/music",
+        color: "text-emerald-400",
     },
     {
         label: "Settings",

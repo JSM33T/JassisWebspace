@@ -33,6 +33,9 @@ public class JassSpaceDbContext : DbContext
     public DbSet<BlogAuthor> BlogAuthors { get; set; }
     public DbSet<GalleryAuthor> GalleryAuthors { get; set; }
     public DbSet<BootlegAsset> BootlegAssets { get; set; }
+    public DbSet<Track> Tracks { get; set; }
+    public DbSet<TrackAuthor> TrackAuthors { get; set; }
+    public DbSet<TrackLink> TrackLinks { get; set; }
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
     public DbSet<Contact> Contacts => Set<Contact>();
@@ -65,6 +68,9 @@ public class JassSpaceDbContext : DbContext
         ConfigureBlogAuthorEntity(modelBuilder);
         ConfigureGalleryAuthorEntity(modelBuilder);
         ConfigureBootlegAssetEntity(modelBuilder);
+        ConfigureTrackEntity(modelBuilder);
+        ConfigureTrackAuthorEntity(modelBuilder);
+        ConfigureTrackLinkEntity(modelBuilder);
         ConfigureCommentEntity(modelBuilder);
         ConfigureLikeEntity(modelBuilder);
         ConfigureContactEntity(modelBuilder);
@@ -464,6 +470,101 @@ public class JassSpaceDbContext : DbContext
 
         entity.HasIndex(e => e.BlobName).IsUnique();
         entity.HasIndex(e => new { e.Folder, e.CreatedAt });
+    }
+
+    private void ConfigureTrackEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Track>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Title)
+            .HasMaxLength(220)
+            .IsRequired();
+
+        entity.Property(e => e.Slug)
+            .HasMaxLength(240)
+            .IsRequired();
+
+        entity.Property(e => e.Description)
+            .HasMaxLength(4000)
+            .IsRequired();
+
+        entity.Property(e => e.Category)
+            .HasMaxLength(64)
+            .IsRequired();
+
+        entity.Property(e => e.Duration)
+            .HasMaxLength(32);
+
+        entity.Property(e => e.Genre)
+            .HasMaxLength(100);
+
+        entity.Property(e => e.Cover)
+            .HasMaxLength(2048);
+
+        entity.Property(e => e.Tags)
+            .HasColumnType("text[]");
+
+        entity.HasIndex(e => e.Slug).IsUnique();
+        entity.HasIndex(e => e.Category);
+        entity.HasIndex(e => e.IsPublished);
+        entity.HasIndex(e => e.ReleaseDate);
+        entity.HasIndex(e => e.CreatedAt);
+
+        entity.HasOne(e => e.BootlegAsset)
+            .WithMany(b => b.Tracks)
+            .HasForeignKey(e => e.BootlegAssetId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        entity.HasMany(e => e.Authors)
+            .WithOne(a => a.Track)
+            .HasForeignKey(a => a.TrackId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasMany(e => e.Links)
+            .WithOne(l => l.Track)
+            .HasForeignKey(l => l.TrackId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureTrackAuthorEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<TrackAuthor>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Role)
+            .HasMaxLength(64);
+
+        entity.HasIndex(e => new { e.TrackId, e.UserId }).IsUnique();
+        entity.HasIndex(e => new { e.TrackId, e.Order });
+
+        entity.HasOne(e => e.User)
+            .WithMany()
+            .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureTrackLinkEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<TrackLink>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Type)
+            .HasMaxLength(64)
+            .IsRequired();
+
+        entity.Property(e => e.Url)
+            .HasMaxLength(2048)
+            .IsRequired();
+
+        entity.Property(e => e.Label)
+            .HasMaxLength(160)
+            .IsRequired();
+
+        entity.HasIndex(e => new { e.TrackId, e.Order });
     }
 
     private void SeedRoles(ModelBuilder modelBuilder)

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Image as GalleryIcon, Users, ArrowRight, Mail, Music2 } from "lucide-react";
+import { BookOpen, Image as GalleryIcon, Users, ArrowRight, Mail, Music } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AdminPage() {
@@ -94,20 +94,20 @@ export default function AdminPage() {
                 </Card>
 
                 <Card className="hover:shadow-md transition-shadow cursor-pointer group">
-                    <Link href="/admin/bootleg">
+                    <Link href="/admin/music">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
-                                Bootleg Assets
+                                Music Tracks
                             </CardTitle>
-                            <Music2 className="h-4 w-4 text-violet-400" />
+                            <Music className="h-4 w-4 text-emerald-400" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">Manage Audio</div>
+                            <div className="text-2xl font-bold">Manage Tracks</div>
                             <p className="text-xs text-muted-foreground mt-1 mb-4">
-                                Upload audio, generate stream links, and manage folders.
+                                Manage DB-backed tracks and playback readiness.
                             </p>
-                            <div className="flex items-center text-sm text-violet-400 group-hover:translate-x-1 transition-transform">
-                                Go to Bootleg <ArrowRight className="ml-2 h-4 w-4" />
+                            <div className="flex items-center text-sm text-emerald-400 group-hover:translate-x-1 transition-transform">
+                                Go to Music <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>
