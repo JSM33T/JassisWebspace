@@ -2,6 +2,30 @@ import { BlogDetail, BlogListItem, CreateBlogRequest, BlogCategory, BlogAuthor }
 import { post, put, del, get } from "./client";
 
 class AdminBlogService {
+    async getBlogs(params?: {
+        search?: string;
+        startDate?: string;
+        endDate?: string;
+        categoryId?: string;
+        authorUsername?: string;
+        isPublished?: boolean;
+        page?: number;
+        pageSize?: number;
+    }): Promise<BlogListItem[]> {
+        const queryParams = new URLSearchParams();
+        if (params?.search) queryParams.append("search", params.search);
+        if (params?.startDate) queryParams.append("startDate", params.startDate);
+        if (params?.endDate) queryParams.append("endDate", params.endDate);
+        if (params?.categoryId) queryParams.append("categoryId", params.categoryId);
+        if (params?.authorUsername) queryParams.append("authorUsername", params.authorUsername);
+        if (typeof params?.isPublished === "boolean") queryParams.append("isPublished", params.isPublished.toString());
+        if (params?.page) queryParams.append("page", params.page.toString());
+        if (params?.pageSize) queryParams.append("pageSize", params.pageSize.toString());
+
+        const queryString = queryParams.toString();
+        return get<BlogListItem[]>(`/admin/blog${queryString ? `?${queryString}` : ""}`);
+    }
+
     async getAllCategories(): Promise<BlogCategory[]> {
         return get<BlogCategory[]>('/admin/blog/categories');
     }

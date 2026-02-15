@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Pencil, Trash, User, Calendar, Tag } from "lucide-react";
 import { BlogListItem } from "@/lib/api/blog.types";
-import { blogService } from "@/lib/api/blog.service";
 import { adminBlogService } from "@/lib/api/admin-blog.service";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,8 +22,7 @@ export default function AdminBlogsPage() {
     const loadBlogs = async () => {
         try {
             setLoading(true);
-            // Use getBlogs which returns Promise<BlogListItem[]>
-            const data = await blogService.getBlogs({ pageSize: 100 });
+            const data = await adminBlogService.getBlogs({ pageSize: 100 });
             setBlogs(data);
         } catch (error) {
             console.error("Failed to load blogs", error);

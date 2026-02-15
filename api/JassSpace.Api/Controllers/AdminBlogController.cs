@@ -201,6 +201,112 @@ public sealed class AdminBlogController(
         return OkEnvelope(authors);
     }
 
+    [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<List<BlogListItemResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetBlogs(
+        [FromQuery] string? search = null,
+        [FromQuery] DateTimeOffset? startDate = null,
+        [FromQuery] DateTimeOffset? endDate = null,
+        [FromQuery] Guid? categoryId = null,
+        [FromQuery] string? authorUsername = null,
+        [FromQuery] bool? isPublished = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 200) pageSize = 100;
+
+            var query = dbContext.Blogs
+                .AsNoTracking()
+                .Include(b => b.Category)
+                .Include(b => b.Authors)
+                    .ThenInclude(ba => ba.User)
+                .AsQueryable();
+
+            if (isPublished.HasValue)
+            {
+                query = query.Where(b => b.IsPublished == isPublished.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(b =>
+                    b.Title.ToLower().Contains(searchLower) ||
+                    (b.Excerpt != null && b.Excerpt.ToLower().Contains(searchLower)) ||
+                    b.Content.ToLower().Contains(searchLower));
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(b => b.PublishedAt >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(b => b.PublishedAt <= endDate.Value);
+            }
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(b => b.CategoryId == categoryId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(authorUsername))
+            {
+                query = query.Where(b => b.Authors.Any(ba => ba.User.Username == authorUsername));
+            }
+
+            var blogs = await query
+                .OrderByDescending(b => b.UpdatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(b => new BlogListItemResponse(
+                    b.Id,
+                    b.Title,
+                    b.Slug,
+                    b.Excerpt,
+                    b.FeaturedImage,
+                    b.Category != null ? new BlogCategoryResponse(
+                        b.Category.Id,
+                        b.Category.Name,
+                        b.Category.Slug,
+                        b.Category.Description,
+                        b.Category.CreatedAt,
+                        b.Category.UpdatedAt
+                    ) : null,
+                    b.Authors.OrderBy(ba => ba.Order).Select(ba => new BlogAuthorResponse(
+                        ba.UserId,
+                        ba.User.Username,
+                        ba.User.DisplayName,
+                        ba.Order
+                    )).ToList(),
+                    b.IsPublished,
+                    b.PublishedAt,
+                    b.CreatedAt,
+                    b.UpdatedAt
+                ))
+                .ToListAsync(cancellationToken);
+
+            var normalized = blogs
+                .Select(b => b with { FeaturedImage = NormalizeBlogMediaUrl(b.FeaturedImage) })
+                .ToList();
+
+            return OkEnvelope(normalized);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to retrieve admin blog list");
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to retrieve admin blogs",
+                "An unexpected error occurred while retrieving blogs for the admin panel.");
+        }
+    }
+
     /// <summary>
     /// Get a blog by ID
     /// </summary>
