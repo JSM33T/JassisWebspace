@@ -1,14 +1,5 @@
 import { get } from "./client";
-import { AdminContentDetail, AdminContentListItem, ContentType } from "./admin-content.types";
-
-export type AdminContentSortBy = "lastActivity" | "createdAt" | "updatedAt";
-export type AdminContentSortDir = "asc" | "desc";
-
-export interface AdminContentListParams {
-    contentType?: ContentType;
-    sortBy?: AdminContentSortBy;
-    sortDir?: AdminContentSortDir;
-}
+import { AdminContentDetail, AdminContentListItem, AdminContentListParams } from "./admin-content.types";
 
 class AdminContentService {
     async getContents(params?: AdminContentListParams): Promise<AdminContentListItem[]> {

@@ -17,6 +17,15 @@ export interface AdminContentBase {
 
 export type AdminContentListItem = AdminContentBase;
 
+export type AdminContentSortBy = "lastActivity" | "createdAt" | "updatedAt";
+export type AdminContentSortDir = "asc" | "desc";
+
+export interface AdminContentListParams {
+    contentType?: ContentType;
+    sortBy?: AdminContentSortBy;
+    sortDir?: AdminContentSortDir;
+}
+
 export interface AdminContentUserSummary {
     userId: string;
     username: string;

@@ -57,13 +57,14 @@ export default function AdminContentDetailPage() {
 
     useEffect(() => {
         const load = async () => {
-            if (!params?.id) {
+            const resolvedId = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+            if (!resolvedId) {
                 return;
             }
 
             try {
                 setLoading(true);
-                const data = await adminContentService.getContent(params.id);
+                const data = await adminContentService.getContent(resolvedId);
                 setContent(data);
             } catch (error) {
                 console.error("Failed to load content detail", error);
