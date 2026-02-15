@@ -1,8 +1,32 @@
+ "use client";
+
 import Link from "next/link";
-import { BookOpen, Image as GalleryIcon, Users, ArrowRight, Mail, Music, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookOpen, Image as GalleryIcon, Users, ArrowRight, Mail, Music, FileText, Users2, Heart, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { adminDashboardService } from "@/lib/api/admin-dashboard.service";
+import { AdminDashboardStats } from "@/lib/api/admin-dashboard.types";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function AdminPage() {
+    const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+    const [loadingStats, setLoadingStats] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const data = await adminDashboardService.getStats();
+                setStats(data);
+            } catch (error) {
+                console.error("Failed to load dashboard stats", error);
+            } finally {
+                setLoadingStats(false);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
     return (
         <div className="p-8 pt-24 space-y-8">
             <div>
@@ -10,6 +34,51 @@ export default function AdminPage() {
                 <p className="text-muted-foreground mt-2">
                     Welcome to the admin dashboard. Manage your content and settings here.
                 </p>
+            </div>
+
+            <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                    {loadingStats ? (
+                        <div className="col-span-3 flex items-center justify-center rounded-xl border border-dashed border-muted-foreground/40 p-6">
+                            <Spinner className="mr-2 h-4 w-4" />
+                            <span>Loading stats...</span>
+                        </div>
+                    ) : stats ? (
+                        <>
+                            <Card className="hover:shadow-md transition-shadow">
+                                <CardHeader className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-sm font-medium">Total users joined</CardTitle>
+                                        <Users2 className="h-4 w-4 text-cyan-500" />
+                                    </div>
+                                    <CardContent className="text-3xl font-bold">{stats.totalUsers}</CardContent>
+                                </CardHeader>
+                            </Card>
+                            <Card className="hover:shadow-md transition-shadow">
+                                <CardHeader className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-sm font-medium">Likes (last 7 days)</CardTitle>
+                                        <Heart className="h-4 w-4 text-rose-500" />
+                                    </div>
+                                    <CardContent className="text-3xl font-bold">{stats.likesLast7Days}</CardContent>
+                                </CardHeader>
+                            </Card>
+                            <Card className="hover:shadow-md transition-shadow">
+                                <CardHeader className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-sm font-medium">Comments (last 7 days)</CardTitle>
+                                        <MessageCircle className="h-4 w-4 text-emerald-500" />
+                                    </div>
+                                    <CardContent className="text-3xl font-bold">{stats.commentsLast7Days}</CardContent>
+                                </CardHeader>
+                            </Card>
+                        </>
+                    ) : (
+                        <div className="col-span-3 rounded-xl border border-dashed border-muted-foreground/40 p-6 text-sm text-muted-foreground">
+                            Unable to load stats.
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
