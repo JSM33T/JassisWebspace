@@ -20,8 +20,8 @@ public sealed class AdminContentController(
         [FromQuery] string? contentType,
         [FromQuery] string? sortBy,
         [FromQuery] string? sortDir = "desc",
-        [FromQuery] DateTimeOffset? dateFrom,
-        [FromQuery] DateTimeOffset? dateTo,
+        [FromQuery] DateTimeOffset? dateFrom = null,
+        [FromQuery] DateTimeOffset? dateTo = null,
         CancellationToken cancellationToken = default)
     {
         var query = dbContext.Contents.AsNoTracking().AsQueryable();
