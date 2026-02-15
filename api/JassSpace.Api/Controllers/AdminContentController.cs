@@ -20,6 +20,8 @@ public sealed class AdminContentController(
         [FromQuery] string? contentType,
         [FromQuery] string? sortBy,
         [FromQuery] string? sortDir = "desc",
+        [FromQuery] DateTimeOffset? dateFrom,
+        [FromQuery] DateTimeOffset? dateTo,
         CancellationToken cancellationToken = default)
     {
         var query = dbContext.Contents.AsNoTracking().AsQueryable();
@@ -124,6 +126,20 @@ public sealed class AdminContentController(
                     ? response.OrderBy(r => r.LastActivityAt).ToList()
                     : response.OrderByDescending(r => r.LastActivityAt).ToList()
         };
+
+        var resolvedTo = dateTo ?? DateTimeOffset.UtcNow;
+        var resolvedFrom = dateFrom ?? resolvedTo.AddDays(-7);
+
+        if (resolvedFrom > resolvedTo)
+        {
+            var temp = resolvedFrom;
+            resolvedFrom = resolvedTo;
+            resolvedTo = temp;
+        }
+
+        response = response
+            .Where(r => r.LastActivityAt >= resolvedFrom && r.LastActivityAt <= resolvedTo)
+            .ToList();
 
         return OkEnvelope(response);
     }

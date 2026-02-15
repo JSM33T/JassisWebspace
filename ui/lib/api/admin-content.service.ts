@@ -7,6 +7,8 @@ class AdminContentService {
         if (params?.contentType) query.append("contentType", params.contentType);
         if (params?.sortBy) query.append("sortBy", params.sortBy);
         if (params?.sortDir) query.append("sortDir", params.sortDir);
+        if (params?.dateFrom) query.append("dateFrom", params.dateFrom);
+        if (params?.dateTo) query.append("dateTo", params.dateTo);
         const suffix = query.toString();
         return get<AdminContentListItem[]>(`/admin/content${suffix ? `?${suffix}` : ""}`);
     }

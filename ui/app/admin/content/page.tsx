@@ -29,9 +29,11 @@ const sortOptions: { value: AdminContentSortBy; label: string }[] = [
     { value: "updatedAt", label: "Updated date" },
 ];
 
+const formatForInput = (date: Date) => date.toISOString().split("T")[0];
+
 function formatDate(value: string | null): string {
     if (!value) {
-        return "–";
+        return "―";
     }
     return new Date(value).toLocaleDateString();
 }
@@ -52,14 +54,30 @@ export default function AdminContentPage() {
     const [typeFilter, setTypeFilter] = useState<ContentType | "All">("All");
     const [sortBy, setSortBy] = useState<AdminContentSortBy>("lastActivity");
     const [sortDir, setSortDir] = useState<AdminContentSortDir>("desc");
+    const [dateFrom, setDateFrom] = useState(() => {
+        const from = new Date();
+        from.setDate(from.getDate() - 7);
+        return formatForInput(from);
+    });
+    const [dateTo, setDateTo] = useState(() => formatForInput(new Date()));
 
     const loadItems = useCallback(async () => {
         try {
             setLoading(true);
+            const safeFrom = Number.isNaN(new Date(dateFrom).valueOf())
+                ? new Date()
+                : new Date(dateFrom);
+            safeFrom.setHours(0, 0, 0, 0);
+            const safeTo = Number.isNaN(new Date(dateTo).valueOf())
+                ? new Date()
+                : new Date(dateTo);
+            safeTo.setHours(23, 59, 59, 999);
             const data = await adminContentService.getContents({
                 contentType: typeFilter === "All" ? undefined : typeFilter,
                 sortBy,
                 sortDir,
+                dateFrom: safeFrom.toISOString(),
+                dateTo: safeTo.toISOString(),
             });
             setItems(data);
         } catch (error) {
@@ -83,7 +101,7 @@ export default function AdminContentPage() {
                     </p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-5">
                     <label className="space-y-1 text-xs uppercase tracking-wide text-muted-foreground">
                         Content type
                         <select
@@ -122,6 +140,24 @@ export default function AdminContentPage() {
                             <option value="desc">Descending</option>
                             <option value="asc">Ascending</option>
                         </select>
+                    </label>
+                    <label className="space-y-1 text-xs uppercase tracking-wide text-muted-foreground">
+                        From
+                        <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={(event) => setDateFrom(event.target.value)}
+                            className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                    </label>
+                    <label className="space-y-1 text-xs uppercase tracking-wide text-muted-foreground">
+                        To
+                        <input
+                            type="date"
+                            value={dateTo}
+                            onChange={(event) => setDateTo(event.target.value)}
+                            className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
                     </label>
                 </div>
             </div>

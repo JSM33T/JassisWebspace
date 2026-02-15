@@ -24,6 +24,8 @@ export interface AdminContentListParams {
     contentType?: ContentType;
     sortBy?: AdminContentSortBy;
     sortDir?: AdminContentSortDir;
+    dateFrom?: string;
+    dateTo?: string;
 }
 
 export interface AdminContentUserSummary {
