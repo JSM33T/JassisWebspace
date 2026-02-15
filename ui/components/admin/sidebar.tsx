@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2 } from "lucide-react";
+import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText } from "lucide-react";
 
 const routes = [
     {
@@ -29,6 +29,12 @@ const routes = [
         icon: BookOpen,
         href: "/admin/blogs",
         color: "text-emerald-500",
+    },
+    {
+        label: "Content",
+        icon: FileText,
+        href: "/admin/content",
+        color: "text-sky-500",
     },
     {
         label: "Messages",

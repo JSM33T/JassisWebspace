@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Image as GalleryIcon, Users, ArrowRight, Mail, Music } from "lucide-react";
+import { BookOpen, Image as GalleryIcon, Users, ArrowRight, Mail, Music, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AdminPage() {
@@ -28,6 +28,26 @@ export default function AdminPage() {
                             </p>
                             <div className="flex items-center text-sm text-emerald-500 group-hover:translate-x-1 transition-transform">
                                 Go to Blogs <ArrowRight className="ml-2 h-4 w-4" />
+                            </div>
+                        </CardContent>
+                    </Link>
+                </Card>
+
+                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                    <Link href="/admin/content">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Content Library
+                            </CardTitle>
+                            <FileText className="h-4 w-4 text-sky-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">Monitor Content</div>
+                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                                Track links, comments, and engagement across every asset.
+                            </p>
+                            <div className="flex items-center text-sm text-sky-500 group-hover:translate-x-1 transition-transform">
+                                Explore Content <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>
