@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Disc3, Music2, Pause, Play, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { Disc3, Music2, Pause, Play, SkipBack, SkipForward, Square, Volume2 } from "lucide-react";
 import {
     Sheet,
     SheetContent,
@@ -41,6 +41,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     const openPlayer = useCallback((input: OpenPlayerInput | string, title?: string, artist?: string) => {
         if (typeof input === "string") {
             if (!input.trim()) return;
+            setCurrentTime(0);
+            setDuration(0);
+            setIsPlaying(false);
             setCurrentUrl(input);
             setCurrentTitle(title?.trim() || "");
             setCurrentArtist(artist?.trim() || "");
@@ -49,6 +52,9 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         }
 
         if (!input.url.trim()) return;
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
         setCurrentUrl(input.url);
         setCurrentTitle(input.title?.trim() || "");
         setCurrentArtist(input.artist?.trim() || "");
@@ -68,9 +74,6 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
     useEffect(() => {
         if (!hasSource) {
-            setIsPlaying(false);
-            setCurrentTime(0);
-            setDuration(0);
             return;
         }
 
@@ -102,6 +105,15 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         if (!audio || !hasSource) return;
         audio.currentTime = next;
         setCurrentTime(next);
+    }, [hasSource]);
+
+    const handleStop = useCallback(() => {
+        const audio = audioRef.current;
+        if (!audio || !hasSource) return;
+        audio.pause();
+        audio.currentTime = 0;
+        setCurrentTime(0);
+        setIsPlaying(false);
     }, [hasSource]);
 
     const seekBy = useCallback((offsetSeconds: number) => {
@@ -195,6 +207,23 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
                             </div>
                             {hasSource ? (
                                 <div className="space-y-4">
+                                    <div className="flex h-10 items-end justify-between gap-1 rounded-xl border bg-background/60 px-3 py-2">
+                                        {Array.from({ length: 18 }).map((_, idx) => {
+                                            const normalized = (Math.sin(currentTime * 5 + idx * 0.8) + 1) / 2;
+                                            const height = isPlaying
+                                                ? 6 + Math.round(normalized * 22)
+                                                : 5 + ((idx % 3) * 2);
+
+                                            return (
+                                                <span
+                                                    key={`viz-${idx}`}
+                                                    className="w-1 rounded-full bg-primary/80 transition-[height] duration-150"
+                                                    style={{ height: `${height}px` }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+
                                     <div className="space-y-2">
                                         <Slider
                                             value={[Math.min(currentTime, seekMax)]}
@@ -232,6 +261,15 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
                                             size="icon"
                                             variant="outline"
                                             className="rounded-full"
+                                            onClick={handleStop}
+                                        >
+                                            <Square className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="outline"
+                                            className="rounded-full"
                                             onClick={() => seekBy(10)}
                                         >
                                             <SkipForward className="h-4 w-4" />
@@ -244,13 +282,6 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
                                 </div>
                             )}
                         </div>
-
-                        {hasSource ? (
-                            <div className="rounded-xl border bg-background/60 p-3">
-                                <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Source URL</p>
-                                <p className="break-all text-xs text-muted-foreground">{currentUrl}</p>
-                            </div>
-                        ) : null}
                     </div>
                 </SheetContent>
             </Sheet>
