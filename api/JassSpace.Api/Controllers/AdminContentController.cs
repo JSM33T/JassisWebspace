@@ -109,6 +109,10 @@ public sealed class AdminContentController(
                 lastActivity);
         }).ToList();
 
+        response = response
+            .Where(r => r.LikeCount > 0 || r.CommentCount > 0)
+            .ToList();
+
         sortDir = sortDir?.ToLowerInvariant() == "asc" ? "asc" : "desc";
 
         response = sortBy?.Trim() switch
