@@ -88,17 +88,14 @@ export default function GalleryPage() {
             <section className="flex-1 px-4 py-12">
                 <div className="container mx-auto max-w-7xl">
                     {loading && (
-                        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                             {Array.from({ length: 6 }).map((_, index) => (
-                                <div key={index} className="overflow-hidden rounded-3xl border bg-card/40 p-0">
-                                    <div className="grid grid-cols-1 md:grid-cols-[42%_58%]">
-                                        <Skeleton className="min-h-[260px] rounded-none" />
-                                        <div className="space-y-4 p-6">
-                                            <Skeleton className="h-4 w-32" />
-                                            <Skeleton className="h-8 w-3/4" />
-                                            <Skeleton className="h-5 w-full" />
-                                            <Skeleton className="h-5 w-5/6" />
-                                            <Skeleton className="h-4 w-1/2" />
+                                <div key={index} className="relative overflow-hidden rounded-3xl border border-primary/50 bg-card/40">
+                                    <Skeleton className="aspect-[4/3] w-full rounded-none" />
+                                    <div className="absolute inset-x-0 bottom-0">
+                                        <div className="h-20 border-t border-white/15 bg-background/60 px-4 py-2.5 backdrop-blur-md">
+                                            <Skeleton className="mb-2 h-5 w-4/5" />
+                                            <Skeleton className="h-3.5 w-full" />
                                         </div>
                                     </div>
                                 </div>
@@ -132,7 +129,7 @@ export default function GalleryPage() {
                     )}
 
                     {!loading && !error && albums.length > 0 && (
-                        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                             {albums.map((album, index) => (
                                 <motion.div
                                     key={album.id}
@@ -142,61 +139,49 @@ export default function GalleryPage() {
                                     className="h-full"
                                 >
                                     <Link href={`/gallery/${album.slug}`} className="group block h-full">
-                                        <article className="h-full overflow-hidden rounded-3xl border bg-card/55 backdrop-blur-sm transition-all duration-300 hover:bg-card/75 hover:shadow-xl">
-                                            <div className="grid h-full grid-cols-1 md:grid-cols-[42%_58%]">
-                                                <div className="relative min-h-[260px] overflow-hidden bg-muted">
-                                                    {album.cover ? (
-                                                        <Image
-                                                            src={album.cover}
-                                                            alt={album.name}
-                                                            fill
-                                                            sizes="(max-width: 767px) 100vw, (max-width: 1279px) 42vw, 34vw"
-                                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className="flex h-full items-center justify-center">
-                                                            <div className="rounded-2xl border bg-background/60 p-4">
-                                                                <ImageIcon className="h-8 w-8 text-primary/80" />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    <span className="absolute bottom-4 right-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-background/95 text-foreground shadow-lg">
-                                                        <ArrowUpRight className="h-5 w-5" />
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex min-h-[260px] flex-col p-6 md:p-7">
-                                                    <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                                        <span className="inline-flex items-center gap-1.5">
-                                                            <CalendarDays className="h-4 w-4" />
-                                                            {formatDate(album.createdAt)}
-                                                        </span>
-                                                        <Badge variant="secondary" className="rounded-full px-3 py-1">
-                                                            <Images className="mr-1.5 h-3.5 w-3.5" />
-                                                            {album.imageCount}
-                                                        </Badge>
+                                        <article className="relative aspect-[4/3] h-full overflow-hidden rounded-3xl border border-primary/50 bg-card/55 backdrop-blur-sm transition-all duration-300 hover:bg-card/75 hover:shadow-xl">
+                                            {album.cover ? (
+                                                <Image
+                                                    src={album.cover}
+                                                    alt={album.name}
+                                                    fill
+                                                    sizes="(max-width: 767px) 100vw, 50vw"
+                                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center bg-muted">
+                                                    <div className="rounded-2xl border bg-background/60 p-4">
+                                                        <ImageIcon className="h-8 w-8 text-primary/80" />
                                                     </div>
+                                                </div>
+                                            )}
 
-                                                    <h3 className="line-clamp-2 text-2xl font-semibold leading-tight tracking-tight transition-colors group-hover:text-primary">
+                                            <div className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-background/85 px-3 py-1 text-xs text-foreground backdrop-blur-md">
+                                                <Images className="h-3.5 w-3.5" />
+                                                <span>{album.imageCount}</span>
+                                            </div>
+
+                                            <span className="absolute right-4 top-14 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-background/85 px-3 py-1 text-xs text-foreground backdrop-blur-md">
+                                                <CalendarDays className="h-3.5 w-3.5" />
+                                                {formatDate(album.createdAt)}
+                                            </span>
+
+                                            <div className="absolute inset-x-0 bottom-0">
+                                                <div className="flex h-16 flex-col justify-center border-t border-primary/40 bg-gradient-to-t from-background/70 via-background/50 to-transparent px-4 py-2 backdrop-blur-md">
+                                                    <h3 className="line-clamp-1 text-lg font-semibold leading-tight tracking-tight text-foreground">
                                                         {album.name}
                                                     </h3>
-
-                                                    <p className="mt-4 line-clamp-4 text-base leading-relaxed text-muted-foreground">
+                                                    <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-muted-foreground">
                                                         {album.description ||
                                                             'A curated album exploring visual themes, composition, and creative direction.'}
                                                     </p>
-
-                                                    {album.authors.length > 0 && (
-                                                        <p className="mt-auto pt-6 text-sm text-muted-foreground">
-                                                            By{' '}
-                                                            {album.authors
-                                                                .map((a) => a.displayName || a.username)
-                                                                .join(', ')}
-                                                        </p>
-                                                    )}
                                                 </div>
                                             </div>
+
+                                            <span className="absolute bottom-4 right-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-background/95 text-foreground shadow-lg">
+                                                <ArrowUpRight className="h-4 w-4" />
+                                            </span>
                                         </article>
                                     </Link>
                                 </motion.div>

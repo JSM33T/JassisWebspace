@@ -115,7 +115,7 @@ export default function BlogViewPage() {
     /* ---------------- render ---------------- */
 
     return (
-        <div className="pt-20">
+        <div className="pt-32">
             <div className="container max-w-4xl mx-auto px-4 pt-4 mb-12">
 
                 {/* Back */}

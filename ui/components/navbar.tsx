@@ -332,7 +332,7 @@ export function Navbar() {
                                                 </DropdownMenuItem>
                                             );
                                         })}
-                                        <DropdownMenuSeparator />
+                                        {/* <DropdownMenuSeparator /> */}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                                 <DropdownMenu>
