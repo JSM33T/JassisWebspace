@@ -293,7 +293,7 @@ export default function ContactPage() {
                                         onClick={saveProMessage}
                                     >
                                         <Send className="mr-2 h-4 w-4" />
-                                        Send Pro Message
+                                        Send Message
                                     </Button>
                                 </div>
                             </form>

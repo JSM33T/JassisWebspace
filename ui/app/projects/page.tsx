@@ -101,7 +101,7 @@ export default function ProjectsPage() {
 
             <section className="flex-1 px-4 py-12">
                 <div className="container mx-auto max-w-6xl">
-                    <div className="grid grid-cols-1 gap-6 max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 gap-6 max-w-6xl mx-auto md:grid-cols-2">
                         {projects.map((project, index) => (
                             <motion.div
                                 key={project.title}

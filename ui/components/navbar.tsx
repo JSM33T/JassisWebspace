@@ -88,6 +88,12 @@ export function Navbar() {
             icon: FolderCode,
         },
         {
+            href: '/portfolio',
+            label: 'Portfolio',
+            description: 'See skills, focus, and journey',
+            icon: FileText,
+        },
+        {
             href: '/services',
             label: 'Services',
             description: 'Explore the services we offer',
@@ -175,7 +181,7 @@ export function Navbar() {
             <nav className={`fixed top-4 left-1/2 z-50 w-full max-w-5xl px-4 transition-transform duration-300 ${isNavbarHidden ? "-translate-x-1/2 -translate-y-28" : "-translate-x-1/2 translate-y-0"}`}>
                 {/* Gradient border wrapper */}
                 <div className="p-[1px] rounded-full bg-gradient-to-br from-primary/15 via-primary/10 to-primary/12">
-                    <div className="bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 rounded-full shadow-lg shadow-black/5 px-6 lg:px-8">
+                    <div className="bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/65 rounded-full shadow-lg shadow-black/5 px-6 lg:px-8">
                         <div className="flex h-14 items-center justify-between">
                             {/* Logo - Icon Style */}
                             <div className="flex-shrink-0">

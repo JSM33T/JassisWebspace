@@ -10,6 +10,7 @@ import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import { buildMetadata } from "@/lib/seo";
 import { BackToTopProgress } from "@/components/back-to-top-progress";
+import { RouteProgressBar } from "@/components/route-progress-bar";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -25,6 +26,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+          {/* <head>
+        <script
+          async
+          crossOrigin="anonymous"
+          src="https://tweakcn.com/live-preview.min.js"
+        />
+      </head> */}
       <body className={`${inter.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
@@ -34,6 +42,7 @@ export default function RootLayout({
         >
           <AudioPlayerProvider>
             <UserProvider>
+              <RouteProgressBar />
               <Navbar />
               {children}
               <BackToTopProgress />
