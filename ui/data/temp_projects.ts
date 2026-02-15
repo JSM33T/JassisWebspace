@@ -81,6 +81,45 @@ The architecture supports horizontal scaling, live listener registration, and au
 	},
 
 	{
+		title: "Secure Audio Delivery Platform",
+		description:
+			"Encrypted chunked streaming (HLS-style segments) with controlled access and backend-managed authorization.",
+		details: `
+Engineered a secure audio streaming system using encrypted chunked delivery (HLS-style segmented playback without DRM), implementing controlled access, token validation, and backend-managed stream authorization.
+
+The pipeline encrypts each segment with AES keys derived per session and serves them through a CDN-aware API gateway that validates short-lived tokens before delivering signed URLs. A centralized authorization service tracks entitlements, enforces playback limits, and seamlessly renews tokens for active sessions.
+
+Playback clients retrieve manifests that reference only pre-authorized segments; the gateway rewrites URLs with per-request signatures so segments remain inaccessible without a valid token and backend handshake.
+		`,
+		tech: [
+			"HLS-style segmentation",
+			"AES-128 chunk encryption",
+			"Token validation",
+			"JWT",
+			"ASP.NET Core",
+			"Redis",
+			"CDN",
+			"Streaming authorization"
+		],
+		icon: "Music",
+		highlight: "Streaming Security"
+	},
+
+	{
+		title: "Dynamic Media CDN Pipeline",
+		description:
+			"Real-time CDN-based image transformation, format conversion, and optimization powered by libvips and SkiaSharp.",
+		details: `
+Designed a CDN-based media pipeline supporting real-time image transformation, resizing, format conversion, and compression using libvips and SkiaSharp for high-performance optimized delivery.
+
+The edge-aware processing tier receives signed URLs, applies configured filters, and streams transformed outputs from cached S3-backed segments. Transformations are cached per parameter set to avoid redundant work, while background jobs prewarm popular variants.
+		`,
+		tech: ["CDN", "libvips", "SkiaSharp", "Image Optimization", "Edge Caching", "S3"],
+		icon: "Image",
+		highlight: "CDN Media Optimization"
+	},
+
+	{
 		title: "Modular Video Conferencing System",
 		description:
 			"Real-time multi-user conferencing platform with WebRTC media, SignalR signaling, and modular plug-and-play integration.",
