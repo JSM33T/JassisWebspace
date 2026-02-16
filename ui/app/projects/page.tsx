@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -15,9 +16,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { FolderCode, ArrowLeft, MoveUpRight, Rocket, Send } from 'lucide-react';
-import { projects as tempProjects, type Project as TempProject } from '../../data/temp_projects';
+import { projects as projectsData, type Project as ProjectType } from '../../data/projects';
 
-type ProjectCard = TempProject & { id: string };
+type ProjectCard = ProjectType & { id: string };
 
 const makeProjectId = (title: string) =>
     title
@@ -25,7 +26,7 @@ const makeProjectId = (title: string) =>
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 
-const projects: ProjectCard[] = tempProjects.map((project) => ({
+const projects: ProjectCard[] = projectsData.map((project) => ({
     ...project,
     id: makeProjectId(project.title),
 }));
@@ -36,6 +37,15 @@ export default function ProjectsPage() {
     const searchParams = useSearchParams();
     const selectedProject =
         projects.find((project) => project.id === searchParams.get('project')) || null;
+
+    const [slideIndex, setSlideIndex] = useState(0);
+    useEffect(() => {
+        setSlideIndex(0);
+    }, [selectedProject]);
+
+    const screenshots = selectedProject?.screenshots ?? [];
+    const activeScreenshot =
+        screenshots.length > 0 ? screenshots[slideIndex % screenshots.length] : undefined;
 
     const setProjectParam = (projectId: string | null) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -152,7 +162,47 @@ export default function ProjectsPage() {
                                 </Badge>
                                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Project Details</span>
                             </div>
-                            <DialogTitle className="text-3xl font-bold tracking-tight">{selectedProject?.title}</DialogTitle>
+                        <DialogTitle className="text-3xl font-bold tracking-tight">{selectedProject?.title}</DialogTitle>
+                            {screenshots.length > 0 && (
+                                <div className="pt-6 space-y-3">
+                                    <div className="relative rounded-2xl border border-border bg-muted/40 p-6">
+                                        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl">
+                                            <img
+                                                src={activeScreenshot}
+                                                alt={`${selectedProject?.title} screenshot ${slideIndex + 1}`}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+                                        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
+                                            <span>
+                                                {slideIndex + 1} / {screenshots.length}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="px-3"
+                                                    onClick={() =>
+                                                        setSlideIndex((prev) =>
+                                                            (prev - 1 + screenshots.length) % screenshots.length
+                                                        )
+                                                    }
+                                                >
+                                                    Prev
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="px-3"
+                                                    onClick={() => setSlideIndex((prev) => (prev + 1) % screenshots.length)}
+                                                >
+                                                    Next
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div className="pt-6">
                                 <article className="prose prose-neutral dark:prose-invert max-w-none text-foreground/80">
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -162,7 +212,7 @@ export default function ProjectsPage() {
                             </div>
                         </DialogHeader>
 
-                        <div className="pt-8 border-t flex flex-col gap-6">
+                        <div className="pt-8 border-t space-y-4">
                             <div className="flex flex-wrap gap-2">
                                 {selectedProject?.tech?.map((tech) => (
                                     <Badge key={tech} variant="outline" className="rounded-full">
@@ -170,14 +220,42 @@ export default function ProjectsPage() {
                                     </Badge>
                                 ))}
                             </div>
-                            <div className="flex items-center justify-end gap-3">
-                                <Button variant="ghost" className="rounded-full px-8" onClick={closeProject}>
-                                    Close
-                                </Button>
-                                <Button className="rounded-full px-10 h-12 text-base" onClick={goToContactWithRef}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Start Similar Project
-                                </Button>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedProject?.links?.repo && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            asChild
+                                            className="rounded-full px-3"
+                                        >
+                                            <Link href={selectedProject.links.repo} target="_blank" rel="noreferrer">
+                                                GitHub
+                                            </Link>
+                                        </Button>
+                                    )}
+                                    {selectedProject?.links?.live && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            asChild
+                                            className="rounded-full px-3"
+                                        >
+                                            <Link href={selectedProject.links.live} target="_blank" rel="noreferrer">
+                                                Live
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Button variant="ghost" className="rounded-full px-8" onClick={closeProject}>
+                                        Close
+                                    </Button>
+                                    <Button className="rounded-full px-10 h-12 text-base" onClick={goToContactWithRef}>
+                                        <Send className="mr-2 h-4 w-4" />
+                                        Start Similar Project
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>

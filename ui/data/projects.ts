@@ -10,6 +10,7 @@ export interface Project {
 	links?: { repo?: string; live?: string };
 	highlight?: string;
 	coverImage?: string; // optional URL to a cover image (non-mandatory)
+	screenshots: string[];
 }
 
 export const projects: Project[] = [
@@ -51,6 +52,10 @@ Service routing and SSL management are handled by Nginx, which serves as a rever
 			repo: "https://github.com/JSM33T/Linqyard",
 			live: "https://linqyard.com"
 		},
+		screenshots: [
+			"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "SaaS (In Development)",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/linqyard.jpg"
 	},
@@ -73,9 +78,13 @@ The architecture supports horizontal scaling, live listener registration, and au
 		tech: [".NET", "MQTT", "Cassandra", "Redis"],
 		icon: "Cpu",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/iot_platform.jpg",
+		screenshots: [
+			"https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1600&q=80"
+		],
 		// links: {
-		//     repo: "#",
-		//     live: "#"
+		//     repo: "",
+		//     live: ""
 		// },
 		highlight: "IOT"
 	},
@@ -102,6 +111,10 @@ Playback clients retrieve manifests that reference only pre-authorized segments;
 			"Streaming authorization"
 		],
 		icon: "Music",
+		screenshots: [
+			"https://images.unsplash.com/photo-1454165205744-3b78555e5572?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "Streaming Security"
 	},
 
@@ -116,6 +129,10 @@ The edge-aware processing tier receives signed URLs, applies configured filters,
 		`,
 		tech: ["CDN", "libvips", "SkiaSharp", "Image Optimization", "Edge Caching", "S3"],
 		icon: "Image",
+		screenshots: [
+			"https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "CDN Media Optimization"
 	},
 
@@ -143,9 +160,13 @@ The edge-aware processing tier receives signed URLs, applies configured filters,
 		tech: [".NET", "WebRTC", "SignalR", "Angular", "Signal.io", "Node.js"],
 		icon: "Globe",
 		links: {
-			repo: "#",
-			live: "#"
+			repo: "",
+			live: ""
 		},
+		screenshots: [
+			"https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "Collaboration / Realtime (In Development)"
 	},
 	{
@@ -183,7 +204,11 @@ The system functions as an advanced ATS, supporting structured candidate profile
 			"REST APIs"
 		],
 		icon: "FileSearch",
-		links: { repo: "#", live: "#" },
+		links: { repo: "", live: "" },
+		screenshots: [
+			"https://images.unsplash.com/photo-1507143550189-fed454f93097?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "AI-Powered ATS & Resume Intelligence",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/resumeflow.jpg"
 	},
@@ -195,7 +220,11 @@ The system functions as an advanced ATS, supporting structured candidate profile
 			"Action-filter driven cache uses consistent hashing across request shapes (incl. POST bodies) with layered MemoryCache→Redis. Configurable TTLs and cache scopes accelerate dashboard APIs and reduce backend pressure.",
 		tech: [".NET", "MemoryCache", "Filters", "Redis", "MongoDB"],
 		icon: "Database",
-		links: { repo: "#", live: "#" },
+		links: { repo: "", live: "" },
+		screenshots: [
+			"https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "Performance",
 	},
 	{
@@ -205,7 +234,11 @@ The system functions as an advanced ATS, supporting structured candidate profile
 			"Unified command execution with robust output parsers (errors, progress, tables). Replaced licensed tools, cutting costs. Ships as an app + NuGet package for dynamic table/kv parsing and audit logging.",
 		tech: [".NET", "Angular", "Bash", "Custom CLI Parsing"],
 		icon: "Cloud",
-		links: { repo: "#", live: "#" },
+		links: { repo: "", live: "" },
+		screenshots: [
+			"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "DevTools",
 		// coverImage omitted for this item (optional)
 	},
@@ -247,8 +280,12 @@ Together, these services form a comprehensive automation ecosystem—capable of 
 		icon: "Workflow",
 		links: {
 			repo: "https://github.com/JSM33T/SurfSwift",
-			live: "#"
+			live: ""
 		},
+		screenshots: [
+			"https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "Automation / Workflow",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/surfswift-automation.jpg"
 	}
@@ -260,7 +297,11 @@ Together, these services form a comprehensive automation ecosystem—capable of 
 			"Enforces house style rules pre-commit/CI and provides an Outlook add-in for standardized templates, approvals, and macros to speed up official comms and reduce errors.",
 		tech: ["Office Add-in", "JavaScript", "HTML", "Outlook API"],
 		icon: "Github",
-		links: { repo: "#", live: "#" },
+		links: { repo: "", live: "" },
+		screenshots: [
+			"https://images.unsplash.com/photo-1454165205744-3b78555e5572?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "Standards",
 	},
 	{
@@ -270,7 +311,11 @@ Together, these services form a comprehensive automation ecosystem—capable of 
 			"DAG/step pipeline with guards, compensations, and role-based visibility. Emphasis on observability, audit trails, and safe rollbacks for enterprise processes.",
 		tech: [".NET", "RBAC", "Modular Steps"],
 		icon: "Workflow",
-		links: { repo: "#", live: "#" },
+		links: { repo: "", live: "" },
+		screenshots: [
+			"https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "Orchestration",
 	},
 	{
@@ -280,7 +325,11 @@ Together, these services form a comprehensive automation ecosystem—capable of 
 			"RAG workspace with per-tenant isolation, ingest pipelines, chunking/metadata, and hybrid retrieval. Supports context-aware chats at global or document scope with guardrails.",
 		tech: ["Python", "FastAPI", "LangChain", "LLM", "MongoDB"],
 		icon: "BrainCircuit",
-		links: { repo: "#", live: "#" },
+		links: { repo: "", live: "" },
+		screenshots: [
+			"https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1507143550189-fed454f93097?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "RAG",
 	},
 	{
@@ -290,7 +339,11 @@ Together, these services form a comprehensive automation ecosystem—capable of 
 			"Implemented facial embeddings and active liveness checks (blink/motion cues) to mitigate spoofing. Integrates with .NET services and Angular clients for secure flows.",
 		tech: ["Python", "OpenCV", ".NET", "Dlib", "Angular"],
 		icon: "Cpu",
-		links: { repo: "#", live: "#" },
+		links: { repo: "", live: "" },
+		screenshots: [
+			"https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "Security",
 	},
 	{
@@ -300,7 +353,11 @@ Together, these services form a comprehensive automation ecosystem—capable of 
 			"Pipeline parses intents, entities, and missing fields, generating JSON payloads and invoking actions. Includes fallback clarifications and audit events.",
 		tech: ["Python", "FastAPI", "LangChain", "LLM"],
 		icon: "BrainCircuit",
-		links: { repo: "#", live: "#" },
+		links: { repo: "", live: "" },
+		screenshots: [
+			"https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80",
+			"https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=1600&q=80"
+		],
 		highlight: "NLP Ops",
 	}
 ];

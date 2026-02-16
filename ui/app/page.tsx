@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
-import { ArrowUpRight, BookOpen, Image, Info, Mail, Music2, Plus } from "lucide-react";
+import { ArrowUpRight, BookOpen, Folder, Image, Info, Layers, Mail, Music2, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,14 +21,24 @@ const itemVariants: Variants = {
     visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
 };
 
-const links = [
+const defaultLinks = [
     { href: "/about", label: "About", icon: Info },
-    { href: "/music", label: "Music", icon: Music2 },
+    { href: "/projects", label: "Projects", icon: Folder },
     { href: "/blog", label: "Blog", icon: BookOpen },
-    { href: "/gallery", label: "Gallery", icon: Image },
+    { href: "/contact", label: "Contact", icon: Mail },
+];
+
+const resumeLinks = [
+    { href: "/about", label: "About", icon: Info },
+    { href: "/projects", label: "Projects", icon: Folder },
+    { href: "/services", label: "Services", icon: Layers },
+    { href: "/contact", label: "Contact", icon: Mail },
 ];
 
 export default function HomePage() {
+    const searchParams = useSearchParams();
+    const isResumeRef = searchParams.get("ref") === "resume";
+    const links = isResumeRef ? resumeLinks : defaultLinks;
     return (
         <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
             <div className="pointer-events-none absolute inset-0">

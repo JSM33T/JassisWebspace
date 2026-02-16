@@ -78,6 +78,12 @@ export function Navbar() {
             description: 'Explore our music collection',
             icon: Music,
         },
+          {
+            href: '/tools',
+            label: 'Tools',
+            description: 'Online Web Tools',
+            icon: Music,
+        },
     ];
 
     const workMenuItems = [
@@ -86,12 +92,6 @@ export function Navbar() {
             label: 'Projects',
             description: 'View our completed projects',
             icon: FolderCode,
-        },
-        {
-            href: '/portfolio',
-            label: 'Portfolio',
-            description: 'See skills, focus, and journey',
-            icon: FileText,
         },
         {
             href: '/services',
@@ -104,7 +104,7 @@ export function Navbar() {
     const aboutMenuItems = [
         {
             href: '/about',
-            label: 'About',
+            label: 'Me',
             description: 'Learn about JassSpace and our mission',
             icon: Sparkles,
         },
