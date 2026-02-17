@@ -49,7 +49,7 @@ Service routing and SSL management are handled by Nginx, which serves as a rever
 		],
 		icon: "Workflow",
 		links: {
-			repo: "https://github.com/JSM33T/Linqyard",
+			repo: "https://github.com/JSM33T/linqyard.com",
 			live: "https://linqyard.com"
 		},
 		screenshots: [

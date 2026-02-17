@@ -88,7 +88,7 @@ export default function GalleryPage() {
             <section className="flex-1 px-4 py-12">
                 <div className="container mx-auto max-w-7xl">
                     {loading && (
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {Array.from({ length: 6 }).map((_, index) => (
                                 <div key={index} className="relative overflow-hidden rounded-3xl border border-primary/50 bg-card/40">
                                     <Skeleton className="aspect-[4/3] w-full rounded-none" />
@@ -129,7 +129,7 @@ export default function GalleryPage() {
                     )}
 
                     {!loading && !error && albums.length > 0 && (
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {albums.map((album, index) => (
                                 <motion.div
                                     key={album.id}

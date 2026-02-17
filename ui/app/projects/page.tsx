@@ -15,7 +15,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { FolderCode, ArrowLeft, MoveUpRight, Rocket, Send } from 'lucide-react';
+import { FolderCode, ArrowLeft, ChevronLeft, ChevronRight, MoveUpRight, Rocket, Send } from 'lucide-react';
 import { projects as projectsData, type Project as ProjectType } from '../../data/projects';
 
 type ProjectCard = ProjectType & { id: string };
@@ -46,6 +46,17 @@ export default function ProjectsPage() {
     const screenshots = selectedProject?.screenshots ?? [];
     const activeScreenshot =
         screenshots.length > 0 ? screenshots[slideIndex % screenshots.length] : undefined;
+    const swipeThreshold = 40;
+
+    const goToPreviousSlide = () => {
+        if (screenshots.length <= 1) return;
+        setSlideIndex((prev) => (prev - 1 + screenshots.length) % screenshots.length);
+    };
+
+    const goToNextSlide = () => {
+        if (screenshots.length <= 1) return;
+        setSlideIndex((prev) => (prev + 1) % screenshots.length);
+    };
 
     const setProjectParam = (projectId: string | null) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -153,8 +164,9 @@ export default function ProjectsPage() {
             </section>
 
             <Dialog open={!!selectedProject} onOpenChange={(open) => !open && closeProject()}>
-                <DialogContent className="sm:max-w-[50vw] max-h-[85vh] rounded-3xl border bg-card/90 backdrop-blur-xl p-0 overflow-hidden">
-                    <div className="p-10 space-y-8 overflow-y-auto max-h-[85vh]">
+                <DialogContent className="max-h-[85vh] rounded-3xl border bg-card/90 p-0 backdrop-blur-xl overflow-hidden sm:max-w-[calc(100vw-2rem)] md:max-w-[80vw] lg:max-w-[65vw] xl:max-w-[50vw]">
+                    <div className="flex max-h-[85vh] flex-col">
+                    <div className="flex-1 overflow-y-auto p-10 space-y-8">
                         <DialogHeader>
                             <div className="flex items-center gap-3 mb-4">
                                 <Badge variant="secondary" className="rounded-full">
@@ -165,41 +177,60 @@ export default function ProjectsPage() {
                         <DialogTitle className="text-3xl font-bold tracking-tight">{selectedProject?.title}</DialogTitle>
                             {screenshots.length > 0 && (
                                 <div className="pt-6 space-y-3">
-                                    <div className="relative rounded-2xl border border-border bg-muted/40 p-6">
-                                        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl">
+                                    <div className="relative rounded-2xl border border-border bg-muted/40 p-3 sm:p-4">
+                                        <div
+                                            className="relative aspect-[16/9] w-full overflow-hidden rounded-xl"
+                                            onTouchStart={(event) => {
+                                                const touchX = event.changedTouches[0]?.clientX;
+                                                if (typeof touchX !== 'number') return;
+                                                event.currentTarget.dataset.touchStartX = String(touchX);
+                                            }}
+                                            onTouchEnd={(event) => {
+                                                const touchX = event.changedTouches[0]?.clientX;
+                                                const startXRaw = event.currentTarget.dataset.touchStartX;
+                                                if (typeof touchX !== 'number' || !startXRaw) return;
+
+                                                const startX = Number(startXRaw);
+                                                const deltaX = touchX - startX;
+
+                                                if (Math.abs(deltaX) < swipeThreshold) return;
+                                                if (deltaX > 0) {
+                                                    goToPreviousSlide();
+                                                } else {
+                                                    goToNextSlide();
+                                                }
+                                            }}
+                                        >
                                             <img
                                                 src={activeScreenshot}
                                                 alt={`${selectedProject?.title} screenshot ${slideIndex + 1}`}
                                                 className="h-full w-full object-cover"
                                             />
                                         </div>
-                                        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
-                                            <span>
-                                                {slideIndex + 1} / {screenshots.length}
-                                            </span>
-                                            <div className="flex items-center gap-2">
+                                        {screenshots.length > 1 && (
+                                            <>
                                                 <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="px-3"
-                                                    onClick={() =>
-                                                        setSlideIndex((prev) =>
-                                                            (prev - 1 + screenshots.length) % screenshots.length
-                                                        )
-                                                    }
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="absolute left-2 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full border bg-background/80 backdrop-blur"
+                                                    onClick={goToPreviousSlide}
+                                                    aria-label="Previous slide"
                                                 >
-                                                    Prev
+                                                    <ChevronLeft className="h-4 w-4" />
                                                 </Button>
                                                 <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="px-3"
-                                                    onClick={() => setSlideIndex((prev) => (prev + 1) % screenshots.length)}
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    className="absolute right-2 top-1/2 z-10 h-9 w-9 -translate-y-1/2 rounded-full border bg-background/80 backdrop-blur"
+                                                    onClick={goToNextSlide}
+                                                    aria-label="Next slide"
                                                 >
-                                                    Next
+                                                    <ChevronRight className="h-4 w-4" />
                                                 </Button>
-                                            </div>
-                                        </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -212,7 +243,7 @@ export default function ProjectsPage() {
                             </div>
                         </DialogHeader>
 
-                        <div className="pt-8 border-t space-y-4">
+                        <div className="pt-8 border-t">
                             <div className="flex flex-wrap gap-2">
                                 {selectedProject?.tech?.map((tech) => (
                                     <Badge key={tech} variant="outline" className="rounded-full">
@@ -220,44 +251,46 @@ export default function ProjectsPage() {
                                     </Badge>
                                 ))}
                             </div>
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedProject?.links?.repo && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            asChild
-                                            className="rounded-full px-3"
-                                        >
-                                            <Link href={selectedProject.links.repo} target="_blank" rel="noreferrer">
-                                                GitHub
-                                            </Link>
-                                        </Button>
-                                    )}
-                                    {selectedProject?.links?.live && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            asChild
-                                            className="rounded-full px-3"
-                                        >
-                                            <Link href={selectedProject.links.live} target="_blank" rel="noreferrer">
-                                                Live
-                                            </Link>
-                                        </Button>
-                                    )}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <Button variant="ghost" className="rounded-full px-8" onClick={closeProject}>
-                                        Close
+                        </div>
+                    </div>
+                    <div className="border-t bg-card/95 px-10 pb-6 pt-4 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+                        <div className="flex justify-center">
+                            <div className="inline-flex flex-wrap items-center gap-2 rounded-full border bg-background/70 p-1">
+                                {selectedProject?.links?.repo && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        asChild
+                                        className="h-10 min-w-[110px] rounded-full px-4"
+                                    >
+                                        <Link href={selectedProject.links.repo} target="_blank" rel="noreferrer">
+                                            GitHub
+                                        </Link>
                                     </Button>
-                                    <Button className="rounded-full px-10 h-12 text-base" onClick={goToContactWithRef}>
-                                        <Send className="mr-2 h-4 w-4" />
-                                        Start Similar Project
+                                )}
+                                {selectedProject?.links?.live && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        asChild
+                                        className="h-10 min-w-[110px] rounded-full px-4"
+                                    >
+                                        <Link href={selectedProject.links.live} target="_blank" rel="noreferrer">
+                                            Live
+                                        </Link>
                                     </Button>
-                                </div>
+                                )}
+                                <Button
+                                    size="sm"
+                                    className="h-10 min-w-[110px] rounded-full px-4"
+                                    onClick={goToContactWithRef}
+                                >
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Contact
+                                </Button>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </DialogContent>
             </Dialog>

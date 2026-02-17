@@ -133,6 +133,9 @@ export function Navbar() {
         return pathname === href || pathname.startsWith(`${href}/`);
     };
 
+    const isSectionActive = (items: Array<{ href: string }>) =>
+        items.some((item) => isActivePath(item.href));
+
     const navDropdownContentClassName =
         "w-72 rounded-2xl border border-border/60 bg-background/70 p-2 text-foreground shadow-xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60";
 
@@ -511,63 +514,107 @@ export function Navbar() {
                                                 </div>
                                             )}
 
-                                            <div className="space-y-2">
-                                                {navigationLinks.map((link) => (
-                                                    <SheetClose key={link.id} asChild>
-                                                        <Link href={link.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                            {link.label}
-                                                        </Link>
-                                                    </SheetClose>
-                                                ))}
-
-
-
-                                                {/* Work Menu Items */}
-                                                <div className="pl-3 pt-2 pb-1">
-                                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Work</p>
-                                                </div>
-                                                {workMenuItems.map((item) => {
-                                                    const Icon = item.icon;
-                                                    return (
-                                                        <SheetClose key={item.href} asChild>
-                                                            <Link href={item.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                                <Icon className="h-4 w-4 inline mr-2 text-primary" />
-                                                                {item.label}
+                                            <div className="space-y-5">
+                                                <div className="space-y-2">
+                                                    {navigationLinks.map((link) => (
+                                                        <SheetClose key={link.id} asChild>
+                                                            <Link
+                                                                href={link.href}
+                                                                className={cn(
+                                                                    "block rounded-md px-3 py-2 text-base font-medium transition-colors",
+                                                                    "hover:bg-muted",
+                                                                    isActivePath(link.href) && "bg-accent text-foreground"
+                                                                )}
+                                                            >
+                                                                {link.label}
                                                             </Link>
                                                         </SheetClose>
-                                                    );
-                                                })}
-
-                                                {/* Studio Menu Items */}
-                                                <div className="pl-3 pt-2 pb-1">
-                                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Studio</p>
+                                                    ))}
                                                 </div>
-                                                {studioMenuItems.map((item) => {
-                                                    const Icon = item.icon;
-                                                    return (
-                                                        <SheetClose key={item.href} asChild>
-                                                            <Link href={item.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                                <Icon className="h-4 w-4 inline mr-2 text-primary" />
-                                                                {item.label}
-                                                            </Link>
-                                                        </SheetClose>
-                                                    );
-                                                })}
 
-                                                <div className="pl-3 pt-2 pb-1">
-                                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">About</p>
+                                                <div className="space-y-2 border-l border-border/60 pl-3">
+                                                    <p className={cn(
+                                                        "pb-1 text-xs font-semibold uppercase tracking-wider",
+                                                        isSectionActive(workMenuItems) ? "text-primary" : "text-muted-foreground"
+                                                    )}>
+                                                        Work
+                                                    </p>
+                                                    {workMenuItems.map((item) => {
+                                                        const Icon = item.icon;
+                                                        const isActive = isActivePath(item.href);
+                                                        return (
+                                                            <SheetClose key={item.href} asChild>
+                                                                <Link
+                                                                    href={item.href}
+                                                                    className={cn(
+                                                                        "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
+                                                                        "hover:bg-muted",
+                                                                        isActive && "bg-accent text-foreground"
+                                                                    )}
+                                                                >
+                                                                    <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
+                                                                    {item.label}
+                                                                </Link>
+                                                            </SheetClose>
+                                                        );
+                                                    })}
                                                 </div>
-                                                {aboutMenuItems.map((item) => {
-                                                    const Icon = item.icon;
-                                                    return (
-                                                        <SheetClose key={item.href} asChild>
-                                                            <Link href={item.href} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                                <Icon className="h-4 w-4 inline mr-2 text-primary" />
-                                                                {item.label}
-                                                            </Link>
-                                                        </SheetClose>
-                                                    );
-                                                })}
+
+                                                <div className="space-y-2 border-l border-border/60 pl-3">
+                                                    <p className={cn(
+                                                        "pb-1 text-xs font-semibold uppercase tracking-wider",
+                                                        isSectionActive(studioMenuItems) ? "text-primary" : "text-muted-foreground"
+                                                    )}>
+                                                        Studio
+                                                    </p>
+                                                    {studioMenuItems.map((item) => {
+                                                        const Icon = item.icon;
+                                                        const isActive = isActivePath(item.href);
+                                                        return (
+                                                            <SheetClose key={item.href} asChild>
+                                                                <Link
+                                                                    href={item.href}
+                                                                    className={cn(
+                                                                        "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
+                                                                        "hover:bg-muted",
+                                                                        isActive && "bg-accent text-foreground"
+                                                                    )}
+                                                                >
+                                                                    <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
+                                                                    {item.label}
+                                                                </Link>
+                                                            </SheetClose>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <div className="space-y-2 border-l border-border/60 pl-3">
+                                                    <p className={cn(
+                                                        "pb-1 text-xs font-semibold uppercase tracking-wider",
+                                                        isSectionActive(aboutMenuItems) ? "text-primary" : "text-muted-foreground"
+                                                    )}>
+                                                        About
+                                                    </p>
+                                                    {aboutMenuItems.map((item) => {
+                                                        const Icon = item.icon;
+                                                        const isActive = isActivePath(item.href);
+                                                        return (
+                                                            <SheetClose key={item.href} asChild>
+                                                                <Link
+                                                                    href={item.href}
+                                                                    className={cn(
+                                                                        "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
+                                                                        "hover:bg-muted",
+                                                                        isActive && "bg-accent text-foreground"
+                                                                    )}
+                                                                >
+                                                                    <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
+                                                                    {item.label}
+                                                                </Link>
+                                                            </SheetClose>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
 
                                             {isAuthenticated ? (

@@ -25,7 +25,7 @@ const defaultLinks = [
     { href: "/about", label: "About", icon: Info },
     { href: "/projects", label: "Projects", icon: Folder },
     { href: "/blog", label: "Blog", icon: BookOpen },
-    { href: "/contact", label: "Contact", icon: Mail },
+    { href: "/gallery", label: "Gallery", icon: Image },
 ];
 
 const resumeLinks = [

@@ -1,30 +1,32 @@
-/* Global overrides: hide visible scrollbars while keeping scroll behavior */
+/* Force visible scrollbars and keep native colors with thin width */
 html,
 body {
-  -ms-overflow-style: none !important;
-  scrollbar-width: none !important;
-}
-
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
+  overflow-y: auto;
 }
 
 * {
-  -ms-overflow-style: none !important;
-  scrollbar-width: none !important;
+  scrollbar-width: thin;
 }
 
-*::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
-}
+@supports selector(::-webkit-scrollbar) {
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
 
-*::-webkit-scrollbar-thumb {
-  background: transparent !important;
-  border: none !important;
+  html::-webkit-scrollbar-button,
+  body::-webkit-scrollbar-button,
+  *::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  html::-webkit-scrollbar-track,
+  body::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }

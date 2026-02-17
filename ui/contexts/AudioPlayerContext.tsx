@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Disc3, Music2, Pause, Play, SkipBack, SkipForward, Square, Volume2 } from "lucide-react";
+import Link from "next/link";
+import { Disc3, Library, Music2, Pause, Play, SkipBack, SkipForward, Square, Volume2 } from "lucide-react";
 import {
     Sheet,
     SheetContent,
@@ -196,14 +197,27 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
                     </SheetHeader>
                     <div className="px-4 pb-6 pt-2 space-y-6">
                         <div className="rounded-2xl border bg-card/70 p-5">
-                            <div className="mb-5 flex items-center gap-4">
-                                <div className="flex h-14 w-14 items-center justify-center rounded-xl border bg-background/70">
-                                    <Disc3 className={`h-6 w-6 text-primary ${isPlaying ? "animate-spin" : ""}`} />
+                            <div className="mb-5 flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-4 min-w-0">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border bg-background/70">
+                                        <Disc3 className={`h-6 w-6 text-primary ${isPlaying ? "animate-spin" : ""}`} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-base font-semibold">{currentTitle || ""}</p>
+                                        <p className="truncate text-sm text-muted-foreground">{currentArtist || ""}</p>
+                                    </div>
                                 </div>
-                                <div className="min-w-0">
-                                    <p className="truncate text-base font-semibold">{currentTitle || ""}</p>
-                                    <p className="truncate text-sm text-muted-foreground">{currentArtist || ""}</p>
-                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    asChild
+                                    className="h-9 w-9 rounded-full"
+                                >
+                                    <Link href="/music" onClick={() => setIsOpen(false)} aria-label="Open music library">
+                                        <Library className="h-4 w-4" />
+                                    </Link>
+                                </Button>
                             </div>
                             {hasSource ? (
                                 <div className="space-y-4">
