@@ -84,113 +84,229 @@ The system separates read-heavy public traffic from write-intensive analytics us
 	{
 		title: "Real-Time IoT Data Platform with Listener Orchestration",
 		description:
-			"Dynamic MQTT listener management and fault-tolerant recovery powered by a distributed .NET architecture with Cassandra, Solr, and Redis.",
+			"Distributed IoT ingestion platform with dynamic MQTT listener activation, Cassandra time-series storage, and fault-tolerant orchestration.",
 		details: `
-An in-development real-time IoT ingestion and orchestration platform engineered for continuous, high-volume device data streams.
+A real-time IoT ingestion and orchestration platform built for continuous, high-volume telemetry from heterogeneous devices.
 
-The system is built on a .NET Core foundation, featuring a **dynamic MQTT listener orchestrator** that intelligently creates, manages, and tears down listeners based on incoming device endpoints or topic URLs. This enables efficient scaling across thousands of concurrent connections while minimizing resource overhead.
+## Core Capabilities
 
-A centralized orchestration service maintains listener state, heartbeat tracking, and fault recovery, ensuring uninterrupted data flow even during transient network failures or node restarts.
+- **Dynamic Listener Activation** - MQTT listeners are created, scaled, paused, or torn down at runtime based on endpoint and topic demand.
+- **Centralized Orchestration** - A control plane tracks listener state, heartbeats, lease ownership, and recovery actions across worker nodes.
+- **Resilient Recovery** - Listeners are automatically rehydrated after transient failures, disconnects, or process restarts.
+- **Low-Latency Streaming** - Ingestion pipelines are optimized for burst traffic with controlled backpressure and retry behavior.
 
-Ingested telemetry and metadata are streamed into **Cassandra** for durable time-series storage, while **Solr** provides high-speed indexed querying for analytical and search use cases.  
-**Redis**, managed through the **Lettuce** client, is used for transient caching, distributed coordination, and maintaining ephemeral session state across listener nodes.
+## Data and Query Layer
 
-The architecture supports horizontal scaling, live listener registration, and automated reconnection under bursty load scenarios — ensuring low-latency, fault-tolerant pipelines for edge and cloud-integrated IoT environments.
+- **Cassandra** stores high-cardinality, write-heavy telemetry as durable time-series data.
+- **Solr** provides indexed search and analytical query acceleration over ingested metadata.
+- **Redis** holds ephemeral coordination data, distributed locks, and short-lived cache entries.
+
+## Runtime Architecture
+
+### Listener Runtime
+
+Supports hot listener registration and de-registration, topic wildcard routing, and dynamic partitioning across worker instances to maintain efficient resource usage under fluctuating load.
+
+### Orchestration Service
+
+A dedicated orchestration service manages activation policies, health checks, heartbeat TTLs, and failover promotion to keep ingestion uninterrupted.
+
+### Scalability and Fault Tolerance
+
+The platform supports horizontal scale-out with node-aware balancing, automatic reconnect strategies, and controlled retry paths for reliable edge and cloud-connected IoT pipelines.
     `,
-		tech: [".NET", "MQTT", "Cassandra", "Redis"],
+		tech: [".NET", "MQTT", "Cassandra", "Solr", "Redis"],
 		icon: "Cpu",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/iot_platform.jpg",
 		screenshots: [
-			"https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1600&q=80"
+			// "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80",
+			// "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1600&q=80"
 		],
 		// links: {
 		//     repo: "",
 		//     live: ""
 		// },
-		highlight: "IOT"
+		highlight: "IoT"
 	},
 
 	{
 		title: "Secure Audio Delivery Platform",
 		description:
-			"Encrypted chunked streaming (HLS-style segments) with controlled access and backend-managed authorization.",
+			"Secure chunk-based audio streaming platform with per-session encryption, signed segment URLs, and backend-enforced access control.",
 		details: `
-Engineered a secure audio streaming system using encrypted chunked delivery (HLS-style segmented playback without DRM), implementing controlled access, token validation, and backend-managed stream authorization.
+## Overview
 
-The pipeline encrypts each segment with AES keys derived per session and serves them through a CDN-aware API gateway that validates short-lived tokens before delivering signed URLs. A centralized authorization service tracks entitlements, enforces playback limits, and seamlessly renews tokens for active sessions.
+A secure audio delivery platform built for controlled media distribution using HLS-style segmented playback, short-lived access tokens, and backend-governed authorization workflows.
 
-Playback clients retrieve manifests that reference only pre-authorized segments; the gateway rewrites URLs with per-request signatures so segments remain inaccessible without a valid token and backend handshake.
+## Security Model
+
+- **Per-Session Encryption** - Audio segments are encrypted with AES-128 keys derived for each playback session.
+- **Token-Gated Access** - Every manifest and segment request requires valid short-lived JWT or signed token credentials.
+- **Signed Delivery URLs** - Gateway-issued signatures prevent direct hotlinking and unauthorized CDN access.
+- **Entitlement Enforcement** - Playback rights are validated server-side before segment release.
+
+## Delivery Pipeline
+
+### Segment Generation
+
+Source audio is transformed into HLS-style chunks and manifests. Segments are encrypted before publication and indexed with session-aware access metadata.
+
+### Gateway and CDN Flow
+
+Clients request manifests through an API gateway. After authorization checks pass, URLs are rewritten and signed for CDN delivery with strict expiration windows.
+
+### Playback Runtime
+
+During active sessions, tokens are rotated and refreshed without interrupting playback, ensuring continuity while keeping access windows tightly bounded.
+
+## Access Control and Observability
+
+- Central authorization service tracks entitlement state, session validity, and playback limits.
+- Access attempts, token refreshes, and segment grants are logged for auditability and anomaly detection.
+- Revocation paths allow immediate cutoff for expired or revoked sessions.
+
+## Performance Characteristics
+
+The architecture combines CDN edge delivery with lightweight gateway validation, delivering low-latency playback while maintaining strong access controls for premium or private media.
 		`,
 		tech: [
-			"HLS-style segmentation",
-			"AES-128 chunk encryption",
-			"Token validation",
+			"HLS Segmentation",
+			"AES-128 Encryption",
 			"JWT",
+			"Signed URLs",
 			"ASP.NET Core",
 			"Redis",
 			"CDN",
-			"Streaming authorization"
+			"Streaming Authorization"
 		],
 		icon: "Music",
 		screenshots: [
-			"https://images.unsplash.com/photo-1454165205744-3b78555e5572?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80"
+			// "https://images.unsplash.com/photo-1454165205744-3b78555e5572?auto=format&fit=crop&w=1600&q=80",
+			// "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80"
 		],
-		highlight: "Streaming Security"
+		highlight: "Secure Streaming"
 	},
 
 	{
 		title: "Dynamic Media CDN Pipeline",
 		description:
-			"Real-time CDN-based image transformation, format conversion, and optimization powered by libvips and SkiaSharp.",
+			"Cloudinary-style on-the-fly media transformation pipeline powered by libvips, with rule-based automation, transparency-aware processing, and edge-detection-driven optimization.",
 		details: `
-Designed a CDN-based media pipeline supporting real-time image transformation, resizing, format conversion, and compression using libvips and SkiaSharp for high-performance optimized delivery.
+## Overview
 
-The edge-aware processing tier receives signed URLs, applies configured filters, and streams transformed outputs from cached S3-backed segments. Transformations are cached per parameter set to avoid redundant work, while background jobs prewarm popular variants.
+A dynamic CDN media pipeline inspired by Cloudinary-style URL transformations, built to process images on demand with deterministic rules, low latency, and high cache efficiency.
+
+## Core Capabilities
+
+- **On-the-Fly Transformations** - Real-time resize, crop, fit, quality, and format conversion directly from signed URL parameters.
+- **Rule-Based Automation** - Preset and policy-driven transformations automatically applied per asset type, route, tenant, or device class.
+- **Transparency-Aware Rendering** - Smart alpha-channel handling preserves transparency while optimizing PNG/WebP/AVIF outputs.
+- **Edge-Detection Intelligence** - Edge-aware cropping and sharpening use detected boundaries to keep subject focus and visual clarity.
+
+## Processing Pipeline
+
+### Request and Validation
+
+Incoming transformation requests are validated through signed URLs and normalized into canonical transformation keys to prevent abuse and cache fragmentation.
+
+### Transform Engine
+
+**libvips** is the primary high-throughput transformation engine, with **SkiaSharp** used for complementary processing paths. Together they power resizing, smart crop, color normalization, and compression tuning.
+
+### Automated Rules Layer
+
+Transformation policies support chained rules such as:
+
+- force transparent-safe format when alpha is detected
+- apply sharper edge-preserving downscale for product assets
+- switch codec and quality tiers by viewport/device hints
+- enforce max dimensions and fail-safe defaults
+
+### Delivery and Caching
+
+Outputs are cached by canonical transform signature at edge and origin layers. Popular variants are prewarmed asynchronously to reduce cold-start latency.
+
+## Performance Characteristics
+
+The architecture minimizes origin load and improves delivery speed through aggressive cache reuse, deterministic transform signatures, and async pre-generation of high-demand derivatives.
 		`,
-		tech: ["CDN", "libvips", "SkiaSharp", "Image Optimization", "Edge Caching", "S3"],
+		tech: ["CDN", "libvips", "SkiaSharp", "On-the-Fly Transformations", "Rule Engine", "Edge Detection", "Transparency Processing", "Edge Caching", "S3"],
 		icon: "Image",
 		screenshots: [
-			"https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80"
+			// "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80",
+			// "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80"
 		],
-		highlight: "CDN Media Optimization"
+		highlight: "Dynamic Media Transformation"
 	},
 
 	{
 		title: "Modular Video Conferencing System",
 		description:
-			"Real-time multi-user conferencing platform with WebRTC media, SignalR signaling, and modular plug-and-play integration.",
+			"Embeddable enterprise video conferencing platform with WebRTC media, SignalR + Node.js signaling, Windows tray management, and pluggable local/Twilio TURN-STUN.",
 		details: `
-A fully modular video conferencing and collaboration platform designed for seamless integration into any existing system, enabling real-time communication, screen sharing, and in-session chat.
+## Overview
 
-Built around **WebRTC** for peer-to-peer media transmission and **SignalR** for real-time signaling, the system supports multi-user video and audio sessions, dynamic participant roles, and presence awareness.
-Rooms can be created, hosted, and joined through generated meeting links, allowing flexible scheduling and quick onboarding for teams and external users alike.
+A fully modular, embeddable video conferencing platform engineered for enterprise integration. The stack is built in-house for end-to-end control of signaling, media relay, policy enforcement, and deployment behavior.
 
-The architecture provides robust session management, including:
+## Core Features
 
-- Participant state tracking (join/leave/mute/device changes)
-- Role-based permissions (host, presenter, attendee)
-- Persistent chat and message synchronization
-- Adaptive bitrate and media fallback handling
+- **Multi-Party Video and Audio** - Real-time conferencing with adaptive bitrate and dynamic quality negotiation.
+- **Screen Sharing and Collaboration** - Full-screen and window-specific sharing with session-aware controls.
+- **In-Session Chat** - Persistent participant messaging with synchronized history.
+- **Dynamic Rooms** - Instant room provisioning, scheduled sessions, and waiting-room flows.
+- **RBAC Controls** - Host, presenter, and attendee roles with live permission updates.
+- **Asset Management** - Central handling for meeting recordings, snapshots, shared files, and generated artifacts.
+- **Windows Tray Companion** - Desktop tray app for notifications, quick room actions, participant alerts, and local conference controls.
 
-A **.NET backend** handles room lifecycle, authentication, and session orchestration, while **Node.js services** manage low-latency signaling coordination.
-The **Angular** front-end delivers responsive, component-driven UIs that can be embedded as standalone modules or integrated as widgets within other platforms.
+## Architecture
 
-This plug-and-play design ensures minimal setup overhead while maintaining predictable scalability and reliable real-time performance under high concurrency.
+### Media Layer (WebRTC)
+
+Peer-to-peer transport is preferred for low latency. For larger sessions, SFU-based routing is used to optimize bandwidth and maintain quality across many participants.
+
+### Signaling Infrastructure
+
+- **SignalR Hub (.NET)** for session state sync, room lifecycle events, and presence.
+- **Node.js Coordinators** for offer/answer exchange, ICE candidate relay, and renegotiation paths.
+- **Redis-backed Coordination** for session affinity and low-latency signaling fanout.
+
+### Backend Services (.NET Core)
+
+Room lifecycle orchestration, authN/authZ, usage analytics, recording workflows, and policy enforcement are managed through .NET services with resilient retry and health-check patterns.
+
+### Frontend (Angular)
+
+Component-driven UI modules (video grid, controls, chat, participant panel) support both standalone deployment and embedded integration.
+
+## Network Adaptation and Relay Strategy
+
+The platform uses a pluggable connectivity model:
+
+1. Direct P2P via WebRTC (preferred).
+2. STUN-assisted NAT traversal for common home/office networks.
+3. TURN relay fallback using **self-hosted local TURN/STUN** or **Twilio TURN/STUN** providers.
+4. SFU path for large meetings or constrained clients.
+
+This local-plus-cloud relay strategy provides operational control for private deployments while retaining reliable fallback for restrictive network environments.
+
+## Scalability and Reliability
+
+- Horizontal scaling for signaling nodes.
+- Adaptive media policies based on packet loss, jitter, and bandwidth.
+- Continuous relay health monitoring and automated fallback handling.
+- High-concurrency room handling with predictable performance under burst load.
     `,
-		tech: [".NET", "WebRTC", "SignalR", "Angular", "Signal.io", "Node.js"],
+		tech: [".NET Core", "WebRTC", "SFU", "SignalR", "Node.js", "Angular", "Redis", "TURN/STUN (Local + Twilio)", "Windows Tray App", "Asset Management"],
 		icon: "Globe",
 		links: {
 			repo: "",
 			live: ""
 		},
 		screenshots: [
-			"https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1600&q=80"
+			 "/images/projects/video-conf/1.png",
+			// "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1600&q=80"
 		],
-		highlight: "Collaboration / Realtime (In Development)"
+		highlight: "Realtime Collaboration"
 	},
 	{
 		title: "ResumeFlow – Intelligent Resume Screening & ATS Agent",
