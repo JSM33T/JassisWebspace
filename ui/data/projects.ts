@@ -15,37 +15,58 @@ export interface Project {
 
 export const projects: Project[] = [
 	{
-		title: "Linqyard.com – Link Aggregation & Personal Hub",
+		title: "Linqyard - Link Management Platform",
 		description:
-			"A full-stack link aggregation and personal hub platform designed for customizable subdomains, integrated analytics, and intelligent automation.",
+			"A production-ready link-in-bio and link management platform with real-time analytics, subscription monetization, and enterprise-grade performance optimization.",
 		details: `
-Linqyard is an in-development full-stack system that provides users with a unified space to organize, showcase, and analyze their web presence.
+## Overview
 
-The frontend is built with Next.js and Shadcn UI, featuring responsive layouts, theme-driven components, and live preview interfaces for seamless customization.
+Linqyard is a production-ready link-in-bio and link management platform designed for creators and businesses to consolidate multiple links into a single, customizable landing page. The platform features real-time analytics, subscription-based monetization, and enterprise-grade performance optimization.
 
-The backend operates on ASP.NET Core with Entity Framework Core and PostgreSQL, offering structured data management and scalable API design.
+## Core Features
 
-A FastAPI microservice powers conversational and assistant-based features, enabling modular AI-driven extensions.
+- **Smart Link Pages** - Mobile-first, SEO-optimized landing pages with custom subdomains and full domain support
+- **Advanced Analytics** - Real-time view and click tracking with traffic source attribution, geographic insights, and engagement metrics
+- **Multi-Tier Plans** - Freemium model with Free, Pro, and Business tiers supporting scalable growth
+- **Creator Dashboard** - Intuitive interface for rapid link management and performance monitoring
 
-The system employs a multi-tier caching strategy:
-• Redis for high-speed in-memory caching  
-• MongoDB for persistent conversational context and long-term cache retention  
+## Architecture
 
-Continuous integration and delivery are configured via GitHub Actions, with automated Docker container builds and controlled deployments using Docker Compose.
+### Frontend Layer
 
-Service routing and SSL management are handled by Nginx, which serves as a reverse proxy for multiple backend and microservice endpoints, ensuring domain-level isolation and secure communication.
+Built with **Next.js** leveraging Server-Side Rendering (SSR) for optimal SEO and initial page load performance. Static page generation for public link pages ensures sub-second response times.
+
+### Backend Services
+
+**ASP.NET Core Web API** handles authentication, link CRUD operations, subscription management, and analytics ingestion. Implements rate limiting and request validation for security.
+
+### Background Processing
+
+**.NET Worker Services** run asynchronous jobs including analytics aggregation, link health checks, and scheduled report generation. Decouples heavy processing from user-facing APIs.
+
+### Resilience & Performance
+
+- **Polly Integration** - Circuit breakers, retry policies, and timeout handling for external service calls (payment gateways, email providers)
+- **Distributed Caching** - Redis-backed response caching for frequently accessed link pages and analytics dashboards, reducing database load by 70%
+- **Azure Blob Storage** - Efficient storage for user-uploaded assets (profile images, custom backgrounds) with CDN integration
+
+### Infrastructure
+
+Containerized with **Docker** for consistent deployments across environments. Orchestration-ready for horizontal scaling during traffic spikes.
+
+## Technical Differentiators
+
+The system separates read-heavy public traffic from write-intensive analytics using a modular repository-based architecture. Background workers handle asynchronous analytics processing, while Polly-based resilience ensures stable API behavior under transient failures.
     `,
 		tech: [
 			"Next.js",
 			"ASP.NET Core",
-			"FastAPI",
-			"EF Core",
+			".NET Worker Services",
 			"PostgreSQL",
-			"MongoDB",
 			"Redis",
 			"Docker",
-			"GitHub Actions",
-			"Nginx"
+			"Azure Blob Storage",
+			"Polly"
 		],
 		icon: "Workflow",
 		links: {
@@ -53,10 +74,11 @@ Service routing and SSL management are handled by Nginx, which serves as a rever
 			live: "https://linqyard.com"
 		},
 		screenshots: [
-			"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80"
+			"/images/projects/linqyard/3.png",
+			"/images/projects/linqyard/2.png",
+            "/images/projects/linqyard/1.png"
 		],
-		highlight: "SaaS (In Development)",
+		highlight: "SaaS (Production Ready)",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/linqyard.jpg"
 	},
 	{
@@ -65,7 +87,7 @@ Service routing and SSL management are handled by Nginx, which serves as a rever
 			"Dynamic MQTT listener management and fault-tolerant recovery powered by a distributed .NET architecture with Cassandra, Solr, and Redis.",
 		details: `
 An in-development real-time IoT ingestion and orchestration platform engineered for continuous, high-volume device data streams.
-\n \n
+
 The system is built on a .NET Core foundation, featuring a **dynamic MQTT listener orchestrator** that intelligently creates, manages, and tears down listeners based on incoming device endpoints or topic URLs. This enables efficient scaling across thousands of concurrent connections while minimizing resource overhead.
 
 A centralized orchestration service maintains listener state, heartbeat tracking, and fault recovery, ensuring uninterrupted data flow even during transient network failures or node restarts.
@@ -141,21 +163,22 @@ The edge-aware processing tier receives signed URLs, applies configured filters,
 		description:
 			"Real-time multi-user conferencing platform with WebRTC media, SignalR signaling, and modular plug-and-play integration.",
 		details: `
-                A fully modular video conferencing and collaboration platform designed for seamless integration into any existing system, enabling real-time communication, screen sharing, and in-session chat.
+A fully modular video conferencing and collaboration platform designed for seamless integration into any existing system, enabling real-time communication, screen sharing, and in-session chat.
 
-                Built around **WebRTC** for peer-to-peer media transmission and **SignalR** for real-time signaling, the system supports multi-user video and audio sessions, dynamic participant roles, and presence awareness.  
-                Rooms can be created, hosted, and joined through generated meeting links, allowing flexible scheduling and quick onboarding for teams and external users alike.
+Built around **WebRTC** for peer-to-peer media transmission and **SignalR** for real-time signaling, the system supports multi-user video and audio sessions, dynamic participant roles, and presence awareness.
+Rooms can be created, hosted, and joined through generated meeting links, allowing flexible scheduling and quick onboarding for teams and external users alike.
 
-                The architecture provides robust session management, including:
-                • Participant state tracking (join/leave/mute/device changes)  
-                • Role-based permissions (host, presenter, attendee)  
-                • Persistent chat and message synchronization  
-                • Adaptive bitrate and media fallback handling  
+The architecture provides robust session management, including:
 
-                A **.NET backend** handles room lifecycle, authentication, and session orchestration, while **Node.js services** manage low-latency signaling coordination.  
-                The **Angular** front-end delivers responsive, component-driven UIs that can be embedded as standalone modules or integrated as widgets within other platforms.
+- Participant state tracking (join/leave/mute/device changes)
+- Role-based permissions (host, presenter, attendee)
+- Persistent chat and message synchronization
+- Adaptive bitrate and media fallback handling
 
-                This plug-and-play design ensures minimal setup overhead while maintaining predictable scalability and reliable real-time performance under high concurrency.
+A **.NET backend** handles room lifecycle, authentication, and session orchestration, while **Node.js services** manage low-latency signaling coordination.
+The **Angular** front-end delivers responsive, component-driven UIs that can be embedded as standalone modules or integrated as widgets within other platforms.
+
+This plug-and-play design ensures minimal setup overhead while maintaining predictable scalability and reliable real-time performance under high concurrency.
     `,
 		tech: [".NET", "WebRTC", "SignalR", "Angular", "Signal.io", "Node.js"],
 		icon: "Globe",
@@ -177,10 +200,11 @@ The edge-aware processing tier receives signed URLs, applies configured filters,
 ResumeFlow is a modular resume intelligence system designed to automate, customize, and scale candidate screening for modern hiring workflows.
 
 The platform supports multiple screening modes, including:
-• Keyword-based ATS parsing  
-• Semantic skill matching  
-• Role-specific competency evaluation  
-• AI-assisted shortlisting and ranking  
+
+- Keyword-based ATS parsing
+- Semantic skill matching
+- Role-specific competency evaluation
+- AI-assisted shortlisting and ranking
 
 Users can design fully custom screening pipelines by chaining different evaluation stages such as parsing, normalization, scoring, filtering, and AI review, allowing organizations to tailor hiring logic per role or department.
 
@@ -253,12 +277,13 @@ At its foundation, the system employs a **queue-driven architecture** with dedic
 A **.NET Core API** governs workflow definitions, state tracking, and runtime orchestration, while a complementary **.NET Core Worker Service** executes scheduled, interval-based, and cron-driven jobs with configurable retry and failover logic.
 
 The platform integrates a robust workflow design and automation layer that supports:
-• Full and nested decision-tree routing for complex branching logic and conditional task progression  
-• Visual workflow composition with drag-and-drop node chaining and live validation  
-• Action recording for user events such as clicking, browsing, link traversal, and form interaction  
-• JavaScript injection and dynamic code execution within headless browser contexts  
-• Automated extraction and transformation of tabular and structured data  
-• Helper utilities and extensible worker modules for integrating APIs and third-party actions  
+
+- Full and nested decision-tree routing for complex branching logic and conditional task progression
+- Visual workflow composition with drag-and-drop node chaining and live validation
+- Action recording for user events such as clicking, browsing, link traversal, and form interaction
+- JavaScript injection and dynamic code execution within headless browser contexts
+- Automated extraction and transformation of tabular and structured data
+- Helper utilities and extensible worker modules for integrating APIs and third-party actions
 
 The **Next.js + React (Shadcn UI)** frontend provides an intuitive designer and visualizer, allowing users to define conditional flows, nested logic groups, and chained operations interactively.  
 Workflows can be monitored and versioned in real time, with status propagation and rollback control through the API layer.
