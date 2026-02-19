@@ -311,26 +311,42 @@ This local-plus-cloud relay strategy provides operational control for private de
 	{
 		title: "ResumeFlow – Intelligent Resume Screening & ATS Agent",
 		description:
-			"An AI-powered resume screening and advanced ATS platform featuring multi-mode evaluation, customizable screening pipelines, and scalable automation.",
+			"AI-powered ATS and resume intelligence platform with multi-job-post screening pipelines and automated flagging for career gaps, job hopping, and education inaccuracies.",
 		details: `
-ResumeFlow is a modular resume intelligence system designed to automate, customize, and scale candidate screening for modern hiring workflows.
+## Overview
 
-The platform supports multiple screening modes, including:
+ResumeFlow is a modular resume intelligence and ATS platform designed to automate candidate screening at scale while keeping decisions explainable and audit-ready.
 
-- Keyword-based ATS parsing
-- Semantic skill matching
-- Role-specific competency evaluation
-- AI-assisted shortlisting and ranking
+## Screening Model
 
-Users can design fully custom screening pipelines by chaining different evaluation stages such as parsing, normalization, scoring, filtering, and AI review, allowing organizations to tailor hiring logic per role or department.
+- **Single-Post Screening** - Evaluate candidates against one job post with weighted skill, experience, and competency scoring.
+- **Multi-Post Screening** - Compare a candidate across multiple job posts in one run, rank best-fit roles, and surface cross-role suitability.
+- **Custom Pipelines** - Chain parsing, normalization, scoring, filtering, and AI review stages per hiring team or department.
 
-The frontend is built with Next.js, delivering a clean, recruiter-focused UI with pipeline builders, candidate dashboards, and real-time screening insights.
+## Automated Flagging Engine
 
-The core API layer is powered by FastAPI, exposing high-performance endpoints for resume ingestion, parsing, scoring, and workflow orchestration.
+- **Career Gap Flagging** - Detect employment timeline gaps above configurable thresholds and mark severity by role requirements.
+- **Job Hopping Detection** - Identify frequent short-tenure patterns with configurable windows and exceptions.
+- **Education Inaccuracy Checks** - Flag suspicious education claims, timeline overlaps, and qualification mismatches against role criteria.
+- **Review Queue Routing** - High-risk or ambiguous profiles are auto-routed for recruiter/manual validation.
 
-Background processing is handled by dedicated worker services for tasks like bulk resume processing, embedding generation, and asynchronous AI evaluations, ensuring high throughput and reliability.
+## Architecture
 
-The system functions as an advanced ATS, supporting structured candidate profiles, job-to-resume matching, audit-ready screening decisions, and extensible AI evaluation modules for future enhancements.
+### Frontend
+
+**Next.js** powers recruiter dashboards, pipeline builders, candidate views, and real-time screening insights.
+
+### API Layer
+
+**FastAPI** exposes high-throughput endpoints for resume ingestion, parsing, scoring, flag generation, and workflow orchestration.
+
+### Background Processing
+
+Worker services handle batch resume ingestion, embeddings, asynchronous AI evaluations, and large multi-post screening jobs.
+
+## ATS Outcomes
+
+ResumeFlow provides structured candidate profiles, job-fit scoring, rule-based risk flags, shortlist recommendations, and traceable screening decisions for compliant hiring workflows.
     `,
 		tech: [
 			"Next.js",
@@ -339,6 +355,10 @@ The system functions as an advanced ATS, supporting structured candidate profile
 			"PostgreSQL",
 			"Redis",
 			"Vector Embeddings",
+			"Rule Engine",
+			"Career Gap Flagging",
+			"Job Hopping Analysis",
+			"Education Validation",
 			"Docker",
 			"Background Queues",
 			"REST APIs"
