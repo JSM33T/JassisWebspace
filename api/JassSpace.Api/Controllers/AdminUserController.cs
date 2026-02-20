@@ -15,7 +15,7 @@ namespace JassSpace.Api.Controllers;
 
 [Route("admin/users")]
 [Authorize(Roles = "admin")]
-public partial class AdminUserController(JassSpaceDbContext dbContext, IUserRepository userRepository) : BaseApiController
+public partial class AdminUserController(IUserRepository userRepository) : BaseApiController
 {
     [System.Text.RegularExpressions.GeneratedRegex(@"^[a-zA-Z0-9_.-]+$")]
     private static partial System.Text.RegularExpressions.Regex RgxUsername();

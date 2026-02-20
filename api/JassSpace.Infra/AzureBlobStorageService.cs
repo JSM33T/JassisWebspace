@@ -662,7 +662,11 @@ namespace JassSpace.Infra
             // Azure Blob Storage listing
             try
             {
-                await foreach (var blobItem in _containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
+                await foreach (var blobItem in _containerClient.GetBlobsAsync(
+                    traits: BlobTraits.None,
+                    states: BlobStates.None,
+                    prefix: prefix,
+                    cancellationToken: cancellationToken))
                 {
                     results.Add(blobItem.Name);
                 }
