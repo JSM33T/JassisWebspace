@@ -186,7 +186,58 @@ The architecture combines CDN edge delivery with lightweight gateway validation,
 		],
 		highlight: "Secure Streaming"
 	},
+	{
+		title: "AI-Based RAG Knowledge Workspace",
+		description:
+			"Advanced multimodal RAG platform with VLM-powered OCR, deep document/table ingestion, and scoped chat across file, project, and global contexts.",
+		details: `
+## Overview
 
+An AI-first RAG workspace built for teams that need reliable retrieval across complex enterprise content. The platform supports advanced documents, spreadsheet data, scanned/image-based sources, and rich text collaboration in a unified knowledge layer.
+
+## Core Capabilities
+
+- **Advanced Document Ingestion** - Parses PDF, DOCX, PPTX, and mixed-layout files with structural awareness (headings, sections, references, footnotes).
+- **Excel and Table Intelligence** - Ingests XLS/XLSX/CSV, extracts sheet-level context, normalizes tabular data, and links tables back to source files.
+- **VLM-Powered OCR** - Uses vision-language models for scanned PDFs and images, including layout-aware text extraction from charts, forms, and screenshots.
+- **Multimodal Retrieval** - Combines text chunks, OCR content, and table embeddings for higher-quality answers in mixed data scenarios.
+- **Rich Text Support** - Preserves formatting semantics (headings, lists, emphasis, code blocks, links) for better chunking and response grounding.
+
+## Scoped Knowledge Chat
+
+- **File Scope** - Query within a single file for precise source-level reasoning.
+- **Project Scope** - Query across all files in a project workspace with shared context and permissions.
+- **Global Scope** - Cross-project retrieval for organization-wide knowledge discovery.
+
+## Architecture Highlights
+
+- Tenant-isolated workspaces with access control and audit-ready retrieval traces.
+- Hybrid retrieval pipeline (keyword + vector + metadata filters).
+- Async ingestion workers for OCR, chunking, embeddings, and table indexing.
+- Citation-aware response generation with file/page/section references.
+
+## Why It Stands Out
+
+Unlike basic text-only RAG systems, this platform handles real-world knowledge formats: rich documents, spreadsheet tables, and image-heavy content. VLM-backed OCR plus scoped retrieval (file/project/global) makes responses more accurate, controllable, and enterprise-ready.
+		`,
+		tech: [
+			"Python",
+			"FastAPI",
+			"LangChain",
+			"VLM",
+			"OCR",
+			"RAG",
+			"Vector Embeddings",
+			"MongoDB"
+		],
+		icon: "BrainCircuit",
+		links: { repo: "", live: "" },
+		screenshots: [
+			// "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1600&q=80",
+			// "https://images.unsplash.com/photo-1507143550189-fed454f93097?auto=format&fit=crop&w=1600&q=80"
+		],
+		highlight: "Multimodal RAG",
+	},
 	{
 		title: "Dynamic Media CDN Pipeline",
 		description:
@@ -403,52 +454,116 @@ ResumeFlow provides structured candidate profiles, job-fit scoring, rule-based r
 		// coverImage omitted for this item (optional)
 	},
 	{
-		title: "SurfSwift Automation Engine",
+		title: "SurfSwift - Intelligent Automation Framework",
 		description:
-			"Extensible workflow automation platform with conditional queues, dynamic scripts, and nested decision logic.",
+			"Modular workflow automation platform for orchestrating complex multi-step processes across distributed services and browser-based tasks.",
 		details: `
-SurfSwift is an in-development modular automation framework built for orchestrating intelligent, multi-step workflows across distributed services and browser-based tasks.
+## Overview
 
-At its foundation, the system employs a **queue-driven architecture** with dedicated producer–consumer channels that enable concurrent processing, idempotent execution, and dynamic scaling under varying load.  
-A **.NET Core API** governs workflow definitions, state tracking, and runtime orchestration, while a complementary **.NET Core Worker Service** executes scheduled, interval-based, and cron-driven jobs with configurable retry and failover logic.
+SurfSwift is a modular workflow automation platform engineered for orchestrating complex, multi-step processes across distributed services and browser-based tasks. The system combines visual workflow design with intelligent execution, enabling teams to build sophisticated automation pipelines without extensive coding.
 
-The platform integrates a robust workflow design and automation layer that supports:
+## Core Capabilities
 
-- Full and nested decision-tree routing for complex branching logic and conditional task progression
-- Visual workflow composition with drag-and-drop node chaining and live validation
-- Action recording for user events such as clicking, browsing, link traversal, and form interaction
-- JavaScript injection and dynamic code execution within headless browser contexts
-- Automated extraction and transformation of tabular and structured data
-- Helper utilities and extensible worker modules for integrating APIs and third-party actions
+- **Visual Workflow Designer** - Drag-and-drop workflow composition with live validation and preview
+- **Browser Automation** - Headless browser orchestration with action recording, JavaScript injection, and DOM automation
+- **Decision-Tree Routing** - Nested if/else branches, loops, and dynamic path evaluation
+- **Queue-Driven Architecture** - Idempotent execution, concurrent processing, and fault isolation
+- **Intelligent Scheduling** - Cron-based, interval, and event-triggered execution with retry policies
 
-The **Next.js + React (Shadcn UI)** frontend provides an intuitive designer and visualizer, allowing users to define conditional flows, nested logic groups, and chained operations interactively.  
-Workflows can be monitored and versioned in real time, with status propagation and rollback control through the API layer.
+## Architecture
 
-Together, these services form a comprehensive automation ecosystem—capable of replicating browser actions, orchestrating decision-based workflows, and executing modular scripts with precise scheduling and dynamic control.
+### Orchestration Layer (.NET Core API)
+
+- Workflow registry with JSON-based definitions, versioning, and rollback
+- State machine for checkpointed execution tracking
+- Queue producer with priority, deadlines, and dependency metadata
+- Real-time status aggregation across worker results
+- Polly-based circuit breakers and exponential backoff retry for resilience
+
+### Execution Layer (.NET Worker Service)
+
+- Stateless background workers for horizontal scaling
+- Scheduled, interval, cron, and event-based execution support
+- Browser automation with Puppeteer/Playwright
+- API orchestration for REST/GraphQL workflows
+- Idempotent job handling, priority queues, dead-letter routing, and concurrent processing
+
+### Frontend Layer (Next.js + React + Shadcn UI)
+
+- Visual node-based workflow builder
+- Real-time node connection validation
+- Nested logic groups and decision-tree visualization
+- Live preview and step-by-step debugging in sandbox mode
+- Monitoring dashboard with execution history, active run tracking, and diagnostics
+
+## Workflow Components
+
+### Browser Automation
+
+- Action recording for clicks, forms, navigation, scrolling, and screenshots
+- JavaScript injection for advanced page interaction and extraction
+- Data extraction pipelines for tables, lists, and unstructured text
+
+### Decision-Tree Logic
+
+- Conditional branching with nested groups and AND/OR combinations
+- Operator support for equality, numeric, boolean, regex, JSON path, and array membership
+- Switch statements, loop constructs, and parallel branch execution with merge points
+
+### Helper Utilities
+
+- Email, file operations, database actions, HTTP requests, and notification integrations
+- Extensible custom action model:
+
+\`\`\`csharp
+public interface IWorkflowAction {
+    Task<ActionResult> ExecuteAsync(ActionContext context);
+}
+\`\`\`
+
+## Scheduling and Execution
+
+- Cron expressions (for example, \`0 9 * * MON-FRI\`)
+- Interval-based schedules
+- Event-driven triggers via webhook
+- Manual execution with runtime parameter overrides
+- At-least-once delivery guarantees, timeout controls, and concurrency limits
+
+## State Management and Versioning
+
+- Immutable workflow versioning with rollback control
+- Checkpoint snapshots for resume-from-failure support
+- Execution context propagation across steps
+- Shared cross-workflow variables with TTL expiration
+- Audit trail with execution events, parameter snapshots, and change diffs
+
+## Integration and Extensibility
+
+- API-first workflow CRUD and execution control
+- Runtime variable injection and webhook registration
+- Plugin architecture for NuGet-packaged or containerized action modules
+
+## Technical Differentiators
+
+SurfSwift models workflows as composable graphs where nodes represent operations and edges define data flow. The queue-driven architecture decouples design-time definitions from runtime execution, enabling dynamic worker scaling. Browser automation plus JavaScript injection supports hybrid UI/API scenarios while versioning, rollback, and checkpoint recovery provide enterprise-grade reliability.
     `,
 		tech: [
-			".NET",
+			".NET Core",
 			".NET Worker Service",
 			"Next.js",
 			"React",
 			"Shadcn UI",
 			"Queue System",
 			"Cron",
-			"JavaScript Execution",
-			"Decision Tree",
-			"Nested Logic"
+			"JavaScript Execution"
 		],
 		icon: "Workflow",
 		links: {
 			repo: "https://github.com/JSM33T/SurfSwift",
 			live: ""
 		},
-		screenshots: [
-			"https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1600&q=80"
-		],
-		highlight: "Automation / Workflow",
-		coverImage: "https://cdn.jsm33t.com/media/project_covers/surfswift-automation.jpg"
+		screenshots: [],
+		highlight: "Intelligent Automation"
 	}
 	,
 	{
@@ -479,31 +594,32 @@ Together, these services form a comprehensive automation ecosystem—capable of 
 		],
 		highlight: "Orchestration",
 	},
-	{
-		title: "Document AI Chat RAG Workspace",
-		description: "Secure multi-user workspaces; indexing/retrieval via LangChain; master + doc-specific chats.",
-		details:
-			"RAG workspace with per-tenant isolation, ingest pipelines, chunking/metadata, and hybrid retrieval. Supports context-aware chats at global or document scope with guardrails.",
-		tech: ["Python", "FastAPI", "LangChain", "LLM", "MongoDB"],
-		icon: "BrainCircuit",
-		links: { repo: "", live: "" },
-		screenshots: [
-			"https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1507143550189-fed454f93097?auto=format&fit=crop&w=1600&q=80"
-		],
-		highlight: "RAG",
-	},
+
 	{
 		title: "FaceAuth – Biometric Auth with Liveness",
-		description: "OpenCV/Dlib face auth with tunable thresholds and real-time liveness detection.",
-		details:
-			"Implemented facial embeddings and active liveness checks (blink/motion cues) to mitigate spoofing. Integrates with .NET services and Angular clients for secure flows.",
+		description:
+			"OpenCV-powered face vector authentication with privacy-focused embedding matching and multi-layer anti-spoofing.",
+		details: `
+## Face Vector Authentication System
+
+### Description
+
+A robust facial authentication product powered entirely by OpenCV for both identity verification and advanced anti-spoofing. It stores compact face embedding vectors for privacy-preserving matching, while VLM integration flags environmental anomalies and sophisticated spoof attempts like masks or 3D models that evade traditional liveness checks.
+
+### Key Features
+
+- OpenCV-based face detection, alignment, and embedding extraction for enrollment and verification
+- Privacy-focused vector storage (multiple embeddings per user) with real-time similarity matching
+- Traditional OpenCV liveness detection using blink detection, head movement, and texture analysis
+- VLM-powered environment and spoof analysis to detect unusual lighting, backgrounds, masks, or 3D replicas
+- Multi-layer anti-spoofing combining motion analysis, texture verification, and scene context validation
+- Real-time authentication suitable for access control, banking, and high-security applications
+		`,
 		tech: ["Python", "OpenCV", ".NET", "Dlib", "Angular"],
 		icon: "Cpu",
 		links: { repo: "", live: "" },
 		screenshots: [
-			"https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=1600&q=80"
+            "/images/projects/face-biometric/1.jpg",
 		],
 		highlight: "Security",
 	},
@@ -516,8 +632,8 @@ Together, these services form a comprehensive automation ecosystem—capable of 
 		icon: "BrainCircuit",
 		links: { repo: "", live: "" },
 		screenshots: [
-			"https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=1600&q=80"
+			"/images/projects/face-biometric/1.png",
+            "/images/projects/face-biometric/1.png",
 		],
 		highlight: "NLP Ops",
 	}

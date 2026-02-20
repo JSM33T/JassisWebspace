@@ -90,13 +90,13 @@ export default function GalleryPage() {
                     {loading && (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {Array.from({ length: 6 }).map((_, index) => (
-                                <div key={index} className="relative overflow-hidden rounded-3xl border border-primary/50 bg-card/40">
-                                    <Skeleton className="aspect-[4/3] w-full rounded-none" />
-                                    <div className="absolute inset-x-0 bottom-0">
-                                        <div className="h-20 border-t border-white/15 bg-background/60 px-4 py-2.5 backdrop-blur-md">
-                                            <Skeleton className="mb-2 h-5 w-4/5" />
-                                            <Skeleton className="h-3.5 w-full" />
-                                        </div>
+                                <div key={index} className="h-full">
+                                    <div className="relative overflow-hidden rounded-3xl bg-card/40">
+                                        <Skeleton className="aspect-[4/3] w-full rounded-none" />
+                                    </div>
+                                    <div className="mt-3 rounded-2xl bg-background/60 px-4 py-3 backdrop-blur-md">
+                                        <Skeleton className="mb-2 h-5 w-3/4" />
+                                        <Skeleton className="h-3.5 w-full" />
                                     </div>
                                 </div>
                             ))}
@@ -139,7 +139,7 @@ export default function GalleryPage() {
                                     className="h-full"
                                 >
                                     <Link href={`/gallery/${album.slug}`} className="group block h-full">
-                                        <article className="relative aspect-[4/3] h-full overflow-hidden rounded-3xl border border-primary/50 bg-card/55 backdrop-blur-sm transition-all duration-300 hover:bg-card/75 hover:shadow-xl">
+                                        <article className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-card/55 backdrop-blur-sm transition-all duration-300 hover:bg-card/75 hover:shadow-xl">
                                             {album.cover ? (
                                                 <Image
                                                     src={album.cover}
@@ -151,7 +151,7 @@ export default function GalleryPage() {
                                                 />
                                             ) : (
                                                 <div className="flex h-full items-center justify-center bg-muted">
-                                                    <div className="rounded-2xl border bg-background/60 p-4">
+                                                    <div className="rounded-2xl bg-background/60 p-4">
                                                         <ImageIcon className="h-8 w-8 text-primary/80" />
                                                     </div>
                                                 </div>
@@ -167,22 +167,19 @@ export default function GalleryPage() {
                                                 {formatDate(album.createdAt)}
                                             </span>
 
-                                            <div className="absolute inset-x-0 bottom-0">
-                                                <div className="flex h-16 flex-col justify-center border-t border-primary/40 bg-gradient-to-t from-background/70 via-background/50 to-transparent px-4 py-2 backdrop-blur-md">
-                                                    <h3 className="line-clamp-1 text-lg font-semibold leading-tight tracking-tight text-foreground">
-                                                        {album.name}
-                                                    </h3>
-                                                    <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-muted-foreground">
-                                                        {album.description ||
-                                                            'A curated album exploring visual themes, composition, and creative direction.'}
-                                                    </p>
-                                                </div>
-                                            </div>
-
                                             <span className="absolute bottom-4 right-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-background/95 text-foreground shadow-lg">
                                                 <ArrowUpRight className="h-4 w-4" />
                                             </span>
                                         </article>
+                                        <div className="mt-3 rounded-2xl bg-background/60 px-4 py-3 backdrop-blur-md transition-colors duration-300 group-hover:bg-background/75">
+                                            <h3 className="line-clamp-1 text-lg font-semibold leading-tight tracking-tight text-foreground">
+                                                {album.name}
+                                            </h3>
+                                            <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-muted-foreground">
+                                                {album.description ||
+                                                    'A curated album exploring visual themes, composition, and creative direction.'}
+                                            </p>
+                                        </div>
                                     </Link>
                                 </motion.div>
                             ))}
