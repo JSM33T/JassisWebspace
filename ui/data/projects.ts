@@ -417,38 +417,40 @@ ResumeFlow provides structured candidate profiles, job-fit scoring, rule-based r
 		icon: "FileSearch",
 		links: { repo: "", live: "" },
 		screenshots: [
-			"https://images.unsplash.com/photo-1507143550189-fed454f93097?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=1600&q=80"
+			
 		],
 		highlight: "AI-Powered ATS & Resume Intelligence",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/resumeflow.jpg"
 	},
-
-	{
-		title: "Multi-level Hash-based Caching",
-		description: "Tiered in-memory/Redis cache with hashed keys, GET+POST support, and TTLs.",
-		details:
-			"Action-filter driven cache uses consistent hashing across request shapes (incl. POST bodies) with layered MemoryCache→Redis. Configurable TTLs and cache scopes accelerate dashboard APIs and reduce backend pressure.",
-		tech: [".NET", "MemoryCache", "Filters", "Redis", "MongoDB"],
-		icon: "Database",
-		links: { repo: "", live: "" },
-		screenshots: [
-			"https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=1600&q=80"
-		],
-		highlight: "Performance",
-	},
 	{
 		title: "CLI Wrapper based Device Control Suite",
-		description: ".NET CLI wrapper with advanced parsing to manage hardware and ZFS; NuGet for table parsing.",
-		details:
-			"Unified command execution with robust output parsers (errors, progress, tables). Replaced licensed tools, cutting costs. Ships as an app + NuGet package for dynamic table/kv parsing and audit logging.",
-		tech: [".NET", "Angular", "Bash", "Custom CLI Parsing"],
+		description:
+			"Linux workspace storage and ZFS partition management platform with a no-CLI workflow for operators.",
+		details: `
+## Overview
+
+A Linux workspace and storage control suite that abstracts complex system operations behind a UI/API-first experience. Operators manage storage and partitions without direct shell usage.
+
+## Core Capabilities
+
+- **Custom Linux Workspaces** - Create and manage tenant or project-specific workspaces with controlled storage boundaries.
+- **ZFS Partition Management** - Full lifecycle support for create, extend, snapshot, rollback, and destroy operations.
+- **No-CLI Workflow** - Users perform all actions through application flows instead of manual terminal commands.
+- **Safe Command Orchestration** - .NET orchestration layer validates and executes Linux operations with guardrails.
+- **Execution Observability** - Captures structured outputs including progress, errors, and tabular command results.
+
+## Operational Design
+
+- API/UI actions are translated into validated system operations.
+- Storage workflows include policy checks before mutating ZFS resources.
+- All actions are audit-logged for traceability and post-incident analysis.
+		`,
+		tech: [".NET", "Angular", "Linux", "ZFS", "Bash", "Custom CLI Parsing"],
 		icon: "Cloud",
 		links: { repo: "", live: "" },
 		screenshots: [
-			"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80"
+			// "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
+			// "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80"
 		],
 		highlight: "DevTools",
 		// coverImage omitted for this item (optional)
@@ -564,33 +566,43 @@ SurfSwift models workflows as composable graphs where nodes represent operations
 		},
 		screenshots: [],
 		highlight: "Intelligent Automation"
-	}
-	,
-	{
-		title: "ProjectAssist Suite – Standards & Assistance",
-		description: "Code standards validator + Outlook add-in for workflow automations.",
-		details:
-			"Enforces house style rules pre-commit/CI and provides an Outlook add-in for standardized templates, approvals, and macros to speed up official comms and reduce errors.",
-		tech: ["Office Add-in", "JavaScript", "HTML", "Outlook API"],
-		icon: "Github",
-		links: { repo: "", live: "" },
-		screenshots: [
-			"https://images.unsplash.com/photo-1454165205744-3b78555e5572?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80"
-		],
-		highlight: "Standards",
 	},
 	{
 		title: "Workflow Engine",
-		description: "Modular step-wise engine with RBAC; minimal config for complex flows.",
-		details:
-			"DAG/step pipeline with guards, compensations, and role-based visibility. Emphasis on observability, audit trails, and safe rollbacks for enterprise processes.",
-		tech: [".NET", "RBAC", "Modular Steps"],
+		description:
+			"Node-based workflow orchestration platform with actions, actors, role-mapped stages, and multi-stage execution control.",
+		details: `
+## Overview
+
+A configurable workflow engine built for enterprise process orchestration across multiple stages. It models business flows as visual nodes while enforcing role-based execution and actor ownership at each step.
+
+## Core Capabilities
+
+- **Action-Driven Flows** - Each node represents a discrete action (approval, validation, assignment, notification, automation, or integration task).
+- **Actor Assignment** - Supports actor-level ownership with user, team, and system actor mappings per stage.
+- **Role-Based Mapping** - RBAC policies define who can view, start, approve, reject, reassign, or escalate workflow steps.
+- **Multi-Stage Lifecycle** - Handles draft, review, approval, execution, and closure stages with transition guards and conditional branching.
+- **State and Audit Tracking** - Maintains status history, action logs, and stage-level traceability for compliance.
+
+## Flow Designer UI
+
+- **Node-Based Design** - Visual canvas for building workflows by connecting action nodes and transitions.
+- **Stage Modeling** - Configure stage entry/exit conditions, actor routing, and fallback paths.
+- **Validation Rules** - Prevent invalid transitions and enforce dependency/order constraints before publish.
+- **Versioned Publishing** - Save workflow revisions and deploy stable versions without breaking in-flight runs.
+
+## Execution Model
+
+- Event-driven progression between nodes based on action outcomes.
+- Role-aware task queues route pending steps to the correct actors.
+- Retry, timeout, and compensation handlers support resilient multi-stage operations.
+		`,
+		tech: [".NET", "RBAC", "Workflow Actions", "Actor Mapping", "Node-Based UI", "Multi-Stage Orchestration"],
 		icon: "Workflow",
 		links: { repo: "", live: "" },
 		screenshots: [
-			"https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80",
-			"https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80"
+			// "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80",
+			// "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80"
 		],
 		highlight: "Orchestration",
 	},
@@ -624,18 +636,50 @@ A robust facial authentication product powered entirely by OpenCV for both ident
 		highlight: "Security",
 	},
 	{
-		title: "Context-Aware Chatbot – Ticket Handling",
-		description: "NLP chatbot extracts intent/fields; auto-creates tickets; ~60% workload reduction.",
-		details:
-			"Pipeline parses intents, entities, and missing fields, generating JSON payloads and invoking actions. Includes fallback clarifications and audit events.",
-		tech: ["Python", "FastAPI", "LangChain", "LLM"],
+		title: "Context-Aware Chatbot - Ticket Handling",
+		description:
+			"Autonomous AI operations assistant integrating multi-LLM + VLM reasoning, NLP-first retrieval, and MCP server execution for complex workflows.",
+		details: `
+## Overview
+
+A context-aware chatbot platform designed for support and operational ticket handling. The system combines language, vision, and tool orchestration so requests can be understood, planned, and resolved with minimal manual intervention.
+
+## Core Capabilities
+
+- **Multi-LLM Integration** - Uses model routing across multiple LLMs for classification, planning, and response generation based on task type and cost profile.
+- **VLM Support** - Processes screenshots, scanned attachments, and UI images to extract visual context and include it in decision-making.
+- **NLP-Based Search for Token Efficiency** - Runs intent/entity detection and semantic retrieval before generation, reducing prompt size and improving token usage.
+- **Context Retention** - Maintains conversation memory, ticket history, and session state to handle long-running, multi-turn issue resolution.
+- **MCP Server Orchestration** - Invokes MCP-connected tools/services to execute complex actions end-to-end without human handoffs.
+
+## Architecture Highlights
+
+- Retrieval layer blends lexical NLP signals with semantic/vector retrieval for higher precision context injection.
+- Policy-driven orchestration selects the right model and tool path per task complexity.
+- Action traces and audit logs capture model decisions, tool calls, and final outcomes for governance.
+
+## Operational Outcomes
+
+- Faster ticket triage and resolution through autonomous task execution.
+- Lower token spend by grounding responses with focused retrieval context.
+- Better reliability on complex cases through combined LLM, VLM, and MCP workflows.
+		`,
+		tech: [
+			"Python",
+			"FastAPI",
+			"LangChain",
+			"LLM",
+			"Multi-LLM",
+			"VLM",
+			"NLP Search",
+			"MCP Servers"
+		],
 		icon: "BrainCircuit",
 		links: { repo: "", live: "" },
 		screenshots: [
-			"/images/projects/face-biometric/1.png",
-            "/images/projects/face-biometric/1.png",
+			
 		],
-		highlight: "NLP Ops",
+		highlight: "AI Ops",
 	}
 ];
 
