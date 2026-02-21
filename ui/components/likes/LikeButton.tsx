@@ -15,14 +15,14 @@ interface LikeButtonProps {
 }
 
 export function LikeButton({ contentId, initialCount, initialLiked }: LikeButtonProps) {
-    const { user } = useUser();
+    const { user, isAuthenticated } = useUser();
     const [likeCount, setLikeCount] = useState(initialCount);
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleToggleLike = async () => {
-        if (!user) {
-            toast.error('Please log in to like this post');
+        if (!isAuthenticated || !user?.login) {
+            toast.error('Login first to like or comment');
             return;
         }
 

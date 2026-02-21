@@ -31,6 +31,8 @@ export function CommentForm({
             await onSubmit(text);
             setText('');
             if (onCancel) onCancel();
+        } catch {
+            // Error toasts are handled by the parent callbacks.
         } finally {
             setIsSubmitting(false);
         }

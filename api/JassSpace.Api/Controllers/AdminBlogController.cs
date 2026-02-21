@@ -86,6 +86,7 @@ public sealed class AdminBlogController(
             await dbContext.SaveChangesAsync(cancellationToken);
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
 
             return OkEnvelope(new BlogCategoryResponse(
                 category.Id,
@@ -149,6 +150,7 @@ public sealed class AdminBlogController(
             await dbContext.SaveChangesAsync(cancellationToken);
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
 
             return OkEnvelope(new BlogCategoryResponse(
                 category.Id,
@@ -478,6 +480,7 @@ public sealed class AdminBlogController(
             if (createdBlog == null) return  Problem(StatusCodes.Status500InternalServerError, "Creation failed", "Could not retrieve created blog.");
 
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
 
             return Created($"/admin/blog/{blog.Id}", new ApiResponse<BlogDetailResponse>(createdBlog));
         }
@@ -712,6 +715,7 @@ public sealed class AdminBlogController(
             if (updatedBlog == null) return Problem(StatusCodes.Status500InternalServerError, "Update failed", "Could not retrieve updated blog.");
 
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
 
             return OkEnvelope(updatedBlog);
         }
@@ -777,6 +781,7 @@ public sealed class AdminBlogController(
             await dbContext.SaveChangesAsync(cancellationToken);
 
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
 
             return NoContent();
         }
