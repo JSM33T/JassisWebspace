@@ -76,7 +76,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // Register services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IBlogCategoryCacheService, BlogCategoryCacheService>();
+builder.Services.AddScoped<ICacheSubjectResolver, CacheSubjectResolver>();
+builder.Services.AddScoped<IRequestCacheKeyBuilder, RequestCacheKeyBuilder>();
+builder.Services.AddScoped<IHttpResponseCacheStore, HttpResponseCacheStore>();
 builder.Services.AddHttpClient();
 
 // Email Service Configuration
