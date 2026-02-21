@@ -1,4 +1,7 @@
+using JassSpace.Api.Configuration;
 using JassSpace.Api.Extensions;
+using JassSpace.Api.Filters;
+using JassSpace.Api.Services;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
@@ -23,7 +26,8 @@ public sealed class AdminBlogController(
     ILogger<AdminBlogController> logger,
     IAzureBlobStorageService blobStorageService,
     IImageProcessingService imageProcessingService,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    IHttpResponseCacheStore responseCacheStore)
     : BaseApiController
 {
     private const string BlogBlobPrefix = "blog/";
@@ -33,6 +37,7 @@ public sealed class AdminBlogController(
     /// Get all blog categories
     /// </summary>
     [HttpGet("categories")]
+    [CachedResponse(RedisCacheKeys.BlogCategory, TtlSeconds = 600, Scope = CacheScope.Anonymous, VaryByQuery = false)]
     [ProducesResponseType(typeof(ApiResponse<List<BlogCategoryResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategories(CancellationToken cancellationToken = default)
     {
@@ -79,6 +84,8 @@ public sealed class AdminBlogController(
 
             dbContext.BlogCategories.Add(category);
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
 
             return OkEnvelope(new BlogCategoryResponse(
                 category.Id,
@@ -140,6 +147,8 @@ public sealed class AdminBlogController(
             category.UpdatedAt = DateTimeOffset.UtcNow;
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
 
             return OkEnvelope(new BlogCategoryResponse(
                 category.Id,
@@ -468,6 +477,8 @@ public sealed class AdminBlogController(
             var createdBlog = await GetBlogWithDetails(blogId, cancellationToken);
             if (createdBlog == null) return  Problem(StatusCodes.Status500InternalServerError, "Creation failed", "Could not retrieve created blog.");
 
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+
             return Created($"/admin/blog/{blog.Id}", new ApiResponse<BlogDetailResponse>(createdBlog));
         }
         catch (Exception ex)
@@ -699,6 +710,8 @@ public sealed class AdminBlogController(
             var updatedBlog = await GetBlogWithDetails(id, cancellationToken);
             if (updatedBlog == null) return Problem(StatusCodes.Status500InternalServerError, "Update failed", "Could not retrieve updated blog.");
 
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+
             return OkEnvelope(updatedBlog);
         }
         catch (Exception ex)
@@ -761,6 +774,8 @@ public sealed class AdminBlogController(
 
             dbContext.Blogs.Remove(blog);
             await dbContext.SaveChangesAsync(cancellationToken);
+
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
 
             return NoContent();
         }

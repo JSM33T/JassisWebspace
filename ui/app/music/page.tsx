@@ -14,6 +14,13 @@ import { musicService } from '@/lib/api/music.service';
 import { MusicTrack } from '@/lib/api/music.types';
 import { toast } from 'sonner';
 
+const CATEGORY_ORDER = ['remixes', 'originals', 'snippets', 'radio/features', 'radio-features', 'features'];
+
+const getCategoryRank = (category: string) => {
+    const rank = CATEGORY_ORDER.indexOf(category);
+    return rank === -1 ? CATEGORY_ORDER.length : rank;
+};
+
 export default function MusicPage() {
     const router = useRouter();
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -23,15 +30,32 @@ export default function MusicPage() {
     const { playTrack } = useTrackPlayer();
 
     const categories = useMemo(
-        () => ['all', ...Array.from(new Set(tracks.map((track) => track.category)))],
+        () => {
+            const uniqueCategories = Array.from(new Set(tracks.map((track) => track.category)));
+            const sortedCategories = uniqueCategories.sort((a, b) => {
+                const rankDiff = getCategoryRank(a) - getCategoryRank(b);
+                if (rankDiff !== 0) {
+                    return rankDiff;
+                }
+
+                return a.localeCompare(b);
+            });
+
+            return [...sortedCategories, 'all'];
+        },
         [tracks]
     );
 
     const filteredTracks = useMemo(
-        () =>
-            selectedCategory === 'all'
-                ? tracks
-                : tracks.filter((track) => track.category === selectedCategory),
+        () => {
+            if (selectedCategory === 'all') {
+                return [...tracks].sort(
+                    (a, b) => getCategoryRank(a.category) - getCategoryRank(b.category)
+                );
+            }
+
+            return tracks.filter((track) => track.category === selectedCategory);
+        },
         [selectedCategory, tracks]
     );
 
@@ -61,11 +85,16 @@ export default function MusicPage() {
         };
     }, []);
 
-    const formatCategory = (value: string) =>
-        value
+    const formatCategory = (value: string) => {
+        if (value === 'features' || value === 'radio/features' || value === 'radio-features') {
+            return 'Radio/Features';
+        }
+
+        return value
             .split('-')
             .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
             .join(' ');
+    };
 
     const handlePlay = async (track: MusicTrack) => {
         if (!track.hasPlayableSource) {

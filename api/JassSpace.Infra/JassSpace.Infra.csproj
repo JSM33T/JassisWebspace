@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.3" />
@@ -15,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\JassSpace.Contracts\JassSpace.Contracts.csproj" />
     <ProjectReference Include="..\JassSpace.Data\JassSpace.Data.csproj" />
     <ProjectReference Include="..\JassSpace.Entities\JassSpace.Entities.csproj" />
     <ProjectReference Include="..\JassSpace.Repositories\JassSpace.Repositories.csproj" />

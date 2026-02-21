@@ -1,4 +1,7 @@
 using JassSpace.Api.Extensions;
+using JassSpace.Api.Filters;
+using JassSpace.Api.Services;
+using JassSpace.Api.Configuration;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
@@ -15,7 +18,8 @@ namespace JassSpace.Api.Controllers;
 [Route("blog")]
 public sealed class BlogController(
     JassSpaceDbContext dbContext,
-    ILogger<BlogController> logger)
+    ILogger<BlogController> logger,
+    IHttpResponseCacheStore responseCacheStore)
     : BaseApiController
 {
     private const string BlogBlobPrefix = "blog/";
@@ -25,6 +29,7 @@ public sealed class BlogController(
     /// Gets all published blogs with optional filters (search, date range, category).
     /// </summary>
     [HttpGet]
+    [CachedResponse(RedisCacheKeys.BlogList, TtlSeconds = 120, Scope = CacheScope.UserOrAnonymous, VaryByQuery = true)]
     [ProducesResponseType(typeof(ApiResponse<List<BlogListItemResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBlogs(
         [FromQuery] string? search,
@@ -206,12 +211,14 @@ public sealed class BlogController(
     /// Gets all blog categories.
     /// </summary>
     [HttpGet("categories")]
+    [CachedResponse(RedisCacheKeys.BlogCategory, TtlSeconds = 600, Scope = CacheScope.Anonymous, VaryByQuery = false)]
     [ProducesResponseType(typeof(ApiResponse<List<BlogCategoryResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategories(CancellationToken cancellationToken = default)
     {
         try
         {
             var categories = await dbContext.BlogCategories
+                .AsNoTracking()
                 .OrderBy(c => c.Name)
                 .Select(c => new BlogCategoryResponse(
                     c.Id,
@@ -443,6 +450,8 @@ public sealed class BlogController(
                 ))
                 .FirstAsync(cancellationToken);
 
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+
             return OkEnvelope(createdBlog with { FeaturedImage = NormalizeBlogMediaUrl(createdBlog.FeaturedImage) });
         }
         catch (Exception ex)
@@ -495,6 +504,9 @@ public sealed class BlogController(
                 category.CreatedAt,
                 category.UpdatedAt
             );
+
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
 
             return OkEnvelope(response);
         }
