@@ -4,11 +4,14 @@ using JassSpace.Api.Extensions; // Custom CORS
 using JassSpace.Api.Middleware; // CorrelationIdMiddleware
 using JassSpace.Api.Services;
 using JassSpace.Contracts.Interfaces;
+using JassSpace.Data;
 using JassSpace.Infra;
 using JassSpace.Infra.Configuration;
 using JassSpace.Repositories;
 using JassSpace.Services;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Serilog;
 using Serilog.Exceptions;
 
@@ -46,6 +49,20 @@ builder.Services.AddCustomCors();
 
 // --- Rate limiting ---
 builder.Services.AddMemoryCache();
+builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection(RedisSettings.SectionName));
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+if (string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    throw new InvalidOperationException("Missing required configuration: ConnectionStrings:Redis");
+}
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnectionString;
+    options.InstanceName = builder.Configuration.GetValue<string>($"{RedisSettings.SectionName}:{nameof(RedisSettings.InstanceName)}");
+});
+builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection("RateLimiting"));
 builder.Services.AddScoped<IRateLimiterService, RateLimiterService>();
@@ -59,6 +76,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // Register services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IBlogCategoryCacheService, BlogCategoryCacheService>();
 builder.Services.AddHttpClient();
 
 // Email Service Configuration
@@ -132,7 +150,8 @@ app.MapControllers();
 try
 {
     Log.Information("Starting JassSpace.Api...");
-    app.Run();
+    await ValidateStartupDependenciesAsync(app);
+    await app.RunAsync();
 }
 catch (Exception ex)
 {
@@ -141,4 +160,50 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+static async Task ValidateStartupDependenciesAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var serviceProvider = scope.ServiceProvider;
+    var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.DependencyChecks");
+
+    logger.LogInformation("Running startup dependency checks.");
+
+    var dbContext = serviceProvider.GetRequiredService<JassSpaceDbContext>();
+    logger.LogInformation("Checking database connectivity.");
+
+    var canConnectToDatabase = await dbContext.Database.CanConnectAsync();
+    if (!canConnectToDatabase)
+    {
+        logger.LogCritical("Database connectivity check failed. Application startup aborted.");
+        throw new InvalidOperationException("Database connectivity check failed.");
+    }
+
+    logger.LogInformation("Database connectivity check passed.");
+
+    var cache = serviceProvider.GetRequiredService<IDistributedCache>();
+    var redisProbeKey = $"startup:redis:probe:{Guid.NewGuid():N}";
+    var redisProbeValue = DateTimeOffset.UtcNow.ToString("O");
+
+    logger.LogInformation("Checking Redis connectivity.");
+    await cache.SetStringAsync(
+        redisProbeKey,
+        redisProbeValue,
+        new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+        });
+
+    var redisValue = await cache.GetStringAsync(redisProbeKey);
+    await cache.RemoveAsync(redisProbeKey);
+
+    if (!string.Equals(redisValue, redisProbeValue, StringComparison.Ordinal))
+    {
+        logger.LogCritical("Redis connectivity check failed. Application startup aborted.");
+        throw new InvalidOperationException("Redis connectivity check failed.");
+    }
+
+    logger.LogInformation("Redis connectivity check passed.");
+    logger.LogInformation("All startup dependency checks passed.");
 }

@@ -1,4 +1,5 @@
 using JassSpace.Api.Extensions;
+using JassSpace.Api.Services;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
@@ -23,7 +24,8 @@ public sealed class AdminBlogController(
     ILogger<AdminBlogController> logger,
     IAzureBlobStorageService blobStorageService,
     IImageProcessingService imageProcessingService,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    IBlogCategoryCacheService blogCategoryCacheService)
     : BaseApiController
 {
     private const string BlogBlobPrefix = "blog/";
@@ -36,20 +38,10 @@ public sealed class AdminBlogController(
     [ProducesResponseType(typeof(ApiResponse<List<BlogCategoryResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategories(CancellationToken cancellationToken = default)
     {
-        var categories = await dbContext.BlogCategories
-            .AsNoTracking()
-            .OrderBy(c => c.Name)
-            .Select(c => new BlogCategoryResponse(
-                c.Id,
-                c.Name,
-                c.Slug,
-                c.Description,
-                c.CreatedAt,
-                c.UpdatedAt
-            ))
-            .ToListAsync(cancellationToken);
-
-        return OkEnvelope(categories);
+        var cacheResult = await blogCategoryCacheService.GetCategoriesAsync(cancellationToken);
+        return OkEnvelope(
+            cacheResult.Data,
+            isFromCache: cacheResult.IsFromCache ? true : null);
     }
 
     [HttpPost("categories")]
@@ -79,6 +71,7 @@ public sealed class AdminBlogController(
 
             dbContext.BlogCategories.Add(category);
             await dbContext.SaveChangesAsync(cancellationToken);
+            await blogCategoryCacheService.InvalidateAsync(cancellationToken);
 
             return OkEnvelope(new BlogCategoryResponse(
                 category.Id,
@@ -140,6 +133,7 @@ public sealed class AdminBlogController(
             category.UpdatedAt = DateTimeOffset.UtcNow;
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            await blogCategoryCacheService.InvalidateAsync(cancellationToken);
 
             return OkEnvelope(new BlogCategoryResponse(
                 category.Id,

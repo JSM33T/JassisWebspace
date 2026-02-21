@@ -1,4 +1,5 @@
 using JassSpace.Api.Extensions;
+using JassSpace.Api.Services;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
@@ -15,7 +16,8 @@ namespace JassSpace.Api.Controllers;
 [Route("blog")]
 public sealed class BlogController(
     JassSpaceDbContext dbContext,
-    ILogger<BlogController> logger)
+    ILogger<BlogController> logger,
+    IBlogCategoryCacheService blogCategoryCacheService)
     : BaseApiController
 {
     private const string BlogBlobPrefix = "blog/";
@@ -211,19 +213,10 @@ public sealed class BlogController(
     {
         try
         {
-            var categories = await dbContext.BlogCategories
-                .OrderBy(c => c.Name)
-                .Select(c => new BlogCategoryResponse(
-                    c.Id,
-                    c.Name,
-                    c.Slug,
-                    c.Description,
-                    c.CreatedAt,
-                    c.UpdatedAt
-                ))
-                .ToListAsync(cancellationToken);
-
-            return OkEnvelope(categories);
+            var cacheResult = await blogCategoryCacheService.GetCategoriesAsync(cancellationToken);
+            return OkEnvelope(
+                cacheResult.Data,
+                isFromCache: cacheResult.IsFromCache ? true : null);
         }
         catch (Exception ex)
         {
@@ -495,6 +488,8 @@ public sealed class BlogController(
                 category.CreatedAt,
                 category.UpdatedAt
             );
+
+            await blogCategoryCacheService.InvalidateAsync(cancellationToken);
 
             return OkEnvelope(response);
         }

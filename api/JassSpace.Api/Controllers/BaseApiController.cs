@@ -202,20 +202,30 @@ public abstract class BaseApiController : ControllerBase
     /// <summary>
     /// Returns a 200 OK response with a standardized <see cref="ApiResponse{T}"/>.
     /// </summary>
-    protected IActionResult OkEnvelope<T>(T data, object? meta = null)
-        => Ok(new ApiResponse<T>(data, meta));
+    protected IActionResult OkEnvelope<T>(T data, object? meta = null, bool? isFromCache = null)
+        => Ok(new ApiResponse<T>(data, meta, isFromCache));
 
     /// <summary>
     /// Returns a 201 Created response with a standardized <see cref="ApiResponse{T}"/>.
     /// </summary>
-    protected IActionResult CreatedEnvelope<T>(string routeName, object routeValues, T data, object? meta = null)
-        => CreatedAtRoute(routeName, routeValues, new ApiResponse<T>(data, meta));
+    protected IActionResult CreatedEnvelope<T>(
+        string routeName,
+        object routeValues,
+        T data,
+        object? meta = null,
+        bool? isFromCache = null)
+        => CreatedAtRoute(routeName, routeValues, new ApiResponse<T>(data, meta, isFromCache));
 
     /// <summary>
     /// Returns a 200 OK response with a paged <see cref="ApiResponse{T}"/>.
     /// </summary>
-    protected IActionResult PagedOk<T>(IReadOnlyCollection<T> items, int page, int pageSize, long total)
-        => Ok(new ApiResponse<IReadOnlyCollection<T>>(items, new PagedMeta(page, pageSize, total)));
+    protected IActionResult PagedOk<T>(
+        IReadOnlyCollection<T> items,
+        int page,
+        int pageSize,
+        long total,
+        bool? isFromCache = null)
+        => Ok(new ApiResponse<IReadOnlyCollection<T>>(items, new PagedMeta(page, pageSize, total), isFromCache));
 
     // -------- Utilities --------
 
