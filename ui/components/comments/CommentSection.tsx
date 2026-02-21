@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { commentService } from '@/lib/api/comment.service';
 import { CommentResponse, CommentNode } from '@/lib/api/comment.types';
@@ -16,15 +16,20 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ contentId }: CommentSectionProps) {
-    const { user } = useUser();
+    const { user, isAuthenticated } = useUser();
     const [comments, setComments] = useState<CommentResponse[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadComments();
-    }, [contentId]);
+    const ensureAuthenticated = () => {
+        if (!isAuthenticated || !user?.login) {
+            toast.error('Login first to like or comment');
+            return false;
+        }
 
-    const loadComments = async () => {
+        return true;
+    };
+
+    const loadComments = useCallback(async () => {
         try {
             setLoading(true);
             const data = await commentService.getComments(contentId);
@@ -35,7 +40,11 @@ export function CommentSection({ contentId }: CommentSectionProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [contentId]);
+
+    useEffect(() => {
+        loadComments();
+    }, [loadComments]);
 
     const commentTree = useMemo(() => {
         const map = new Map<string, CommentNode>();
@@ -68,6 +77,10 @@ export function CommentSection({ contentId }: CommentSectionProps) {
     }, [comments]);
 
     const handleCreateComment = async (text: string) => {
+        if (!ensureAuthenticated()) {
+            throw new Error('Authentication required to comment');
+        }
+
         try {
             const newComment = await commentService.createComment({
                 contentId,
@@ -83,6 +96,10 @@ export function CommentSection({ contentId }: CommentSectionProps) {
     };
 
     const handleReply = async (parentId: string, text: string) => {
+        if (!ensureAuthenticated()) {
+            throw new Error('Authentication required to reply');
+        }
+
         try {
             const newComment = await commentService.createComment({
                 contentId,
@@ -99,6 +116,10 @@ export function CommentSection({ contentId }: CommentSectionProps) {
     };
 
     const handleEdit = async (id: string, text: string) => {
+        if (!ensureAuthenticated()) {
+            throw new Error('Authentication required to edit');
+        }
+
         try {
             const updatedComment = await commentService.updateComment(id, { text });
             setComments(prev => prev.map(c => c.id === id ? updatedComment : c));
@@ -123,6 +144,10 @@ export function CommentSection({ contentId }: CommentSectionProps) {
     };
 
     const handleDelete = async (id: string) => {
+        if (!ensureAuthenticated()) {
+            throw new Error('Authentication required to delete');
+        }
+
         try {
             await commentService.deleteComment(id);
 
@@ -156,7 +181,7 @@ export function CommentSection({ contentId }: CommentSectionProps) {
                 Comments ({comments.length})
             </h2>
 
-            {user ? (
+            {isAuthenticated ? (
                 <div className="mb-8">
                     <CommentForm onSubmit={handleCreateComment} />
                 </div>

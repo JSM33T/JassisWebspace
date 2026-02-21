@@ -451,6 +451,7 @@ public sealed class BlogController(
                 .FirstAsync(cancellationToken);
 
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
 
             return OkEnvelope(createdBlog with { FeaturedImage = NormalizeBlogMediaUrl(createdBlog.FeaturedImage) });
         }
@@ -507,6 +508,7 @@ public sealed class BlogController(
 
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
             await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
 
             return OkEnvelope(response);
         }

@@ -19,7 +19,7 @@ namespace JassSpace.Api.Extensions
         /// requests from trusted frontend origins.
         /// 
         /// Allowed hosts:
-        /// - jassspace.com and any subdomain (*.jassspace.com)
+        /// - jassi.me and any subdomain (*.jassi.me)
         /// - localhost and 127.0.0.1 (any port)
         /// - any Azure Dev Tunnel host (*.devtunnels.ms)
         /// 
@@ -42,7 +42,7 @@ namespace JassSpace.Api.Extensions
                             {
                                 var host = new Uri(origin).Host;
 
-                                // Production: root + subdomains of jassspace.com
+                                // Production: root + subdomains of jassi.com
                                 if (host.Equals("jassi.me", StringComparison.OrdinalIgnoreCase)) return true;
                                 if (host.EndsWith(".jassi.me", StringComparison.OrdinalIgnoreCase)) return true;
 

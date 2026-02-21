@@ -4,4 +4,5 @@ public static class RedisCacheKeys
 {
     public const string BlogCategory = "blogcategory";
     public const string BlogList = "bloglist";
+    public const string BlogSeo = "blogseo";
 }

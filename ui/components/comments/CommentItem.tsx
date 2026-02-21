@@ -6,7 +6,7 @@ import { CommentNode } from '@/lib/api/comment.types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { MoreVertical, Reply, Trash2, Edit2 } from 'lucide-react';
-import { useUser, userHelpers } from '@/contexts/UserContext';
+import { useUser } from '@/contexts/UserContext';
 import { CommentForm } from './CommentForm';
 import {
     DropdownMenu,
@@ -15,6 +15,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils'; // Assuming utils exists, otherwise I'll mock/check
+import { toast } from 'sonner';
 
 interface CommentItemProps {
     comment: CommentNode;
@@ -31,7 +32,7 @@ export function CommentItem({
     onDelete,
     depth = 0
 }: CommentItemProps) {
-    const { user } = useUser();
+    const { user, isAuthenticated } = useUser();
     const [isReplying, setIsReplying] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -48,6 +49,15 @@ export function CommentItem({
     const handleReply = async (text: string) => {
         await onReply(comment.id, text);
         setIsReplying(false);
+    };
+
+    const handleStartReply = () => {
+        if (!isAuthenticated || !user?.login) {
+            toast.error('Login first to like or comment');
+            return;
+        }
+
+        setIsReplying(true);
     };
 
     const handleEdit = async (text: string) => {
@@ -74,7 +84,7 @@ export function CommentItem({
                             </span>
                         </div>
 
-                        {(canModify || user) && (
+                        {(canModify || isAuthenticated) && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -83,8 +93,8 @@ export function CommentItem({
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {user && (
-                                        <DropdownMenuItem onClick={() => setIsReplying(!isReplying)}>
+                                    {isAuthenticated && (
+                                        <DropdownMenuItem onClick={handleStartReply}>
                                             <Reply className="mr-2 h-4 w-4" />
                                             Reply
                                         </DropdownMenuItem>
@@ -134,7 +144,7 @@ export function CommentItem({
                                 variant="ghost"
                                 size="sm"
                                 className="h-auto p-0 text-muted-foreground hover:text-foreground text-xs"
-                                onClick={() => setIsReplying(true)}
+                                onClick={handleStartReply}
                             >
                                 <Reply className="mr-2 h-3 w-3" />
                                 Reply
