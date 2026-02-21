@@ -222,8 +222,9 @@ export function BlogForm({ initialData }: BlogFormProps) {
 
             if (selectedImage) {
                 try {
-                    // Upload image with blogId as filename
-                    const { url } = await adminBlogService.uploadImage(selectedImage, blogId);
+                    // Use a unique file name per upload so cover URL changes immediately.
+                    const coverFileName = `blog-cover-${blogId}-${Date.now()}`;
+                    const { url } = await adminBlogService.uploadImage(selectedImage, coverFileName);
                     featuredImageUrl = url;
                 } catch (error) {
                     console.error("Failed to upload image", error);

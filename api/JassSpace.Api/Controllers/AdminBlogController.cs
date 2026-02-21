@@ -536,16 +536,17 @@ public sealed class AdminBlogController(
             
             blog.Title = request.Title;
 
-            // Handle Image Update - Delete old image if changed
-            if (request.FeaturedImage != blog.FeaturedImage && !string.IsNullOrWhiteSpace(blog.FeaturedImage))
+            var normalizedFeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage);
+            var existingFeaturedBlobName = ExtractBlogBlobNameFromMediaUrl(blog.FeaturedImage);
+            var incomingFeaturedBlobName = ExtractBlogBlobNameFromMediaUrl(normalizedFeaturedImage);
+
+            // Delete previous featured image only when blob identity actually changes.
+            if (!string.IsNullOrWhiteSpace(existingFeaturedBlobName) &&
+                !string.Equals(existingFeaturedBlobName, incomingFeaturedBlobName, StringComparison.OrdinalIgnoreCase))
             {
-                try 
+                try
                 {
-                    var oldFeaturedBlobName = ExtractBlogBlobNameFromMediaUrl(blog.FeaturedImage);
-                    if (!string.IsNullOrWhiteSpace(oldFeaturedBlobName))
-                    {
-                        await blobStorageService.DeleteBlobAsync(oldFeaturedBlobName, cancellationToken);
-                    }
+                    await blobStorageService.DeleteBlobAsync(existingFeaturedBlobName, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -556,7 +557,7 @@ public sealed class AdminBlogController(
 
             blog.Excerpt = request.Excerpt;
             blog.Content = request.Content;
-            blog.FeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage);
+            blog.FeaturedImage = normalizedFeaturedImage;
             blog.CategoryId = request.CategoryId;
             
             // Handle Publishing logic
