@@ -50,8 +50,8 @@ async function parseErrorResponse(response: Response): Promise<ProblemDetails> {
     const contentType = response.headers.get('content-type');
     if (contentType?.includes('application/json') || contentType?.includes('application/problem+json')) {
         try {
-            const problemDetails = await response.json();
-            return problemDetails as ProblemDetails;
+            const payload = await response.json();
+            return normalizeProblemDetails(payload, response);
         } catch {
             // Fallback
         }
@@ -62,6 +62,87 @@ async function parseErrorResponse(response: Response): Promise<ProblemDetails> {
         detail: await response.text().catch(() => undefined),
         type: 'about:blank',
     };
+}
+
+function normalizeProblemDetails(payload: unknown, response: Response): ProblemDetails {
+    const fallbackTitle = response.statusText || 'An error occurred';
+    const base: ProblemDetails = {
+        status: response.status,
+        title: fallbackTitle,
+        type: 'about:blank',
+    };
+
+    if (!payload || typeof payload !== 'object') {
+        return base;
+    }
+
+    const source = payload as Record<string, unknown>;
+    const envelopeData = source.data && typeof source.data === 'object'
+        ? source.data as Record<string, unknown>
+        : undefined;
+
+    const title =
+        pickString(source.title) ??
+        pickString(envelopeData?.title) ??
+        fallbackTitle;
+
+    const detail =
+        pickString(source.detail) ??
+        pickString(envelopeData?.detail) ??
+        pickString(source.message) ??
+        pickString(envelopeData?.message) ??
+        pickString(source.error) ??
+        pickString(envelopeData?.error) ??
+        extractValidationError(source.errors) ??
+        extractValidationError(envelopeData?.errors);
+
+    const status =
+        pickNumber(source.status) ??
+        pickNumber(envelopeData?.status) ??
+        response.status;
+
+    const type =
+        pickString(source.type) ??
+        pickString(envelopeData?.type) ??
+        'about:blank';
+
+    const instance =
+        pickString(source.instance) ??
+        pickString(envelopeData?.instance);
+
+    return {
+        ...base,
+        ...source,
+        ...(envelopeData ?? {}),
+        status,
+        title,
+        detail,
+        type,
+        instance,
+    };
+}
+
+function pickString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
+function pickNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function extractValidationError(errors: unknown): string | undefined {
+    if (!errors || typeof errors !== 'object') {
+        return undefined;
+    }
+
+    const entries = Object.values(errors as Record<string, unknown>);
+    for (const entry of entries) {
+        if (Array.isArray(entry) && entry.length > 0 && typeof entry[0] === 'string') {
+            return entry[0];
+        }
+    }
+
+    return undefined;
 }
 
 async function fetchWithTimeout(url: string, config: RequestConfig): Promise<Response> {
@@ -204,29 +285,33 @@ async function request<T>(endpoint: string, config: RequestConfig = {}, isRetry:
             headers,
         });
 
-        // Handle 401 Unauthorized with token refresh
-        if (!response.ok && response.status === 401 && !isRetry && endpoint !== '/auth/refresh') {
-            console.log('🔄 Got 401, attempting token refresh...');
+        // Handle 401 Unauthorized with token refresh on protected endpoints only.
+        const isAuthEntryPoint =
+            endpoint === '/auth/login' ||
+            endpoint === '/auth/register' ||
+            endpoint === '/auth/verify-email' ||
+            endpoint === '/auth/resend-verification' ||
+            endpoint === '/auth/forgot-password' ||
+            endpoint === '/auth/reset-password' ||
+            endpoint === '/auth/refresh';
+
+        if (!response.ok && response.status === 401 && !isRetry && !isAuthEntryPoint) {
+            console.log('Attempting token refresh after 401 response...');
 
             try {
                 const newAccessToken = await refreshAccessToken();
 
                 if (newAccessToken) {
-                    // Retry the original request with new token
-                    console.log('✅ Token refreshed, retrying original request');
+                    console.log('Token refreshed, retrying original request');
                     return request<T>(endpoint, { ...config, token: newAccessToken }, true);
-                } else {
-                    // Refresh failed, throw the original 401 error
-                    console.log('❌ Token refresh failed, throwing 401 error');
-                    const problemDetails = await parseErrorResponse(response);
-                    throw new ApiError(response.status, problemDetails, response);
                 }
             } catch (refreshError) {
-                console.error('❌ Token refresh threw error:', refreshError);
-                // If refresh fails, throw the original 401 error
-                const problemDetails = await parseErrorResponse(response);
-                throw new ApiError(response.status, problemDetails, response);
+                console.error('Token refresh threw error:', refreshError);
             }
+
+            console.log('Token refresh failed, throwing original 401 error');
+            const problemDetails = await parseErrorResponse(response);
+            throw new ApiError(response.status, problemDetails, response);
         }
 
         if (!response.ok) {
@@ -272,12 +357,12 @@ export async function get<T>(endpoint: string, config: RequestConfig = {}): Prom
     return request<T>(endpoint, { ...config, method: 'GET' });
 }
 
-export async function post<T, D = any>(endpoint: string, data?: D, config: RequestConfig = {}): Promise<T> {
+export async function post<T, D = unknown>(endpoint: string, data?: D, config: RequestConfig = {}): Promise<T> {
     const isFormData = data instanceof FormData;
     return request<T>(endpoint, {
         ...config,
         method: 'POST',
-        body: isFormData ? (data as any) : (data ? JSON.stringify(data) : undefined),
+        body: isFormData ? (data as BodyInit) : (data ? JSON.stringify(data) : undefined),
         headers: {
             ...config.headers,
             ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
@@ -285,12 +370,12 @@ export async function post<T, D = any>(endpoint: string, data?: D, config: Reque
     });
 }
 
-export async function put<T, D = any>(endpoint: string, data?: D, config: RequestConfig = {}): Promise<T> {
+export async function put<T, D = unknown>(endpoint: string, data?: D, config: RequestConfig = {}): Promise<T> {
     const isFormData = data instanceof FormData;
     return request<T>(endpoint, {
         ...config,
         method: 'PUT',
-        body: isFormData ? (data as any) : (data ? JSON.stringify(data) : undefined),
+        body: isFormData ? (data as BodyInit) : (data ? JSON.stringify(data) : undefined),
         headers: {
             ...config.headers,
             ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
@@ -313,3 +398,4 @@ export const api = {
 export const apiClient = api;
 
 export default api;
+

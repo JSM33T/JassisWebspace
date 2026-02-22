@@ -43,8 +43,8 @@ public sealed class AuthController(
     [HttpPost("login")]
     [RateLimit("auth-login", Partition = RateLimitPartitionStrategy.IpAddress)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<ProblemDetails>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<ProblemDetails>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Login attempt for {EmailOrUsername} with CorrelationId {CorrelationId}",
@@ -62,33 +62,33 @@ public sealed class AuthController(
             if (user == null)
             {
                 logger.LogWarning("Login failed: User not found for {EmailOrUsername}", request.EmailOrUsername);
-                return UnauthorizedProblem("Invalid email/username or password");
+                return UnauthorizedProblemEnvelope("Invalid email/username or password");
             }
 
             if (user.DeletedAt.HasValue)
             {
                 logger.LogWarning("Login failed: User deleted {UserId}", user.Id);
-                return UnauthorizedProblem("Invalid email/username or password");
+                return UnauthorizedProblemEnvelope("Invalid email/username or password");
             }
 
             if (!user.IsActive)
             {
                 logger.LogWarning("Login failed: User inactive {UserId}", user.Id);
-                return UnauthorizedProblem("Your account has been deactivated. Please contact support.");
+                return UnauthorizedProblemEnvelope("Your account has been deactivated. Please contact support.");
             }
 
             // Verify password (in production, use proper password hashing like BCrypt)
             if (!VerifyPassword(request.Password, user.PasswordHash))
             {
                 logger.LogWarning("Login failed: Invalid password for user {UserId}", user.Id);
-                return UnauthorizedProblem("Invalid email or password");
+                return UnauthorizedProblemEnvelope("Invalid email or password");
             }
 
             // Check if email is verified
             if (!user.EmailVerified)
             {
                 logger.LogWarning("Login failed: Email not verified for user {UserId}", user.Id);
-                return UnauthorizedProblem("Please verify your email before logging in");
+                return UnauthorizedProblemEnvelope("Please verify your email before logging in");
             }
 
             // Create session
@@ -151,7 +151,7 @@ public sealed class AuthController(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error during login for {EmailOrUsername}", request.EmailOrUsername);
-            return Problem(
+            return ProblemEnvelope(
                 statusCode: StatusCodes.Status500InternalServerError,
                 title: "Internal Server Error",
                 detail: "An error occurred while processing your request");

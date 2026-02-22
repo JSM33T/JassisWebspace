@@ -108,6 +108,13 @@ public abstract class BaseApiController : ControllerBase
         => Problem(StatusCodes.Status401Unauthorized, title, detail);
 
     /// <summary>
+    /// Returns a <see cref="ProblemDetails"/> response wrapped in a standardized
+    /// <see cref="ApiResponse{T}"/> envelope.
+    /// </summary>
+    protected IActionResult UnauthorizedProblemEnvelope(string title = "Unauthorized", string? detail = null)
+        => ProblemEnvelope(StatusCodes.Status401Unauthorized, title, detail);
+
+    /// <summary>
     /// Returns a <see cref="ProblemDetails"/> response with 429 Too Many Requests (RFC 6585).
     /// Applies standard rate-limit headers when a decision is provided.
     /// </summary>
@@ -162,29 +169,32 @@ public abstract class BaseApiController : ControllerBase
         string? instance = null,
         IDictionary<string, object?>? extensions = null)
     {
-        var pd = new ProblemDetails
-        {
-            Status = statusCode,
-            Title = title,
-            Detail = detail,
-            Type = type,
-            Instance = instance ?? HttpContext.Request.Path
-        };
-
-        if (extensions is not null)
-        {
-            foreach (var kvp in extensions)
-                pd.Extensions[kvp.Key] = kvp.Value;
-        }
-
-        // Always echo correlation/request IDs if present
-        if (!string.IsNullOrWhiteSpace(RequestId)) pd.Extensions[nameof(RequestId)] = RequestId;
-        if (!string.IsNullOrWhiteSpace(CorrelationId)) pd.Extensions[nameof(CorrelationId)] = CorrelationId;
+        var pd = CreateProblemDetails(statusCode, title, detail, type, instance, extensions);
 
         return new ObjectResult(pd)
         {
             StatusCode = statusCode,
             ContentTypes = { "application/problem+json" }
+        };
+    }
+
+    /// <summary>
+    /// Creates a <see cref="ProblemDetails"/> envelope response using <see cref="ApiResponse{T}"/>.
+    /// </summary>
+    protected IActionResult ProblemEnvelope(
+        int statusCode,
+        string title,
+        string? detail = null,
+        string? type = "about:blank",
+        string? instance = null,
+        IDictionary<string, object?>? extensions = null)
+    {
+        var pd = CreateProblemDetails(statusCode, title, detail, type, instance, extensions);
+
+        return new ObjectResult(new ApiResponse<ProblemDetails>(pd))
+        {
+            StatusCode = statusCode,
+            ContentTypes = { "application/json" }
         };
     }
 
@@ -236,4 +246,42 @@ public abstract class BaseApiController : ControllerBase
         => Request.Headers.TryGetValue(name, out StringValues v) && !StringValues.IsNullOrEmpty(v)
             ? v.ToString()
             : null;
+
+    private ProblemDetails CreateProblemDetails(
+        int statusCode,
+        string title,
+        string? detail,
+        string? type,
+        string? instance,
+        IDictionary<string, object?>? extensions)
+    {
+        var pd = new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+            Detail = detail,
+            Type = type,
+            Instance = instance ?? HttpContext.Request.Path
+        };
+
+        if (extensions is not null)
+        {
+            foreach (var kvp in extensions)
+            {
+                pd.Extensions[kvp.Key] = kvp.Value;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(RequestId))
+        {
+            pd.Extensions[nameof(RequestId)] = RequestId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(CorrelationId))
+        {
+            pd.Extensions[nameof(CorrelationId)] = CorrelationId;
+        }
+
+        return pd;
+    }
 }
