@@ -1,4 +1,4 @@
-import { get, post, del } from './client';
+import { get, post } from './client';
 
 // ============================================================================
 // Request DTOs (matching .NET API)
@@ -158,8 +158,8 @@ export const authService = {
      * POST /auth/register
      * Register new user account with mandatory username
      */
-    async register(request: RegisterRequest): Promise<AuthResponse> {
-        return post<AuthResponse, RegisterRequest>('/auth/register', request);
+    async register(request: RegisterRequest): Promise<UserInfo> {
+        return post<UserInfo, RegisterRequest>('/auth/register', request);
     },
 
     /**
