@@ -19,7 +19,9 @@ public sealed class AdminDashboardController(
     {
         var since = DateTimeOffset.UtcNow.AddDays(-7);
 
-        var totalUsers = await dbContext.Users.CountAsync(cancellationToken);
+        var totalUsers = await dbContext.Users
+            .Where(u => u.DeletedAt == null && u.IsActive)
+            .CountAsync(cancellationToken);
         var likesLast7Days = await dbContext.Likes
             .Where(l => l.CreatedAt >= since)
             .CountAsync(cancellationToken);

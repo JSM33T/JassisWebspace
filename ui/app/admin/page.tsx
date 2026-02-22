@@ -48,7 +48,7 @@ export default function AdminPage() {
                             <Card className="hover:shadow-md transition-shadow">
                                 <CardHeader className="space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="text-sm font-medium">Total users joined</CardTitle>
+                                        <CardTitle className="text-sm font-medium">Active users</CardTitle>
                                         <Users2 className="h-4 w-4 text-cyan-500" />
                                     </div>
                                     <CardContent className="text-3xl font-bold">{stats.totalUsers}</CardContent>
