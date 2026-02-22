@@ -19,6 +19,7 @@ public sealed class SeoController(
     ILogger<SeoController> logger) : BaseApiController
 {
     private const string BlogBlobPrefix = "blog/";
+    private const string GalleryBlobPrefix = "gallery/";
     private const string MediaPathPrefix = "/media/";
     private const int MaxDescriptionLength = 180;
 
@@ -62,8 +63,8 @@ public sealed class SeoController(
 
             var response = new BlogSeoResponse(
                 blog.Title,
-                BuildDescription(blog.Excerpt, blog.Content),
-                BuildCanonicalUrl(blog.Slug),
+                BuildDescription(blog.Excerpt, blog.Content, "Read this JassSpace blog article."),
+                BuildCanonicalUrl("blog", blog.Slug),
                 NormalizeBlogMediaUrl(blog.FeaturedImage),
                 tags,
                 Type: "article",
@@ -81,7 +82,63 @@ public sealed class SeoController(
         }
     }
 
-    private string BuildCanonicalUrl(string slug)
+    [HttpGet("gallery/{slug}")]
+    [CachedResponse(RedisCacheKeys.GallerySeo, TtlSeconds = 600, Scope = CacheScope.Anonymous, VaryByQuery = false)]
+    [ProducesResponseType(typeof(ApiResponse<GallerySeoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetGallerySeo(string slug, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var album = await dbContext.Albums
+                .AsNoTracking()
+                .Where(a => a.Slug == slug && a.IsActive)
+                .Select(a => new
+                {
+                    a.Name,
+                    a.Slug,
+                    a.Description,
+                    a.Cover,
+                    FirstImageUrl = a.Images
+                        .OrderBy(i => i.Order)
+                        .Select(i => i.Url)
+                        .FirstOrDefault(),
+                    FirstImageDescription = a.Images
+                        .OrderBy(i => i.Order)
+                        .Select(i => i.Description)
+                        .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (album is null)
+            {
+                return NotFoundProblem("Album not found", $"No active gallery album found with slug '{slug}'.");
+            }
+
+            var image = NormalizeGalleryMediaUrl(album.Cover) ?? NormalizeGalleryMediaUrl(album.FirstImageUrl);
+
+            var response = new GallerySeoResponse(
+                album.Name,
+                BuildDescription(album.Description, album.FirstImageDescription, "Explore this gallery album on JassSpace."),
+                BuildCanonicalUrl("gallery", album.Slug),
+                image,
+                new List<string> { "gallery", "album", "images", "JassSpace" },
+                Type: "website",
+                NoIndex: false);
+
+            return OkEnvelope(response);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to build SEO payload for gallery {Slug}", slug);
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to build SEO metadata",
+                "An unexpected error occurred while preparing SEO metadata.");
+        }
+    }
+
+    private string BuildCanonicalUrl(string section, string slug)
     {
         var baseUrl = configuration.GetValue<string>("Frontend:BaseUrl");
         if (string.IsNullOrWhiteSpace(baseUrl))
@@ -89,15 +146,15 @@ public sealed class SeoController(
             baseUrl = $"{Request.Scheme}://{Request.Host}";
         }
 
-        return $"{baseUrl.TrimEnd('/')}/blog/{Uri.EscapeDataString(slug)}";
+        return $"{baseUrl.TrimEnd('/')}/{section}/{Uri.EscapeDataString(slug)}";
     }
 
-    private static string BuildDescription(string? excerpt, string content)
+    private static string BuildDescription(string? primary, string? secondary, string fallback)
     {
-        var source = !string.IsNullOrWhiteSpace(excerpt) ? excerpt : content;
+        var source = !string.IsNullOrWhiteSpace(primary) ? primary : secondary;
         if (string.IsNullOrWhiteSpace(source))
         {
-            return "Read this JassSpace blog article.";
+            return fallback;
         }
 
         var withoutHtml = Regex.Replace(source, "<[^>]+>", " ");
@@ -139,6 +196,37 @@ public sealed class SeoController(
         var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
         return normalized.StartsWith(BlogBlobPrefix, StringComparison.OrdinalIgnoreCase)
             ? normalized[BlogBlobPrefix.Length..]
+            : normalized;
+    }
+
+    private static string? NormalizeGalleryMediaUrl(string? mediaUrl)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl))
+        {
+            return mediaUrl;
+        }
+
+        var trimmed = mediaUrl.Trim();
+        if (!MediaUrlHelper.TryExtractMediaBlobName(trimmed, out var blobName))
+        {
+            return trimmed;
+        }
+
+        var publicBlobName = StripGalleryPrefix(blobName);
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
+        {
+            return $"{absolute.Scheme}://{absolute.Authority}{MediaPathPrefix}{publicBlobName}";
+        }
+
+        return $"{MediaPathPrefix}{publicBlobName}";
+    }
+
+    private static string StripGalleryPrefix(string blobName)
+    {
+        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase)
+            ? normalized[GalleryBlobPrefix.Length..]
             : normalized;
     }
 }

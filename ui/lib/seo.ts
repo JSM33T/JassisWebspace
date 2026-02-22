@@ -70,7 +70,7 @@ type SeoApiEnvelope<T> = {
     data?: T;
 };
 
-type BlogSeoPayload = {
+type SeoPayload = {
     title: string;
     description: string;
     canonicalUrl: string;
@@ -94,31 +94,51 @@ export async function buildBlogMetadata(slug: string): Promise<Metadata> {
     }
 
     try {
-        const baseUrl = SEO_API_BASE_URL.replace(/\/$/, "");
-        const endpoint = `${baseUrl}/seo/blog/${encodeURIComponent(slug)}`;
-        const response = await fetch(endpoint, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-            next: { revalidate: 600 },
-        });
-
-        if (!response.ok) {
-            return fallback;
-        }
-
-        const payload = (await response.json()) as SeoApiEnvelope<BlogSeoPayload>;
-        if (!payload?.data?.title || !payload.data.canonicalUrl) {
+        const payload = await fetchSeoPayload(`/seo/blog/${encodeURIComponent(slug)}`);
+        if (!payload?.title || !payload.canonicalUrl) {
             return fallback;
         }
 
         return buildMetadata({
-            title: payload.data.title,
-            description: payload.data.description || fallback.description?.toString(),
-            tags: payload.data.tags,
-            image: payload.data.image || undefined,
-            canonicalUrl: payload.data.canonicalUrl,
-            type: payload.data.type === "article" ? "article" : "website",
-            noIndex: payload.data.noIndex ?? false,
+            title: payload.title,
+            description: payload.description || fallback.description?.toString(),
+            tags: payload.tags,
+            image: payload.image || undefined,
+            canonicalUrl: payload.canonicalUrl,
+            type: payload.type === "article" ? "article" : "website",
+            noIndex: payload.noIndex ?? false,
+        });
+    } catch {
+        return fallback;
+    }
+}
+
+export async function buildGalleryMetadata(slug: string): Promise<Metadata> {
+    const fallback = buildMetadata({
+        title: "Gallery Album",
+        description: "Explore this gallery album on JassSpace.",
+        tags: ["gallery", "album", "images", "JassSpace"],
+        canonicalPath: `/gallery/${slug}`,
+    });
+
+    if (!slug) {
+        return fallback;
+    }
+
+    try {
+        const payload = await fetchSeoPayload(`/seo/gallery/${encodeURIComponent(slug)}`);
+        if (!payload?.title || !payload.canonicalUrl) {
+            return fallback;
+        }
+
+        return buildMetadata({
+            title: payload.title,
+            description: payload.description || fallback.description?.toString(),
+            tags: payload.tags,
+            image: payload.image || undefined,
+            canonicalUrl: payload.canonicalUrl,
+            type: payload.type === "article" ? "article" : "website",
+            noIndex: payload.noIndex ?? false,
         });
     } catch {
         return fallback;
@@ -171,4 +191,21 @@ function extractOrigin(url: string): string | null {
     } catch {
         return null;
     }
+}
+
+async function fetchSeoPayload(path: string): Promise<SeoPayload | null> {
+    const baseUrl = SEO_API_BASE_URL.replace(/\/$/, "");
+    const endpoint = `${baseUrl}${path}`;
+    const response = await fetch(endpoint, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        next: { revalidate: 600 },
+    });
+
+    if (!response.ok) {
+        return null;
+    }
+
+    const payload = (await response.json()) as SeoApiEnvelope<SeoPayload>;
+    return payload?.data ?? null;
 }

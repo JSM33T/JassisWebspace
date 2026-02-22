@@ -27,7 +27,9 @@ public record BlogListItemResponse(
     bool IsPublished,
     DateTimeOffset? PublishedAt,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt
+    DateTimeOffset? UpdatedAt,
+    int LikeCount = 0,
+    int CommentCount = 0
 );
 
 public record BlogDetailResponse(
