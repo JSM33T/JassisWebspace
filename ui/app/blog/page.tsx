@@ -14,6 +14,8 @@ import {
     BookOpen,
     CalendarDays,
     Filter,
+    Heart,
+    MessageSquare,
     Search,
     User,
     X,
@@ -285,6 +287,17 @@ export default function BlogHomePage() {
                                                     {blog.excerpt ||
                                                         'Read this article for implementation notes, product thinking, and practical engineering context.'}
                                                 </p>
+
+                                                <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <Heart className="h-4 w-4" />
+                                                        {blog.likeCount}
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <MessageSquare className="h-4 w-4" />
+                                                        {blog.commentCount}
+                                                    </span>
+                                                </div>
 
                                                 {blog.authors?.[0] && (
                                                     <button

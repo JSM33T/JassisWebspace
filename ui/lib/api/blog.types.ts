@@ -26,6 +26,8 @@ export interface BlogListItem {
     publishedAt: string | null;
     createdAt: string;
     updatedAt: string | null;
+    likeCount: number;
+    commentCount: number;
 }
 
 export interface BlogDetail {
