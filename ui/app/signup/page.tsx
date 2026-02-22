@@ -13,11 +13,9 @@ import { toast } from 'sonner';
 import authService, { ApiError } from '@/lib/api';
 import GoogleOAuthButton from '@/components/GoogleOAuthButton';
 import GitHubOAuthButton from '@/components/GitHubOAuthButton';
-import { useUser } from '@/contexts/UserContext';
 
 export default function SignupPage() {
     const router = useRouter();
-    const { setUser } = useUser();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
@@ -49,30 +47,12 @@ export default function SignupPage() {
         }
 
         try {
-            const response = await authService.register({
+            await authService.register({
                 email: formData.email,
                 username: formData.username,
                 password: formData.password,
                 firstName: formData.firstName || undefined,
                 lastName: formData.lastName || undefined,
-            });
-
-            localStorage.setItem('accessToken', response.accessToken);
-            if (response.refreshToken) {
-                localStorage.setItem('refreshToken', response.refreshToken);
-            }
-
-            // Update global user state (initially unverified)
-            setUser({
-                id: response.user.id,
-                firstName: response.user.firstName || '',
-                lastName: response.user.lastName || '',
-                username: response.user.username || '',
-                email: response.user.email,
-                avatarUrl: response.user.avatarUrl || undefined,
-                login: true,
-                expiry: new Date(response.expiresAt),
-                role: response.user.roles?.[0] || 'user',
             });
 
             toast.success('Account created successfully! Please check your email to verify your account.');
