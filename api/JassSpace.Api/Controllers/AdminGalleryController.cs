@@ -1,4 +1,6 @@
+using JassSpace.Api.Configuration;
 using JassSpace.Api.Extensions;
+using JassSpace.Api.Services;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
@@ -23,7 +25,8 @@ public sealed class AdminGalleryController(
     IAzureBlobStorageService blobStorageService,
     IImageProcessingService imageProcessingService,
     ILogger<AdminGalleryController> logger,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    IHttpResponseCacheStore responseCacheStore)
     : BaseApiController
 {
     private const string GalleryBlobPrefix = "gallery/";
@@ -308,6 +311,7 @@ public sealed class AdminGalleryController(
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
 
             // Return the created album with images
             var response = new AlbumWithImagesResponse(
@@ -406,6 +410,7 @@ public sealed class AdminGalleryController(
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
 
             var response = images.Select(i => new ImageResponse(
                 i.Id,
@@ -546,6 +551,7 @@ public sealed class AdminGalleryController(
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
 
             var imageCount = await dbContext.Images
                 .CountAsync(i => i.AlbumId == albumId, cancellationToken);
@@ -639,6 +645,7 @@ public sealed class AdminGalleryController(
             dbContext.Albums.Remove(album);
             
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
 
             return NoContent();
         }
@@ -680,6 +687,7 @@ public sealed class AdminGalleryController(
             if (order.HasValue) image.Order = order.Value;
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
 
             var response = new ImageResponse(
                 image.Id,
@@ -731,6 +739,7 @@ public sealed class AdminGalleryController(
             // 2. Delete DB Record
             dbContext.Images.Remove(image);
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
 
             return NoContent();
         }

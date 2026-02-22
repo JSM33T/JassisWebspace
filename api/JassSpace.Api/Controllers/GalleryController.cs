@@ -1,4 +1,6 @@
+using JassSpace.Api.Configuration;
 using JassSpace.Api.Extensions;
+using JassSpace.Api.Services;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
@@ -15,7 +17,8 @@ namespace JassSpace.Api.Controllers;
 [Route("gallery")]
 public sealed class GalleryController(
     JassSpaceDbContext dbContext,
-    ILogger<GalleryController> logger)
+    ILogger<GalleryController> logger,
+    IHttpResponseCacheStore responseCacheStore)
     : BaseApiController
 {
     private const string GalleryBlobPrefix = "gallery/";
@@ -310,6 +313,7 @@ public sealed class GalleryController(
             dbContext.Contents.Add(content);
 
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
 
             var authors = await dbContext.GalleryAuthors
                 .Where(ga => ga.AlbumId == album.Id)
@@ -389,6 +393,7 @@ public sealed class GalleryController(
 
             dbContext.Images.Add(image);
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
 
             var response = new ImageResponse(
                 image.Id,
