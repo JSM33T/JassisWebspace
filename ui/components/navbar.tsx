@@ -34,6 +34,7 @@ import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSig
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { ModeToggle } from '@/components/mode-toggle';
+import { ThemeSetSelector } from '@/components/theme-set-selector';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { cn } from '@/lib/utils';
 
@@ -402,6 +403,7 @@ export function Navbar() {
                                     <Music className={`h-4 w-4 ${isOpen ? 'text-primary' : ''}`} />
                                 </Button>
                                 <ModeToggle />
+                                <ThemeSetSelector />
                                 {isAuthenticated ? (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -487,6 +489,7 @@ export function Navbar() {
                                     <Music className={`h-4 w-4 ${isOpen ? 'text-primary' : ''}`} />
                                 </Button>
                                 <ModeToggle />
+                                <ThemeSetSelector />
                                 <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                                     <SheetTrigger asChild>
                                         <Button variant="outline" size="icon">
@@ -706,3 +709,4 @@ export function Navbar() {
         </>
     );
 }
+

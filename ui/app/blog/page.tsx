@@ -236,7 +236,7 @@ export default function BlogHomePage() {
                                     className="h-full"
                                 >
                                     <article className="group h-full overflow-hidden rounded-3xl border bg-card/55 backdrop-blur-sm transition-all duration-300 hover:bg-card/75 hover:shadow-lg">
-                                        <div className="grid h-full grid-cols-1 md:h-[240px] md:grid-cols-[52%_48%]">
+                                        <div className="grid h-full grid-cols-1 md:min-h-[240px] md:grid-cols-[52%_48%]">
                                             <Link
                                                 href={`/blog/${blog.slug}`}
                                                 className="relative block h-full min-h-[210px] overflow-hidden bg-muted md:min-h-0"
@@ -261,7 +261,7 @@ export default function BlogHomePage() {
                                                 </span>
                                             </Link>
 
-                                            <div className="flex h-full flex-col p-5 md:p-5">
+                                            <div className="flex h-full flex-col px-5 pt-5 pb-2 md:px-5 md:pt-5 md:pb-5">
                                                 <div className="mb-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                                     <span className="inline-flex items-center gap-1.5">
                                                         <CalendarDays className="h-4 w-4" />
