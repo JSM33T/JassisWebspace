@@ -222,9 +222,7 @@ public sealed class MediaController(
 
         foreach (var candidateBlobName in BuildReadCandidates(blobName))
         {
-            cachedImage = wantsThumb
-                ? await blobStorageService.GetThumbnailAsync(candidateBlobName, cancellationToken)
-                : await blobStorageService.GetImageAsync(candidateBlobName, cancellationToken);
+            cachedImage = await blobStorageService.GetImageAsync(candidateBlobName, cancellationToken);
 
             if (cachedImage is not null)
             {
@@ -240,14 +238,12 @@ public sealed class MediaController(
 
         if (wantsThumb)
         {
-            var isThumb = cachedImage.FilePath.EndsWith(".thumb.webp", StringComparison.OrdinalIgnoreCase);
-            Response.Headers["X-Media-Variant"] = isThumb ? "thumb" : "original";
-            Response.Headers["X-Thumb-Max-Dimension"] = "480";
+            Response.Headers["X-Media-Variant"] = "original";
         }
 
         return StreamCachedImage(
             resourceType: "blob image",
-            cacheIdentifier: wantsThumb ? $"{resolvedBlobName ?? blobName} (thumb)" : (resolvedBlobName ?? blobName),
+            cacheIdentifier: resolvedBlobName ?? blobName,
             cachedImage,
             notFoundTitle: "Image not found",
             notFoundDetail: $"No cached file available for blob name '{blobName}'.",
@@ -255,7 +251,7 @@ public sealed class MediaController(
     }
 
     /// <summary>
-    /// Retrieves a thumbnail variant for an image by its blob name.
+    /// Retrieves an image by blob name using the thumbnail route shape.
     /// Prefer this endpoint over <c>?thumb=1</c> if you have a caching layer that ignores query strings.
     /// </summary>
     [HttpGet("thumb/{*blobName}")]
