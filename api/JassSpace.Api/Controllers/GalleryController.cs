@@ -449,8 +449,7 @@ public sealed class GalleryController(
             return trimmed;
         }
 
-        var originalBlobName = StripThumbPrefix(blobName);
-        var publicBlobName = StripGalleryPrefix(originalBlobName);
+        var publicBlobName = StripGalleryPrefix(blobName);
 
         if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
         {
@@ -458,14 +457,6 @@ public sealed class GalleryController(
         }
 
         return $"{MediaPathPrefix}{publicBlobName}";
-    }
-
-    private static string StripThumbPrefix(string blobName)
-    {
-        const string thumbPrefix = "thumb/";
-        return blobName.StartsWith(thumbPrefix, StringComparison.OrdinalIgnoreCase)
-            ? blobName[thumbPrefix.Length..]
-            : blobName;
     }
 
     private static string StripGalleryPrefix(string blobName)

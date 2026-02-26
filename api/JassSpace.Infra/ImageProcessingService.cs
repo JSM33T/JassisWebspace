@@ -9,7 +9,9 @@ public class ImageProcessingService : IImageProcessingService
 {
     private readonly ILogger<ImageProcessingService> _logger;
     private const int MaxDimension = 2000;
-    private const int ThumbMaxDimension = 480;
+    private const int ThumbMaxDimension = 960;
+    private const int ThumbQuality = 90;
+    private const float ThumbSharpness = 0f;
 
     public ImageProcessingService(ILogger<ImageProcessingService> logger)
     {
@@ -83,12 +85,18 @@ public class ImageProcessingService : IImageProcessingService
     }
 
     public Task<Stream> CreateThumbnailAsync(Stream sourceStream, CancellationToken cancellationToken = default)
-        => ProcessToWebpAsync(sourceStream, ThumbMaxDimension, quality: 70, cancellationToken);
+        => ProcessToWebpAsync(
+            sourceStream,
+            ThumbMaxDimension,
+            quality: ThumbQuality,
+            sharpness: ThumbSharpness,
+            cancellationToken);
 
     private async Task<Stream> ProcessToWebpAsync(
         Stream sourceStream,
         int maxDimension,
         int quality,
+        float sharpness,
         CancellationToken cancellationToken)
     {
         if (sourceStream == null)
@@ -120,6 +128,11 @@ public class ImageProcessingService : IImageProcessingService
                 _logger.LogDebug(
                     "Resized image for WebP output from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight} (max {MaxDimension}px)",
                     originalWidth, originalHeight, image.Width, image.Height, maxDimension);
+            }
+
+            if (sharpness > 0)
+            {
+                image.Mutate(x => x.GaussianSharpen(sharpness));
             }
 
             // Thumbs don't need metadata; dropping it reduces payload size a bit.
