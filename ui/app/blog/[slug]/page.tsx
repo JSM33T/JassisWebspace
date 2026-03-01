@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -22,12 +22,15 @@ import { CommentSection } from '@/components/comments/CommentSection';
 import { blogService } from '@/lib/api/blog.service';
 import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
+import { adminBlogService } from '@/lib/api/admin-blog.service';
 import { AuthorModal } from '@/components/blog/AuthorModal';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { useUser } from '@/contexts/UserContext';
 
 export default function BlogViewPage() {
     const { slug } = useParams<{ slug: string }>();
     const router = useRouter();
+    const { user, isInitialized } = useUser();
 
     const [blog, setBlog] = useState<BlogDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -39,17 +42,35 @@ export default function BlogViewPage() {
         username: string;
     } | null>(null);
 
-    useEffect(() => {
-        if (!slug) return;
-        loadBlog();
+    const tryLoadAdminBlogBySlug = useCallback(async () => {
+        try {
+            const adminBlogs = await adminBlogService.getBlogs({ page: 1, pageSize: 250 });
+            const match = adminBlogs.find((item) => item.slug === slug);
+            if (!match) return null;
+            return await adminBlogService.getBlog(match.id);
+        } catch (adminError) {
+            console.error('Admin fallback blog load failed:', adminError);
+            return null;
+        }
     }, [slug]);
 
-    const loadBlog = async () => {
+    const loadBlog = useCallback(async (allowAdminFallback: boolean) => {
         try {
             setLoading(true);
             setError(null);
-            setBlog(await blogService.getBlogBySlug(slug));
+            const publishedBlog = await blogService.getBlogBySlug(slug);
+            setBlog(publishedBlog);
         } catch (err) {
+            if (allowAdminFallback && err instanceof ApiError && err.isNotFound()) {
+                const adminBlog = await tryLoadAdminBlogBySlug();
+                if (adminBlog) {
+                    setBlog(adminBlog);
+                    setError(null);
+                    return;
+                }
+            }
+
+            setBlog(null);
             if (err instanceof ApiError) {
                 setError(err.problemDetails.detail || err.problemDetails.title);
             } else {
@@ -58,7 +79,12 @@ export default function BlogViewPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [slug, tryLoadAdminBlogBySlug]);
+
+    useEffect(() => {
+        if (!slug || !isInitialized) return;
+        loadBlog(user?.role === 'admin');
+    }, [slug, isInitialized, user?.role, loadBlog]);
 
     const formatDate = (date: string | null) =>
         date
@@ -129,6 +155,11 @@ export default function BlogViewPage() {
                 {blog.category && (
                     <Badge variant="secondary" className="mb-4">
                         {blog.category.name}
+                    </Badge>
+                )}
+                {!blog.isPublished && (
+                    <Badge variant="outline" className="mb-4 ml-2 border-amber-500/40 text-amber-600">
+                        Draft (Admin Preview)
                     </Badge>
                 )}
 
