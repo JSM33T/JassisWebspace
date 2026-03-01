@@ -10,11 +10,9 @@ import { ArrowUpRight, BookOpen, Folder, Image as GalleryIcon, Info, Layers, Mai
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { blogService } from "@/lib/api/blog.service";
-import { BlogListItem } from "@/lib/api/blog.types";
-import { galleryService } from "@/lib/api/gallery.service";
-import { Album } from "@/lib/api/gallery.types";
-import { ApiError } from "@/lib/api/types";
+import { type BlogListItem } from "@/lib/api/blog.types";
+import { type Album } from "@/lib/api/gallery.types";
+import { type HomeContentPayload } from "@/lib/home-content.types";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -55,52 +53,37 @@ export default function HomePage() {
     const [blogError, setBlogError] = useState<string | null>(null);
 
     useEffect(() => {
-        loadRecentGalleries();
-        loadRecentBlogs();
+        loadHomeContent();
     }, []);
 
-    const loadRecentGalleries = async () => {
+    const loadHomeContent = async () => {
         try {
             setGalleryLoading(true);
             setGalleryError(null);
-            const albums = await galleryService.getAllAlbums();
-            const latestFive = [...albums]
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .slice(0, 5);
-            setRecentGalleries(latestFive);
-        } catch (error) {
-            if (error instanceof ApiError) {
-                setGalleryError(error.problemDetails.detail || error.problemDetails.title);
-            } else {
-                setGalleryError("Unable to load recent galleries right now.");
-            }
-            console.error("Failed to load recent galleries:", error);
-        } finally {
-            setGalleryLoading(false);
-        }
-    };
-
-    const loadRecentBlogs = async () => {
-        try {
             setBlogLoading(true);
             setBlogError(null);
-            const blogs = await blogService.getBlogs({ page: 1, pageSize: 20 });
-            const latestTwo = [...blogs]
-                .sort(
-                    (a, b) =>
-                        new Date(b.publishedAt || b.createdAt).getTime() -
-                        new Date(a.publishedAt || a.createdAt).getTime(),
-                )
-                .slice(0, 2);
-            setRecentBlogs(latestTwo);
-        } catch (error) {
-            if (error instanceof ApiError) {
-                setBlogError(error.problemDetails.detail || error.problemDetails.title);
-            } else {
-                setBlogError("Unable to load recent blogs right now.");
+
+            const response = await fetch("/api/home-content", {
+                method: "GET",
+                cache: "no-store",
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to load home content.");
             }
-            console.error("Failed to load recent blogs:", error);
+
+            const payload = (await response.json()) as HomeContentPayload;
+            setRecentGalleries(payload.galleries);
+            setRecentBlogs(payload.blogs);
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.message
+                : "Unable to load home content right now.";
+            setGalleryError(message);
+            setBlogError(message);
+            console.error("Failed to load home content:", error);
         } finally {
+            setGalleryLoading(false);
             setBlogLoading(false);
         }
     };
@@ -244,7 +227,7 @@ export default function HomePage() {
                                 {!galleryLoading && galleryError && (
                                     <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
                                         <p className="text-sm text-muted-foreground">{galleryError}</p>
-                                        <Button onClick={loadRecentGalleries} variant="outline" className="mt-4 rounded-full">
+                                        <Button onClick={loadHomeContent} variant="outline" className="mt-4 rounded-full">
                                             Retry
                                         </Button>
                                     </div>
@@ -341,7 +324,7 @@ export default function HomePage() {
                                 {!blogLoading && blogError && (
                                     <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
                                         <p className="text-sm text-muted-foreground">{blogError}</p>
-                                        <Button onClick={loadRecentBlogs} variant="outline" className="mt-4 rounded-full">
+                                        <Button onClick={loadHomeContent} variant="outline" className="mt-4 rounded-full">
                                             Retry
                                         </Button>
                                     </div>

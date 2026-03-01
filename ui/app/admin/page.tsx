@@ -1,11 +1,24 @@
- "use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BookOpen, Image as GalleryIcon, Users, ArrowRight, Mail, Music, FileText, Users2, Heart, MessageCircle } from "lucide-react";
+import {
+    BookOpen,
+    Image as GalleryIcon,
+    Users,
+    ArrowRight,
+    Mail,
+    Music,
+    FileText,
+    Users2,
+    Heart,
+    MessageCircle,
+    Settings,
+} from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { adminDashboardService } from "@/lib/api/admin-dashboard.service";
-import { AdminDashboardStats } from "@/lib/api/admin-dashboard.types";
+import { type AdminDashboardStats } from "@/lib/api/admin-dashboard.types";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function AdminPage() {
@@ -28,10 +41,10 @@ export default function AdminPage() {
     }, []);
 
     return (
-        <div className="p-8 pt-24 space-y-8">
+        <div className="space-y-8 p-8 pt-24">
             <div>
                 <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                <p className="text-muted-foreground mt-2">
+                <p className="mt-2 text-muted-foreground">
                     Welcome to the admin dashboard. Manage your content and settings here.
                 </p>
             </div>
@@ -45,7 +58,7 @@ export default function AdminPage() {
                         </div>
                     ) : stats ? (
                         <>
-                            <Card className="hover:shadow-md transition-shadow">
+                            <Card className="transition-shadow hover:shadow-md">
                                 <CardHeader className="space-y-1">
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-sm font-medium">Active users</CardTitle>
@@ -54,7 +67,7 @@ export default function AdminPage() {
                                     <CardContent className="text-3xl font-bold">{stats.totalUsers}</CardContent>
                                 </CardHeader>
                             </Card>
-                            <Card className="hover:shadow-md transition-shadow">
+                            <Card className="transition-shadow hover:shadow-md">
                                 <CardHeader className="space-y-1">
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-sm font-medium">Likes (last 7 days)</CardTitle>
@@ -63,7 +76,7 @@ export default function AdminPage() {
                                     <CardContent className="text-3xl font-bold">{stats.likesLast7Days}</CardContent>
                                 </CardHeader>
                             </Card>
-                            <Card className="hover:shadow-md transition-shadow">
+                            <Card className="transition-shadow hover:shadow-md">
                                 <CardHeader className="space-y-1">
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-sm font-medium">Comments (last 7 days)</CardTitle>
@@ -82,121 +95,127 @@ export default function AdminPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/blogs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Blog Posts
-                            </CardTitle>
+                            <CardTitle className="text-sm font-medium">Blog Posts</CardTitle>
                             <BookOpen className="h-4 w-4 text-emerald-500" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">Manage Blogs</div>
-                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                            <p className="mb-4 mt-1 text-xs text-muted-foreground">
                                 Create, edit, and publish blog articles.
                             </p>
-                            <div className="flex items-center text-sm text-emerald-500 group-hover:translate-x-1 transition-transform">
+                            <div className="flex items-center text-sm text-emerald-500 transition-transform group-hover:translate-x-1">
                                 Go to Blogs <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>
                 </Card>
 
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/content">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Content Library
-                            </CardTitle>
+                            <CardTitle className="text-sm font-medium">Content Library</CardTitle>
                             <FileText className="h-4 w-4 text-sky-500" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">Monitor Content</div>
-                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                            <p className="mb-4 mt-1 text-xs text-muted-foreground">
                                 Track links, comments, and engagement across every asset.
                             </p>
-                            <div className="flex items-center text-sm text-sky-500 group-hover:translate-x-1 transition-transform">
+                            <div className="flex items-center text-sm text-sky-500 transition-transform group-hover:translate-x-1">
                                 Explore Content <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>
                 </Card>
 
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/gallery">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Gallery
-                            </CardTitle>
+                            <CardTitle className="text-sm font-medium">Gallery</CardTitle>
                             <GalleryIcon className="h-4 w-4 text-pink-700" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">Manage Gallery</div>
-                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                            <p className="mb-4 mt-1 text-xs text-muted-foreground">
                                 Upload photos and manage albums.
                             </p>
-                            <div className="flex items-center text-sm text-pink-700 group-hover:translate-x-1 transition-transform">
+                            <div className="flex items-center text-sm text-pink-700 transition-transform group-hover:translate-x-1">
                                 Go to Gallery <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>
                 </Card>
 
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/users">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Users
-                            </CardTitle>
+                            <CardTitle className="text-sm font-medium">Users</CardTitle>
                             <Users className="h-4 w-4 text-orange-700" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">Manage Users</div>
-                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                            <p className="mb-4 mt-1 text-xs text-muted-foreground">
                                 View and manage user accounts.
                             </p>
-                            <div className="flex items-center text-sm text-orange-700 group-hover:translate-x-1 transition-transform">
+                            <div className="flex items-center text-sm text-orange-700 transition-transform group-hover:translate-x-1">
                                 Go to Users <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>
                 </Card>
 
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/messages">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Messages
-                            </CardTitle>
+                            <CardTitle className="text-sm font-medium">Messages</CardTitle>
                             <Mail className="h-4 w-4 text-cyan-500" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">View Messages</div>
-                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                            <p className="mb-4 mt-1 text-xs text-muted-foreground">
                                 Review contact form submissions.
                             </p>
-                            <div className="flex items-center text-sm text-cyan-500 group-hover:translate-x-1 transition-transform">
+                            <div className="flex items-center text-sm text-cyan-500 transition-transform group-hover:translate-x-1">
                                 Go to Messages <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>
                 </Card>
 
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/music">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Music Tracks
-                            </CardTitle>
+                            <CardTitle className="text-sm font-medium">Music Tracks</CardTitle>
                             <Music className="h-4 w-4 text-emerald-400" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">Manage Tracks</div>
-                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                            <p className="mb-4 mt-1 text-xs text-muted-foreground">
                                 Manage DB-backed tracks and playback readiness.
                             </p>
-                            <div className="flex items-center text-sm text-emerald-400 group-hover:translate-x-1 transition-transform">
+                            <div className="flex items-center text-sm text-emerald-400 transition-transform group-hover:translate-x-1">
                                 Go to Music <ArrowRight className="ml-2 h-4 w-4" />
+                            </div>
+                        </CardContent>
+                    </Link>
+                </Card>
+
+                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
+                    <Link href="/admin/settings">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Settings</CardTitle>
+                            <Settings className="h-4 w-4 text-gray-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">System Settings</div>
+                            <p className="mb-4 mt-1 text-xs text-muted-foreground">
+                                Manage ISR cache tags and future system-level controls.
+                            </p>
+                            <div className="flex items-center text-sm text-gray-500 transition-transform group-hover:translate-x-1">
+                                Open Settings <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>
@@ -205,3 +224,4 @@ export default function AdminPage() {
         </div>
     );
 }
+
