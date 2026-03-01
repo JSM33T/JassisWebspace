@@ -1,12 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useSearchParams } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
-import { ArrowUpRight, BookOpen, Folder, Image, Info, Layers, Mail, Music2, Plus } from "lucide-react";
+import { ArrowUpRight, BookOpen, Folder, Image as GalleryIcon, Info, Layers, Mail, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { galleryService } from "@/lib/api/gallery.service";
+import { Album } from "@/lib/api/gallery.types";
+import { ApiError } from "@/lib/api/types";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -25,7 +31,7 @@ const defaultLinks = [
     { href: "/about", label: "About", icon: Info },
     { href: "/projects", label: "Projects", icon: Folder },
     { href: "/blog", label: "Blog", icon: BookOpen },
-    { href: "/gallery", label: "Gallery", icon: Image },
+    { href: "/gallery", label: "Gallery", icon: GalleryIcon },
 ];
 
 const resumeLinks = [
@@ -39,6 +45,35 @@ export default function HomePage() {
     const searchParams = useSearchParams();
     const isResumeRef = searchParams.get("ref") === "resume";
     const links = isResumeRef ? resumeLinks : defaultLinks;
+    const [recentGalleries, setRecentGalleries] = useState<Album[]>([]);
+    const [galleryLoading, setGalleryLoading] = useState(true);
+    const [galleryError, setGalleryError] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadRecentGalleries();
+    }, []);
+
+    const loadRecentGalleries = async () => {
+        try {
+            setGalleryLoading(true);
+            setGalleryError(null);
+            const albums = await galleryService.getAllAlbums();
+            const latestFive = [...albums]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, 5);
+            setRecentGalleries(latestFive);
+        } catch (error) {
+            if (error instanceof ApiError) {
+                setGalleryError(error.problemDetails.detail || error.problemDetails.title);
+            } else {
+                setGalleryError("Unable to load recent galleries right now.");
+            }
+            console.error("Failed to load recent galleries:", error);
+        } finally {
+            setGalleryLoading(false);
+        }
+    };
+
     return (
         <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
             <div className="pointer-events-none absolute inset-0">
@@ -131,6 +166,105 @@ export default function HomePage() {
                                 );
                             })}
                         </motion.div>
+                    </motion.section>
+
+                    <motion.section variants={itemVariants} className="pb-16 md:pb-24">
+                        <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
+                            <div className="pointer-events-none absolute inset-0">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,hsl(var(--primary)/0.18),transparent_42%),radial-gradient(circle_at_86%_72%,hsl(var(--secondary)/0.14),transparent_50%)]" />
+                                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-[size:24px_24px] opacity-45" />
+                                <div className="absolute inset-0 bg-[linear-gradient(145deg,hsl(var(--background)/0.12),transparent_62%)]" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                                    <div className="space-y-3">
+                                        <Badge variant="secondary" className="w-fit rounded-full px-4 py-1.5">
+                                            Fresh Visuals
+                                        </Badge>
+                                        <h2 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
+                                            Recent Gallery Picks
+                                        </h2>
+                                        <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
+                                            Latest captures and curated moments from the visual collection.
+                                        </p>
+                                    </div>
+                                    <Button asChild variant="secondary" className="rounded-full px-6">
+                                        <Link href="/gallery">
+                                            Discover all galleries
+                                            <ArrowUpRight className="ml-2 h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                </div>
+
+                                {galleryLoading && (
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4 md:grid-rows-2">
+                                        <div className="relative overflow-hidden rounded-3xl border bg-background/60 md:col-span-2 md:row-span-2">
+                                            <Skeleton className="aspect-[16/11] w-full rounded-none md:aspect-auto md:h-full" />
+                                        </div>
+                                        {Array.from({ length: 4 }).map((_, index) => (
+                                            <div key={index} className="relative overflow-hidden rounded-3xl border bg-background/60">
+                                                <Skeleton className="aspect-[4/3] w-full rounded-none" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {!galleryLoading && galleryError && (
+                                    <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
+                                        <p className="text-sm text-muted-foreground">{galleryError}</p>
+                                        <Button onClick={loadRecentGalleries} variant="outline" className="mt-4 rounded-full">
+                                            Retry
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {!galleryLoading && !galleryError && recentGalleries.length === 0 && (
+                                    <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
+                                        <p className="text-sm text-muted-foreground">No galleries available yet.</p>
+                                    </div>
+                                )}
+
+                                {!galleryLoading && !galleryError && recentGalleries.length > 0 && (
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4 md:grid-rows-2">
+                                        {recentGalleries.map((album, index) => {
+                                            const isFeature = index === 0;
+                                            return (
+                                                <Link
+                                                    key={album.id}
+                                                    href={`/gallery/${album.slug}`}
+                                                    className={[
+                                                        "group relative block overflow-hidden rounded-3xl border bg-background/65 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl",
+                                                        isFeature ? "md:col-span-2 md:row-span-2" : "",
+                                                    ].join(" ")}
+                                                >
+                                                    <div className={isFeature ? "relative aspect-[16/11] md:h-full md:aspect-auto" : "relative aspect-[4/3]"}>
+                                                        {album.cover ? (
+                                                            <NextImage
+                                                                src={album.cover}
+                                                                alt={album.name}
+                                                                fill
+                                                                sizes={isFeature ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 100vw, 25vw"}
+                                                                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                                                unoptimized
+                                                            />
+                                                        ) : (
+                                                            <div className="relative h-full w-full bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.42),transparent_54%),radial-gradient(circle_at_82%_76%,hsl(var(--secondary)/0.36),transparent_58%),linear-gradient(140deg,hsl(var(--muted)/0.8),hsl(var(--card)))]" />
+                                                        )}
+                                                    </div>
+
+                                                    <div className="absolute inset-0 flex items-end bg-black/0 p-4 transition-colors duration-300 group-hover:bg-black/60 group-focus-visible:bg-black/60 md:p-5">
+                                                        <h3 className="line-clamp-1 translate-y-2 text-lg font-semibold leading-tight text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 md:text-xl">
+                                                            {album.name}
+                                                        </h3>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </motion.section>
 
                     <motion.section variants={itemVariants} className="pb-16 md:pb-24">
