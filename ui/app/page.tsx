@@ -10,6 +10,8 @@ import { ArrowUpRight, BookOpen, Folder, Image as GalleryIcon, Info, Layers, Mai
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { blogService } from "@/lib/api/blog.service";
+import { BlogListItem } from "@/lib/api/blog.types";
 import { galleryService } from "@/lib/api/gallery.service";
 import { Album } from "@/lib/api/gallery.types";
 import { ApiError } from "@/lib/api/types";
@@ -48,9 +50,13 @@ export default function HomePage() {
     const [recentGalleries, setRecentGalleries] = useState<Album[]>([]);
     const [galleryLoading, setGalleryLoading] = useState(true);
     const [galleryError, setGalleryError] = useState<string | null>(null);
+    const [recentBlogs, setRecentBlogs] = useState<BlogListItem[]>([]);
+    const [blogLoading, setBlogLoading] = useState(true);
+    const [blogError, setBlogError] = useState<string | null>(null);
 
     useEffect(() => {
         loadRecentGalleries();
+        loadRecentBlogs();
     }, []);
 
     const loadRecentGalleries = async () => {
@@ -71,6 +77,31 @@ export default function HomePage() {
             console.error("Failed to load recent galleries:", error);
         } finally {
             setGalleryLoading(false);
+        }
+    };
+
+    const loadRecentBlogs = async () => {
+        try {
+            setBlogLoading(true);
+            setBlogError(null);
+            const blogs = await blogService.getBlogs({ page: 1, pageSize: 20 });
+            const latestTwo = [...blogs]
+                .sort(
+                    (a, b) =>
+                        new Date(b.publishedAt || b.createdAt).getTime() -
+                        new Date(a.publishedAt || a.createdAt).getTime(),
+                )
+                .slice(0, 2);
+            setRecentBlogs(latestTwo);
+        } catch (error) {
+            if (error instanceof ApiError) {
+                setBlogError(error.problemDetails.detail || error.problemDetails.title);
+            } else {
+                setBlogError("Unable to load recent blogs right now.");
+            }
+            console.error("Failed to load recent blogs:", error);
+        } finally {
+            setBlogLoading(false);
         }
     };
 
@@ -261,6 +292,99 @@ export default function HomePage() {
                                                 </Link>
                                             );
                                         })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </motion.section>
+
+                    <motion.section variants={itemVariants} className="pb-16 md:pb-24">
+                        <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
+                            <div className="pointer-events-none absolute inset-0">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,hsl(var(--primary)/0.16),transparent_44%),radial-gradient(circle_at_84%_74%,hsl(var(--secondary)/0.12),transparent_52%)]" />
+                                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-[size:24px_24px] opacity-45" />
+                                <div className="absolute inset-0 bg-[linear-gradient(140deg,hsl(var(--background)/0.1),transparent_62%)]" />
+                            </div>
+
+                            <div className="relative">
+                                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                                    <div className="space-y-3">
+                                        <Badge variant="secondary" className="w-fit rounded-full px-4 py-1.5">
+                                            Fresh Writing
+                                        </Badge>
+                                        <h2 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
+                                            Recent Blog Picks
+                                        </h2>
+                                        <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
+                                            Two latest articles, shown as feature visuals.
+                                        </p>
+                                    </div>
+                                    <Button asChild variant="secondary" className="rounded-full px-6">
+                                        <Link href="/blog">
+                                            Discover all blogs
+                                            <ArrowUpRight className="ml-2 h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                </div>
+
+                                {blogLoading && (
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div className="relative overflow-hidden rounded-3xl border bg-background/60">
+                                            <Skeleton className="aspect-[16/10] w-full rounded-none" />
+                                        </div>
+                                        <div className="relative overflow-hidden rounded-3xl border bg-background/60">
+                                            <Skeleton className="aspect-[16/10] w-full rounded-none" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!blogLoading && blogError && (
+                                    <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
+                                        <p className="text-sm text-muted-foreground">{blogError}</p>
+                                        <Button onClick={loadRecentBlogs} variant="outline" className="mt-4 rounded-full">
+                                            Retry
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {!blogLoading && !blogError && recentBlogs.length === 0 && (
+                                    <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
+                                        <p className="text-sm text-muted-foreground">No blogs available yet.</p>
+                                    </div>
+                                )}
+
+                                {!blogLoading && !blogError && recentBlogs.length > 0 && (
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        {recentBlogs.map((blog) => (
+                                            <Link
+                                                key={blog.id}
+                                                href={`/blog/${blog.slug}`}
+                                                className="group relative block overflow-hidden rounded-3xl border bg-background/65 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+                                            >
+                                                <div className="relative aspect-[16/10]">
+                                                    {blog.featuredImage ? (
+                                                        <NextImage
+                                                            src={blog.featuredImage}
+                                                            alt={blog.title}
+                                                            fill
+                                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                                            unoptimized
+                                                        />
+                                                    ) : (
+                                                        <div className="relative flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.42),transparent_54%),radial-gradient(circle_at_82%_76%,hsl(var(--secondary)/0.36),transparent_58%),linear-gradient(140deg,hsl(var(--muted)/0.8),hsl(var(--card)))]">
+                                                            <BookOpen className="h-8 w-8 text-white/80" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="absolute inset-0 flex items-end bg-black/0 p-4 transition-colors duration-300 group-hover:bg-black/60 group-focus-visible:bg-black/60 md:p-5">
+                                                    <h3 className="line-clamp-2 translate-y-2 text-lg font-semibold leading-tight text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 md:text-xl">
+                                                        {blog.title}
+                                                    </h3>
+                                                </div>
+                                            </Link>
+                                        ))}
                                     </div>
                                 )}
                             </div>
