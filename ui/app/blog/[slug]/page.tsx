@@ -83,7 +83,8 @@ export default function BlogViewPage() {
 
     useEffect(() => {
         if (!slug || !isInitialized) return;
-        loadBlog(user?.role === 'admin');
+        const canPreviewDraft = user?.role === 'admin' || user?.role === 'mod';
+        loadBlog(canPreviewDraft);
     }, [slug, isInitialized, user?.role, loadBlog]);
 
     const formatDate = (date: string | null) =>
@@ -159,7 +160,7 @@ export default function BlogViewPage() {
                 )}
                 {!blog.isPublished && (
                     <Badge variant="outline" className="mb-4 ml-2 border-amber-500/40 text-amber-600">
-                        Draft (Admin Preview)
+                        Draft (Staff Preview)
                     </Badge>
                 )}
 
