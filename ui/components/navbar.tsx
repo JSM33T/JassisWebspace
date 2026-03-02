@@ -97,12 +97,12 @@ export function Navbar() {
             description: 'Explore our music collection',
             icon: Music,
         },
-          {
-            href: '/tools',
-            label: 'Tools',
-            description: 'Online Web Tools',
-            icon: Music,
-        },
+        //   {
+        //     href: '/tools',
+        //     label: 'Tools',
+        //     description: 'Online Web Tools',
+        //     icon: Music,
+        // },
     ];
 
     const workMenuItems = [
@@ -325,12 +325,12 @@ export function Navbar() {
                                                     <Link
                                                         href={item.href}
                                                         className={cn(
-                                                            "flex cursor-pointer items-start gap-3 rounded-xl border border-transparent p-3 transition-colors",
+                                                            "flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors",
                                                             "hover:border-border/50 hover:bg-accent/60",
                                                             isActive && "border-border/70 bg-accent/70"
                                                         )}
                                                     >
-                                                        <Icon className={cn("mt-0.5 h-5 w-5 text-primary", isActive && "text-foreground")} />
+                                                        <Icon className={cn("h-5 w-5 shrink-0 text-primary", isActive && "text-foreground")} />
                                                         <div className="flex flex-col">
                                                             <span className="font-medium">{item.label}</span>
                                                             <span className="text-xs text-muted-foreground">{item.description}</span>
@@ -378,12 +378,12 @@ export function Navbar() {
                                                     <Link
                                                         href={item.href}
                                                         className={cn(
-                                                            "flex cursor-pointer items-start gap-3 rounded-xl border border-transparent p-3 transition-colors",
+                                                            "flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors",
                                                             "hover:border-border/50 hover:bg-accent/60",
                                                             isActive && "border-border/70 bg-accent/70"
                                                         )}
                                                     >
-                                                        <Icon className={cn("mt-0.5 h-5 w-5 text-primary", isActive && "text-foreground")} />
+                                                        <Icon className={cn("h-5 w-5 shrink-0 text-primary", isActive && "text-foreground")} />
                                                         <div className="flex flex-col">
                                                             <span className="font-medium">{item.label}</span>
                                                             <span className="text-xs text-muted-foreground">{item.description}</span>
@@ -429,12 +429,12 @@ export function Navbar() {
                                                     <Link
                                                         href={item.href}
                                                         className={cn(
-                                                            "flex cursor-pointer items-start gap-3 rounded-xl border border-transparent p-3 transition-colors",
+                                                            "flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors",
                                                             "hover:border-border/50 hover:bg-accent/60",
                                                             isActive && "border-border/70 bg-accent/70"
                                                         )}
                                                     >
-                                                        <Icon className={cn("mt-0.5 h-5 w-5 text-primary", isActive && "text-foreground")} />
+                                                        <Icon className={cn("h-5 w-5 shrink-0 text-primary", isActive && "text-foreground")} />
                                                         <div className="flex flex-col">
                                                             <span className="font-medium">{item.label}</span>
                                                             <span className="text-xs text-muted-foreground">{item.description}</span>
