@@ -14,7 +14,9 @@ import {
     Clock,
     BookOpen,
     Users,
+    Heart,
     MessageSquare,
+    AlertTriangle,
 } from 'lucide-react';
 
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer';
@@ -105,6 +107,8 @@ export default function BlogViewPage() {
         setSelectedAuthorData({ userId, username });
         setAuthorModalOpen(true);
     };
+
+    const isInteractivityDisabled = !blog?.isPublished;
 
     /* ---------------- loading ---------------- */
 
@@ -199,13 +203,24 @@ export default function BlogViewPage() {
                         {estimateReadingTime(blog.content)} min read
                     </span>
 
-                    <span className="flex items-center gap-2">
-                        <LikeButton
-                            contentId={blog.contentId}
-                            initialCount={blog.likeCount}
-                            initialLiked={blog.isLiked}
-                        />
-                    </span>
+                    {isInteractivityDisabled ? (
+                        <span
+                            className="flex items-center gap-2 text-muted-foreground/70"
+                            title="Interactivity is disabled because this blog is unpublished."
+                        >
+                            <Heart className="h-4 w-4" />
+                            <span>{blog.likeCount}</span>
+                            <span className="text-xs uppercase tracking-wide">Likes disabled</span>
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-2">
+                            <LikeButton
+                                contentId={blog.contentId}
+                                initialCount={blog.likeCount}
+                                initialLiked={blog.isLiked}
+                            />
+                        </span>
+                    )}
                     <span className="flex items-center gap-2 text-muted-foreground">
                         <MessageSquare className="h-4 w-4" />
                         <span>{blog.commentCount}</span>
@@ -231,7 +246,19 @@ export default function BlogViewPage() {
                 <MarkdownRenderer content={blog.content} />
 
                 <div className="mt-12">
-                    <CommentSection contentId={blog.contentId} />
+                    {isInteractivityDisabled ? (
+                        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
+                            <p className="font-semibold flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4" />
+                                Interactivity is disabled
+                            </p>
+                            <p className="mt-1">
+                                Likes and comments are disabled because this blog is unpublished.
+                            </p>
+                        </div>
+                    ) : (
+                        <CommentSection contentId={blog.contentId} />
+                    )}
                 </div>
 
                 {/* Footer */}
