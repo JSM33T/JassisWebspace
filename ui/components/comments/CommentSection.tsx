@@ -7,6 +7,7 @@ import { commentService } from '@/lib/api/comment.service';
 import { CommentResponse, CommentNode } from '@/lib/api/comment.types';
 import { CommentForm } from './CommentForm';
 import { CommentItem } from './CommentItem';
+import { CommentUserModal } from './CommentUserModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,6 +20,12 @@ export function CommentSection({ contentId }: CommentSectionProps) {
     const { user, isAuthenticated } = useUser();
     const [comments, setComments] = useState<CommentResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedUser, setSelectedUser] = useState<{
+        userId: string;
+        username: string;
+        avatarUrl?: string;
+        displayName?: string;
+    } | null>(null);
 
     const ensureAuthenticated = () => {
         if (!isAuthenticated || !user?.login) {
@@ -165,6 +172,15 @@ export function CommentSection({ contentId }: CommentSectionProps) {
         }
     };
 
+    const handleOpenUserProfile = (
+        userId: string,
+        username: string,
+        avatarUrl?: string,
+        displayName?: string
+    ) => {
+        setSelectedUser({ userId, username, avatarUrl, displayName });
+    };
+
     if (loading) {
         return (
             <div className="space-y-4 mt-8">
@@ -200,6 +216,7 @@ export function CommentSection({ contentId }: CommentSectionProps) {
                             onReply={handleReply}
                             onEdit={handleEdit}
                             onDelete={handleDelete}
+                            onOpenUserProfile={handleOpenUserProfile}
                         />
                     ))
                 ) : (
@@ -208,6 +225,15 @@ export function CommentSection({ contentId }: CommentSectionProps) {
                     </p>
                 )}
             </div>
+
+            <CommentUserModal
+                isOpen={Boolean(selectedUser)}
+                onClose={() => setSelectedUser(null)}
+                userId={selectedUser?.userId ?? null}
+                username={selectedUser?.username ?? null}
+                fallbackAvatarUrl={selectedUser?.avatarUrl}
+                fallbackDisplayName={selectedUser?.displayName}
+            />
         </section>
     );
 }

@@ -22,6 +22,7 @@ interface CommentItemProps {
     onReply: (parentId: string, text: string) => Promise<void>;
     onEdit: (id: string, text: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
+    onOpenUserProfile: (userId: string, username: string, avatarUrl?: string, displayName?: string) => void;
     depth?: number;
 }
 
@@ -30,6 +31,7 @@ export function CommentItem({
     onReply,
     onEdit,
     onDelete,
+    onOpenUserProfile,
     depth = 0
 }: CommentItemProps) {
     const { user, isAuthenticated } = useUser();
@@ -65,20 +67,35 @@ export function CommentItem({
         setIsEditing(false);
     };
 
+    const handleOpenUserProfile = () => {
+        onOpenUserProfile(comment.userId, comment.username, comment.avatarUrl, comment.displayName);
+    };
+
     return (
         <div className={cn("group", depth > 0 && "mt-4")}>
             <div className="flex gap-4">
-                <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                    <AvatarImage src={comment.avatarUrl} alt={comment.username} />
-                    <AvatarFallback>{comment.username[0]?.toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <button
+                    type="button"
+                    onClick={handleOpenUserProfile}
+                    className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    aria-label={`Open ${comment.username} profile`}
+                >
+                    <Avatar className="h-8 w-8 md:h-10 md:w-10">
+                        <AvatarImage src={comment.avatarUrl} alt={comment.username} />
+                        <AvatarFallback>{comment.username[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                </button>
 
                 <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm">
+                            <button
+                                type="button"
+                                onClick={handleOpenUserProfile}
+                                className="font-semibold text-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                            >
                                 {comment.displayName || comment.username}
-                            </span>
+                            </button>
                             <span className="text-xs text-muted-foreground">
                                 {new Date(comment.createdAt).toLocaleDateString()}
                             </span>
@@ -177,6 +194,7 @@ export function CommentItem({
                             onReply={onReply}
                             onEdit={onEdit}
                             onDelete={onDelete}
+                            onOpenUserProfile={onOpenUserProfile}
                             depth={depth + 1}
                         />
                     ))}
