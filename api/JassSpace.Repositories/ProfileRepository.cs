@@ -9,7 +9,7 @@ using Npgsql;
 using NpgsqlTypes;
 using System.Net;
 
-namespace Linkyard.Repositories;
+namespace JassSpace.Repositories;
 
 public class ProfileRepository(JassSpaceDbContext db, ILogger<ProfileRepository> logger, IConfiguration configuration) : IProfileRepository
 {

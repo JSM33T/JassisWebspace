@@ -42,23 +42,119 @@ namespace JassSpace.Infra
 
         public async Task SendVerificationEmailAsync(string to, string firstName, string verificationCode)
         {
-            var subject = "Verify Your Linkyard Account";
+            var subject = "Verify Your JassSpace Account";
             var body = GenerateVerificationEmailHtml(firstName, verificationCode);
             await SendEmailAsync(to, subject, body, true);
         }
 
         public async Task SendPasswordResetEmailAsync(string to, string firstName, string resetCode)
         {
-            var subject = "Reset Your Linkyard Password";
+            var subject = "Reset Your JassSpace Password";
             var body = GeneratePasswordResetEmailHtml(firstName, resetCode);
             await SendEmailAsync(to, subject, body, true);
         }
 
         public async Task SendWelcomeEmailAsync(string to, string firstName)
         {
-            var subject = "Welcome to Linkyard!";
+            var subject = "Welcome to JassSpace!";
             var body = GenerateWelcomeEmailHtml(firstName);
             await SendEmailAsync(to, subject, body, true);
+        }
+
+        public async Task SendCommentNotificationEmailAsync(CommentNotificationEmailModel model)
+        {
+            var subject = model.Kind == CommentNotificationKind.Reply
+                ? $"Someone replied to your comment on {model.ContentTitle}"
+                : $"New comment on your {model.ContentType}: {model.ContentTitle}";
+
+            var body = GenerateCommentNotificationEmailHtml(model);
+            await SendEmailAsync(model.RecipientEmail, subject, body, true);
+        }
+
+        private string GenerateCommentNotificationEmailHtml(CommentNotificationEmailModel model)
+        {
+            var encodedRecipientName = HtmlEncodeSafe(model.RecipientName);
+            var encodedActorName = HtmlEncodeSafe(model.ActorName);
+            var encodedContentTitle = HtmlEncodeSafe(model.ContentTitle);
+            var encodedContentType = HtmlEncodeSafe(model.ContentType);
+            var encodedCommentText = HtmlEncodeMultiline(model.CommentText);
+            var encodedContentUrl = HtmlEncodeSafe(model.ContentUrl);
+
+            var intro = model.Kind == CommentNotificationKind.Reply
+                ? $"{encodedActorName} replied to your comment."
+                : $"{encodedActorName} commented on your {encodedContentType.ToLowerInvariant()}.";
+
+            var parentCommentBlock = string.IsNullOrWhiteSpace(model.ParentCommentText)
+                ? string.Empty
+                : $@"
+            <div class='previous-comment'>
+                <p><strong>Your original comment:</strong></p>
+                <p class='comment-text'>{HtmlEncodeMultiline(model.ParentCommentText)}</p>
+            </div>";
+
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Comment Notification</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 680px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%); color: white; padding: 24px; text-align: center; border-radius: 10px 10px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 24px; border-radius: 0 0 10px 10px; }}
+        .comment-box {{ background: white; border: 1px solid #e4e4e7; border-radius: 8px; padding: 16px; margin: 16px 0; }}
+        .previous-comment {{ background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin: 16px 0; }}
+        .comment-text {{ margin: 0; white-space: normal; }}
+        .cta {{ margin-top: 20px; }}
+        .button {{ display: inline-block; background: #1565c0; color: #fff !important; text-decoration: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; }}
+        .meta {{ color: #666; font-size: 13px; margin-top: 14px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h2>New Comment Activity</h2>
+        </div>
+        <div class='content'>
+            <p>Hi {encodedRecipientName},</p>
+            <p>{intro}</p>
+
+            <p><strong>Content:</strong> {encodedContentTitle}</p>
+            <div class='comment-box'>
+                <p><strong>Comment:</strong></p>
+                <p class='comment-text'>{encodedCommentText}</p>
+            </div>
+
+            {parentCommentBlock}
+
+            <div class='cta'>
+                <a class='button' href='{encodedContentUrl}'>View Discussion</a>
+            </div>
+
+            <p class='meta'>You are receiving this because comment notifications are enabled for your account activity.</p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        private static string HtmlEncodeSafe(string? value)
+        {
+            return WebUtility.HtmlEncode(value ?? string.Empty);
+        }
+
+        private static string HtmlEncodeMultiline(string? value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            var normalized = value.Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace('\r', '\n');
+
+            return WebUtility.HtmlEncode(normalized).Replace("\n", "<br/>", StringComparison.Ordinal);
         }
 
         private string GenerateVerificationEmailHtml(string firstName, string verificationCode)
@@ -83,11 +179,11 @@ namespace JassSpace.Infra
 <body>
     <div class='container'>
         <div class='header'>
-            <h1>🎉 Welcome to Linkyard!</h1>
+            <h1>🎉 Welcome to JassSpace!</h1>
         </div>
         <div class='content'>
             <h2>Hi {firstName}!</h2>
-            <p>Thanks for joining Linkyard! To complete your account setup, please verify your email address using the code below:</p>
+            <p>Thanks for joining JassSpace! To complete your account setup, please verify your email address using the code below:</p>
             
             <div class='code'>
                 <p><strong>Your Verification Code:</strong></p>
@@ -96,13 +192,13 @@ namespace JassSpace.Infra
             
             <p>This code will expire in <strong>15 minutes</strong> for security reasons.</p>
             
-            <p>If you didn't create an account with Linkyard, you can safely ignore this email.</p>
+            <p>If you didn't create an account with JassSpace, you can safely ignore this email.</p>
             
             <p>Welcome aboard!<br>
-            The Linkyard Team</p>
+            The JassSpace Team</p>
         </div>
         <div class='footer'>
-            <p>© 2025 Linkyard. All rights reserved.</p>
+            <p>© 2025 JassSpace. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -135,7 +231,7 @@ namespace JassSpace.Infra
         </div>
         <div class='content'>
             <h2>Hi {firstName}!</h2>
-            <p>We received a request to reset your Linkyard account password. Use the code below to reset your password:</p>
+            <p>We received a request to reset your JassSpace account password. Use the code below to reset your password:</p>
             
             <div class='code'>
                 <p><strong>Your Reset Code:</strong></p>
@@ -154,10 +250,10 @@ namespace JassSpace.Infra
             <p>If you didn't request a password reset, your account is still secure and no action is needed.</p>
             
             <p>Best regards,<br>
-            The Linkyard Team</p>
+            The JassSpace Team</p>
         </div>
         <div class='footer'>
-            <p>© 2025 Linkyard. All rights reserved.</p>
+            <p>© 2025 JassSpace. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -171,7 +267,7 @@ namespace JassSpace.Infra
 <html>
 <head>
     <meta charset='utf-8'>
-    <title>Welcome to Linkyard!</title>
+    <title>Welcome to JassSpace!</title>
     <style>
         body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
         .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
@@ -186,11 +282,11 @@ namespace JassSpace.Infra
 <body>
     <div class='container'>
         <div class='header'>
-            <h1>🎊 Welcome to Linkyard!</h1>
+            <h1>🎊 Welcome to JassSpace!</h1>
         </div>
         <div class='content'>
             <h2>Hi {firstName}!</h2>
-            <p>Congratulations! Your email has been verified and your Linkyard account is now active.</p>
+            <p>Congratulations! Your email has been verified and your JassSpace account is now active.</p>
             
             <div class='features'>
                 <h3>🚀 Get Started:</h3>
@@ -200,13 +296,13 @@ namespace JassSpace.Infra
                 <div class='feature'>🌟 Explore communities</div>
             </div>
             
-            <p>We're excited to have you as part of the Linkyard community!</p>
+            <p>We're excited to have you as part of the JassSpace community!</p>
             
             <p>Happy connecting!<br>
-            The Linkyard Team</p>
+            The JassSpace Team</p>
         </div>
         <div class='footer'>
-            <p>© 2025 Linkyard. All rights reserved.</p>
+            <p>© 2025 JassSpace. All rights reserved.</p>
         </div>
     </div>
 </body>

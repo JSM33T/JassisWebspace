@@ -1,3 +1,8 @@
+using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
+using JassSpace.Api.Configuration;
+using JassSpace.Api.Jobs;
 using JassSpace.Api.Extensions;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
@@ -7,12 +12,15 @@ using JassSpace.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace JassSpace.Api.Controllers;
 
 [Route("comments")]
 public sealed class CommentController(
     JassSpaceDbContext dbContext,
+    IBackgroundJobClient backgroundJobClient,
+    IOptions<HangfireSettings> hangfireSettings,
     ILogger<CommentController> logger)
     : BaseApiController
 {
@@ -92,12 +100,20 @@ public sealed class CommentController(
             // Verify parent comment if provided
             if (request.ParentCommentId.HasValue)
             {
-                var parentExists = await dbContext.Comments
-                    .AnyAsync(c => c.Id == request.ParentCommentId && !c.IsDeleted, cancellationToken);
-                
-                if (!parentExists)
+                var parentComment = await dbContext.Comments
+                    .AsNoTracking()
+                    .Where(c => c.Id == request.ParentCommentId.Value && !c.IsDeleted)
+                    .Select(c => new { c.Id, c.ContentId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (parentComment is null)
                 {
                     return NotFoundProblem("Parent comment not found", "The specified parent comment does not exist or has been deleted.");
+                }
+
+                if (parentComment.ContentId != request.ContentId)
+                {
+                    return BadRequestProblem("Invalid parent comment", "Parent comment must belong to the same content.");
                 }
             }
 
@@ -118,6 +134,16 @@ public sealed class CommentController(
 
             dbContext.Comments.Add(comment);
             await dbContext.SaveChangesAsync(cancellationToken);
+
+            var queueName = string.IsNullOrWhiteSpace(hangfireSettings.Value.QueueName) ? "emails" : hangfireSettings.Value.QueueName;
+            backgroundJobClient.Create(
+                Job.FromExpression<ICommentNotificationJob>(job => job.EnqueueForCommentAsync(comment.Id)),
+                new EnqueuedState(queueName));
+
+            logger.LogInformation(
+                "Queued comment notification orchestration for comment {CommentId} on queue {QueueName}.",
+                comment.Id,
+                queueName);
 
             // Fetch user details for response
             var user = await dbContext.Users

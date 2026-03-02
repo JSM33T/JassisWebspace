@@ -40,5 +40,12 @@
         /// <param name="firstName">The recipient's first name.</param>
         /// <returns>A task representing the asynchronous send operation.</returns>
         Task SendWelcomeEmailAsync(string to, string firstName);
+
+        /// <summary>
+        /// Sends a comment notification email.
+        /// </summary>
+        /// <param name="model">Notification payload.</param>
+        /// <returns>A task representing the asynchronous send operation.</returns>
+        Task SendCommentNotificationEmailAsync(CommentNotificationEmailModel model);
     }
 }

@@ -1,13 +1,16 @@
-using Linkyard.Repositories;
+using Hangfire;
+using Hangfire.PostgreSql;
+using JassSpace.Repositories;
 using JassSpace.Api.Configuration;
 using JassSpace.Api.Extensions; // Custom CORS
+using JassSpace.Api.Jobs;
 using JassSpace.Api.Middleware; // CorrelationIdMiddleware
+using JassSpace.Api.Security;
 using JassSpace.Api.Services;
 using JassSpace.Contracts.Interfaces;
 using JassSpace.Data;
 using JassSpace.Infra;
 using JassSpace.Infra.Configuration;
-using JassSpace.Repositories;
 using JassSpace.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +69,36 @@ builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection("RateLimiting"));
 builder.Services.AddScoped<IRateLimiterService, RateLimiterService>();
+builder.Services.Configure<HangfireSettings>(builder.Configuration.GetSection(HangfireSettings.SectionName));
+
+var hangfireSettings = builder.Configuration.GetSection(HangfireSettings.SectionName).Get<HangfireSettings>() ?? new HangfireSettings();
+var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(defaultConnectionString))
+{
+    throw new InvalidOperationException("Missing required configuration: ConnectionStrings:DefaultConnection");
+}
+
+builder.Services.AddHangfire(config =>
+{
+    config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180);
+    config.UseSimpleAssemblyNameTypeSerializer();
+    config.UseRecommendedSerializerSettings();
+    config.UsePostgreSqlStorage(
+        storageOptions => storageOptions.UseNpgsqlConnection(defaultConnectionString),
+        new PostgreSqlStorageOptions
+        {
+            SchemaName = string.IsNullOrWhiteSpace(hangfireSettings.SchemaName)
+                ? "hangfire"
+                : hangfireSettings.SchemaName
+        });
+});
+
+builder.Services.AddHangfireServer(options =>
+{
+    var queueName = string.IsNullOrWhiteSpace(hangfireSettings.QueueName) ? "emails" : hangfireSettings.QueueName;
+    options.Queues = ["default", queueName];
+});
+
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -79,6 +112,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ICacheSubjectResolver, CacheSubjectResolver>();
 builder.Services.AddScoped<IRequestCacheKeyBuilder, RequestCacheKeyBuilder>();
 builder.Services.AddScoped<IHttpResponseCacheStore, HttpResponseCacheStore>();
+builder.Services.AddScoped<ICommentNotificationJob, CommentNotificationJob>();
 builder.Services.AddHttpClient();
 
 // Email Service Configuration
@@ -145,6 +179,23 @@ if (!app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+var dashboardPath = string.IsNullOrWhiteSpace(hangfireSettings.DashboardPath) ? "/hangfire" : hangfireSettings.DashboardPath;
+if (!dashboardPath.StartsWith('/'))
+{
+    dashboardPath = $"/{dashboardPath}";
+}
+
+app.UseHangfireDashboard(dashboardPath, new DashboardOptions
+{
+    DisplayStorageConnectionString = false,
+    Authorization =
+    [
+        new BasicHangfireDashboardAuthorizationFilter(
+            hangfireSettings.DashboardAuth.Username,
+            hangfireSettings.DashboardAuth.Password)
+    ]
+});
 
 app.MapControllers();
 
