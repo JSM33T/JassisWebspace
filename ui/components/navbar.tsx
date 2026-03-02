@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,20 +31,37 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Check, Sun, Moon } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname } from 'next/navigation';
-import { ModeToggle } from '@/components/mode-toggle';
-import { ThemeSetSelector } from '@/components/theme-set-selector';
+import { useTheme } from 'next-themes';
+import { useThemeSet } from '@/components/theme-provider';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
+
+const SIDEBAR_OPEN_EVENT = 'app-sidebar:set-open';
 
 export function Navbar() {
     const { user, logout, isAuthenticated } = useUser();
-    const { togglePlayer, hasSource, isOpen } = useAudioPlayer();
+    const {
+        hasSource,
+        currentTitle,
+        currentArtist,
+        isPlaying,
+        currentTime,
+        duration,
+        playPause,
+        stop,
+        seekBy,
+        seekTo,
+    } = useAudioPlayer();
+    const { resolvedTheme, setTheme } = useTheme();
+    const { activeThemeSetId, setActiveThemeSetId, themeSets } = useThemeSet();
     const router = useRouter();
     const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [isNavbarHidden, setIsNavbarHidden] = useState(false);
 
@@ -140,6 +158,23 @@ export function Navbar() {
     const navDropdownContentClassName =
         "w-72 rounded-2xl border border-border/60 bg-background/70 p-2 text-foreground shadow-xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60";
 
+    const formatAudioTime = (seconds: number) => {
+        if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
+        const s = Math.floor(seconds);
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    };
+
+    const getThemePreviewBackground = (themeSet: (typeof themeSets)[number]) => {
+        const background = themeSet.tokens.light.background ?? 'oklch(0.98 0.01 250)';
+        const primary = themeSet.tokens.light.primary ?? 'oklch(0.68 0.12 250)';
+        const accent = themeSet.tokens.light.accent ?? themeSet.tokens.light.secondary ?? primary;
+        return `linear-gradient(135deg, ${background} 0%, ${accent} 55%, ${primary} 100%)`;
+    };
+
+    const activeMode = resolvedTheme === 'dark' ? 'dark' : 'light';
+
 
     const roleDisplayName =
         normalizedRole === 'admin'
@@ -178,6 +213,27 @@ export function Navbar() {
             window.removeEventListener('scroll', handleScroll);
         };
     }, []);
+
+    useEffect(() => {
+        const handleSidebarState = (event: Event) => {
+            const detail = (event as CustomEvent<boolean>).detail;
+            if (typeof detail === 'boolean') {
+                setSidebarOpen(detail);
+            }
+        };
+
+        window.addEventListener(SIDEBAR_OPEN_EVENT, handleSidebarState as EventListener);
+        return () => {
+            window.removeEventListener(SIDEBAR_OPEN_EVENT, handleSidebarState as EventListener);
+        };
+    }, []);
+
+    const handleSidebarOpenChange = (open: boolean) => {
+        setSidebarOpen(open);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: open }));
+        }
+    };
 
 
     return (
@@ -397,13 +453,11 @@ export function Navbar() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-8 px-2 hover:bg-accent/50"
-                                    onClick={togglePlayer}
-                                    title={hasSource ? "Toggle audio player" : "Open audio player"}
+                                    onClick={() => handleSidebarOpenChange(true)}
+                                    title="Open sidebar"
                                 >
-                                    <Music className={`h-4 w-4 ${isOpen ? 'text-primary' : ''}`} />
+                                    <PanelRight className={`h-4 w-4 ${sidebarOpen ? 'text-primary' : ''}`} />
                                 </Button>
-                                <ModeToggle />
-                                <ThemeSetSelector />
                                 {isAuthenticated ? (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -483,13 +537,11 @@ export function Navbar() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-8 px-2 hover:bg-accent/50"
-                                    onClick={togglePlayer}
-                                    title={hasSource ? "Toggle audio player" : "Open audio player"}
+                                    onClick={() => handleSidebarOpenChange(true)}
+                                    title="Open sidebar"
                                 >
-                                    <Music className={`h-4 w-4 ${isOpen ? 'text-primary' : ''}`} />
+                                    <PanelRight className={`h-4 w-4 ${sidebarOpen ? 'text-primary' : ''}`} />
                                 </Button>
-                                <ModeToggle />
-                                <ThemeSetSelector />
                                 <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                                     <SheetTrigger asChild>
                                         <Button variant="outline" size="icon">
@@ -683,6 +735,164 @@ export function Navbar() {
                     </div>
                 </div>
             </nav>
+
+            <Sheet open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
+                <SheetContent side="right" className="w-full sm:max-w-sm">
+                    <SheetHeader>
+                        <SheetTitle>Sidebar</SheetTitle>
+                        <SheetDescription>Appearance settings and quick controls</SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-6 space-y-4 px-2">
+                        <div className="space-y-3 rounded-xl border bg-card/60 p-3">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <p className="text-sm font-medium">Music Player</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {hasSource ? 'Control playback directly here' : 'Select a track to start playback'}
+                                    </p>
+                                </div>
+                                <Button type="button" variant="outline" size="icon" asChild className="h-8 w-8 rounded-full">
+                                    <Link href="/music" aria-label="Open music library">
+                                        <Library className="h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            </div>
+                            {hasSource ? (
+                                <div className="space-y-3">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold">{currentTitle || 'Untitled Track'}</p>
+                                        <p className="truncate text-xs text-muted-foreground">{currentArtist || 'Unknown Artist'}</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Slider
+                                            value={[Math.min(currentTime, duration > 0 ? duration : 1)]}
+                                            min={0}
+                                            max={duration > 0 ? duration : 1}
+                                            step={0.1}
+                                            onValueChange={(values) => seekTo(values[0] ?? 0)}
+                                        />
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span>{formatAudioTime(currentTime)}</span>
+                                            <span>{formatAudioTime(duration)}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Button type="button" size="icon" variant="outline" className="rounded-full" onClick={() => seekBy(-10)}>
+                                            <SkipBack className="h-4 w-4" />
+                                        </Button>
+                                        <Button type="button" size="icon" className="h-10 w-10 rounded-full" onClick={playPause}>
+                                            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                        </Button>
+                                        <Button type="button" size="icon" variant="outline" className="rounded-full" onClick={stop}>
+                                            <Square className="h-4 w-4" />
+                                        </Button>
+                                        <Button type="button" size="icon" variant="outline" className="rounded-full" onClick={() => seekBy(10)}>
+                                            <SkipForward className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                        <div className="space-y-3 rounded-xl border bg-card/60 p-3">
+                            <div className="space-y-0.5">
+                                <p className="text-sm font-medium">Mode</p>
+                                <p className="text-xs text-muted-foreground">Choose light or dark appearance</p>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
+                                    {(
+                                        [
+                                            { mode: 'light', label: 'Light', icon: Sun },
+                                            { mode: 'dark', label: 'Dark', icon: Moon },
+                                        ] as const
+                                    ).map(({ mode, label, icon: Icon }) => {
+                                        const isActive = activeMode === mode;
+                                        return (
+                                            <button
+                                                key={mode}
+                                                type="button"
+                                                onClick={() => setTheme(mode)}
+                                                className={cn(
+                                                    'relative flex h-9 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors',
+                                                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                                                )}
+                                            >
+                                                {isActive ? (
+                                                    <motion.span
+                                                        layoutId="mode-toggle-pill"
+                                                        className="absolute inset-0 rounded-md border border-border/70 bg-background shadow-sm"
+                                                        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                                                    />
+                                                ) : null}
+                                                <motion.span
+                                                    className="relative z-10"
+                                                    animate={{ rotate: isActive ? [0, -10, 0] : 0, scale: isActive ? 1.05 : 1 }}
+                                                    transition={{ duration: 0.32, ease: 'easeOut' }}
+                                                >
+                                                    <Icon className="h-4 w-4" />
+                                                </motion.span>
+                                                <span className="relative z-10">{label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <AnimatePresence mode="wait" initial={false}>
+                                    <motion.p
+                                        key={activeMode}
+                                        initial={{ y: 4, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        exit={{ y: -4, opacity: 0 }}
+                                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                                        className="text-xs text-muted-foreground"
+                                    >
+                                        {activeMode === 'dark'
+                                            ? 'Dark mode enabled for lower glare.'
+                                            : 'Light mode enabled for daytime clarity.'}
+                                    </motion.p>
+                                </AnimatePresence>
+                            </div>
+                        </div>
+                        <div className="space-y-3 rounded-xl border bg-card/60 p-3">
+                            <div className="space-y-0.5">
+                                <p className="text-sm font-medium">Theme Set</p>
+                                <p className="text-xs text-muted-foreground">Pick a visual theme variant</p>
+                            </div>
+                            <div className="grid gap-2">
+                                {themeSets.map((themeSet) => {
+                                    const isActiveTheme = themeSet.id === activeThemeSetId;
+                                    return (
+                                        <Button
+                                            key={themeSet.id}
+                                            variant="ghost"
+                                            size="sm"
+                                            className={cn(
+                                                'h-auto w-full justify-start rounded-lg border px-2.5 py-2 text-left whitespace-normal shadow-none overflow-hidden',
+                                                'border-border/60 bg-background/40 hover:bg-accent/50 hover:border-border',
+                                                isActiveTheme && 'border-primary/40 bg-accent/60 ring-1 ring-primary/20'
+                                            )}
+                                            onClick={() => setActiveThemeSetId(themeSet.id)}
+                                        >
+                                            <span className="mr-3 block h-10 w-14 shrink-0 overflow-hidden rounded-md border border-border/70 transition-transform duration-200 group-hover/button:-rotate-2">
+                                                <span
+                                                    className="block h-full w-full"
+                                                    style={{ background: getThemePreviewBackground(themeSet) }}
+                                                />
+                                            </span>
+                                            <span className="min-w-0 flex-1 text-left">
+                                                <span className="block truncate text-sm font-medium leading-none">{themeSet.name}</span>
+                                                <span className={cn('mt-1 block text-xs leading-4 text-muted-foreground whitespace-normal break-words', isActiveTheme && 'text-foreground/75')}>
+                                                    {themeSet.description ?? 'A balanced theme preset.'}
+                                                </span>
+                                            </span>
+                                            {isActiveTheme ? <Check className="ml-2 h-4 w-4 text-primary" /> : null}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
 
             {/* Logout Confirmation Dialog */}
             <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
