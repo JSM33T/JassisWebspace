@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { likeService } from '@/lib/api/like.service';
@@ -20,6 +20,38 @@ export function LikeButton({ contentId, initialCount, initialLiked }: LikeButton
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [isLoading, setIsLoading] = useState(false);
 
+    useEffect(() => {
+        setLikeCount(initialCount);
+        setIsLiked(initialLiked);
+    }, [contentId, initialCount, initialLiked]);
+
+    useEffect(() => {
+        let active = true;
+
+        const syncLikeStatus = async () => {
+            try {
+                const status = await likeService.getLikeStatus(contentId);
+
+                if (!active) {
+                    return;
+                }
+
+                setLikeCount(status.likeCount);
+                setIsLiked(status.isLiked);
+            } catch (error) {
+                if (active) {
+                    console.error('Failed to sync like status', error);
+                }
+            }
+        };
+
+        syncLikeStatus();
+
+        return () => {
+            active = false;
+        };
+    }, [contentId, isAuthenticated]);
+
     const handleToggleLike = async () => {
         if (!isAuthenticated || !user?.login) {
             toast.error('Login first to like or comment');
@@ -27,30 +59,14 @@ export function LikeButton({ contentId, initialCount, initialLiked }: LikeButton
         }
 
         if (isLoading) return;
-
-        // Optimistic update
-        const previousLiked = isLiked;
-        const previousCount = likeCount;
-
-        setIsLiked(!isLiked);
-        setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
         setIsLoading(true);
 
         try {
-            const newLikedState = await likeService.toggleLike(contentId);
-            // Verify server state matches optimistic
-            if (newLikedState !== !previousLiked) {
-                // Determine what happened? Actually endpoint returns bool which is "isLiked"
-                // Our service returns that bool.
-                setIsLiked(newLikedState);
-                // If we drifted, we might be off by 1, but usually exact count sync needs refreshed. 
-                // We'll trust our calc unless we implement refetch.
-            }
+            const status = await likeService.toggleLike(contentId);
+            setIsLiked(status.isLiked);
+            setLikeCount(status.likeCount);
         } catch (error) {
             console.error('Failed to toggle like', error);
-            // Revert on error
-            setIsLiked(previousLiked);
-            setLikeCount(previousCount);
             toast.error('Failed to update like status');
         } finally {
             setIsLoading(false);

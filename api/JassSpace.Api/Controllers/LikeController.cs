@@ -1,5 +1,6 @@
 using JassSpace.Api.Extensions;
 using JassSpace.Contracts;
+using JassSpace.Contracts.Responses;
 using JassSpace.Data;
 using JassSpace.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -19,7 +20,7 @@ public sealed class LikeController(
     /// </summary>
     [HttpPost("{contentId:guid}")]
     [Authorize]
-    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LikeStatusResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ToggleLike(Guid contentId, CancellationToken cancellationToken = default)
     {
@@ -45,7 +46,11 @@ public sealed class LikeController(
                 // Unlike
                 dbContext.Likes.Remove(existingLike);
                 await dbContext.SaveChangesAsync(cancellationToken);
-                return OkEnvelope(false); // Helper for returning { data: false } indicating not liked anymore
+
+                var likeCount = await dbContext.Likes
+                    .CountAsync(l => l.ContentId == contentId, cancellationToken);
+
+                return OkEnvelope(new LikeStatusResponse(contentId, likeCount, false));
             }
             else
             {
@@ -59,7 +64,11 @@ public sealed class LikeController(
 
                 dbContext.Likes.Add(like);
                 await dbContext.SaveChangesAsync(cancellationToken);
-                return OkEnvelope(true); // Helper for returning { data: true } indicating liked
+
+                var likeCount = await dbContext.Likes
+                    .CountAsync(l => l.ContentId == contentId, cancellationToken);
+
+                return OkEnvelope(new LikeStatusResponse(contentId, likeCount, true));
             }
         }
         catch (Exception ex)
@@ -68,6 +77,47 @@ public sealed class LikeController(
             return Problem(
                 StatusCodes.Status500InternalServerError,
                 "Failed to update like status",
+                "An unexpected error occurred.");
+        }
+    }
+
+    /// <summary>
+    /// Get like count and current-user like status for a content.
+    /// </summary>
+    [HttpGet("{contentId:guid}/status")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<LikeStatusResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLikeStatus(Guid contentId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var contentExists = await dbContext.Contents
+                .AnyAsync(c => c.Id == contentId, cancellationToken);
+
+            if (!contentExists)
+            {
+                return NotFoundProblem("Content not found", $"No content found with ID '{contentId}'.");
+            }
+
+            var likeCount = await dbContext.Likes
+                .CountAsync(l => l.ContentId == contentId, cancellationToken);
+
+            var isLiked = false;
+            if (Guid.TryParse(UserId, out var userId))
+            {
+                isLiked = await dbContext.Likes
+                    .AnyAsync(l => l.ContentId == contentId && l.UserId == userId, cancellationToken);
+            }
+
+            return OkEnvelope(new LikeStatusResponse(contentId, likeCount, isLiked));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get like status for content {ContentId}", contentId);
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to retrieve like status",
                 "An unexpected error occurred.");
         }
     }
