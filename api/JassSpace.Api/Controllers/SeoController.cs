@@ -138,6 +138,71 @@ public sealed class SeoController(
         }
     }
 
+    [HttpGet("music/{slug}")]
+    [CachedResponse(RedisCacheKeys.MusicSeo, TtlSeconds = 600, Scope = CacheScope.Anonymous, VaryByQuery = false)]
+    [ProducesResponseType(typeof(ApiResponse<MusicSeoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMusicSeo(string slug, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var track = await dbContext.Tracks
+                .AsNoTracking()
+                .Where(t => t.Slug == slug && t.IsPublished)
+                .Select(t => new
+                {
+                    t.Title,
+                    t.Slug,
+                    t.Description,
+                    t.Cover,
+                    t.Category,
+                    t.Genre,
+                    t.Tags
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (track is null)
+            {
+                return NotFoundProblem("Track not found", $"No published track found with slug '{slug}'.");
+            }
+
+            var tags = new List<string> { "music", "track", "audio", "JassSpace", track.Category };
+            if (!string.IsNullOrWhiteSpace(track.Genre))
+            {
+                tags.Add(track.Genre.Trim());
+            }
+
+            if (track.Tags is { Length: > 0 })
+            {
+                tags.AddRange(track.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)));
+            }
+
+            tags = tags
+                .Select(tag => tag.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var response = new MusicSeoResponse(
+                track.Title,
+                BuildDescription(track.Description, null, "Listen to this track on JassSpace."),
+                BuildCanonicalUrl("music", track.Slug),
+                NormalizeMusicMediaUrl(track.Cover),
+                tags,
+                Type: "article",
+                NoIndex: false);
+
+            return OkEnvelope(response);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to build SEO payload for music track {Slug}", slug);
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to build SEO metadata",
+                "An unexpected error occurred while preparing SEO metadata.");
+        }
+    }
+
     private string BuildCanonicalUrl(string section, string slug)
     {
         var baseUrl = configuration.GetValue<string>("Frontend:BaseUrl");
@@ -228,5 +293,26 @@ public sealed class SeoController(
         return normalized.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase)
             ? normalized[GalleryBlobPrefix.Length..]
             : normalized;
+    }
+
+    private static string? NormalizeMusicMediaUrl(string? mediaUrl)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl))
+        {
+            return mediaUrl;
+        }
+
+        var trimmed = mediaUrl.Trim();
+        if (!MediaUrlHelper.TryExtractMediaBlobName(trimmed, out var blobName))
+        {
+            return trimmed;
+        }
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
+        {
+            return $"{absolute.Scheme}://{absolute.Authority}{MediaPathPrefix}{blobName}";
+        }
+
+        return $"{MediaPathPrefix}{blobName}";
     }
 }

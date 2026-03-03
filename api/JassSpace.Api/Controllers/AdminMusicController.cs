@@ -24,7 +24,8 @@ public sealed class AdminMusicController(
     IAzureBlobStorageService blobStorageService,
     IImageProcessingService imageProcessingService,
     IBootlegTokenService tokenService,
-    IOptions<BootlegStreamingSettings> streamingSettings)
+    IOptions<BootlegStreamingSettings> streamingSettings,
+    IHttpResponseCacheStore responseCacheStore)
     : BaseApiController
 {
     private readonly BootlegStreamingSettings _streamingSettings = streamingSettings.Value;
@@ -213,6 +214,7 @@ public sealed class AdminMusicController(
                 track.Cover = mediaUrl;
                 track.UpdatedAt = DateTimeOffset.UtcNow;
                 await dbContext.SaveChangesAsync(cancellationToken);
+                await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.MusicSeo, cancellationToken);
             }
 
             if (!string.IsNullOrWhiteSpace(previousCover) &&
@@ -407,6 +409,7 @@ public sealed class AdminMusicController(
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.MusicSeo, cancellationToken);
 
         var created = await GetTrackWithRelations(track.Id, cancellationToken);
         if (created is null)
@@ -523,6 +526,7 @@ public sealed class AdminMusicController(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.MusicSeo, cancellationToken);
 
         if (!string.Equals(previousCover, track.Cover, StringComparison.OrdinalIgnoreCase))
         {
@@ -584,6 +588,7 @@ public sealed class AdminMusicController(
 
             dbContext.Tracks.Remove(track);
             await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.MusicSeo, cancellationToken);
 
             await DeleteTrackCoverIfOwnedAsync(cover, cancellationToken);
 

@@ -145,6 +145,39 @@ export async function buildGalleryMetadata(slug: string): Promise<Metadata> {
     }
 }
 
+export async function buildMusicMetadata(slug: string): Promise<Metadata> {
+    const fallback = buildMetadata({
+        title: "Music Track",
+        description: "Listen to this track on JassSpace.",
+        tags: ["music", "track", "audio", "JassSpace"],
+        canonicalPath: `/music/${slug}`,
+        type: "article",
+    });
+
+    if (!slug) {
+        return fallback;
+    }
+
+    try {
+        const payload = await fetchSeoPayload(`/seo/music/${encodeURIComponent(slug)}`);
+        if (!payload?.title || !payload.canonicalUrl) {
+            return fallback;
+        }
+
+        return buildMetadata({
+            title: payload.title,
+            description: payload.description || fallback.description?.toString(),
+            tags: payload.tags,
+            image: payload.image || undefined,
+            canonicalUrl: payload.canonicalUrl,
+            type: payload.type === "article" ? "article" : "website",
+            noIndex: payload.noIndex ?? false,
+        });
+    } catch {
+        return fallback;
+    }
+}
+
 export function buildMetadata(overrides: SeoOverride = {}): Metadata {
     const seo = resolveSeo(overrides);
     const canonicalOrigin = extractOrigin(seo.canonicalUrl) || SEO_DEFAULTS.siteUrl;

@@ -19,3 +19,13 @@ public sealed record GallerySeoResponse(
     string Type = "website",
     bool NoIndex = false
 );
+
+public sealed record MusicSeoResponse(
+    string Title,
+    string Description,
+    string CanonicalUrl,
+    string? Image,
+    List<string> Tags,
+    string Type = "article",
+    bool NoIndex = false
+);
