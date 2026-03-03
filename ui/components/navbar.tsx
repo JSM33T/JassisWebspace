@@ -31,7 +31,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Check, Sun, Moon } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -548,7 +548,7 @@ export function Navbar() {
                                             <Menu className="h-4 w-4" />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="right" className="h-full w-[300px] overflow-y-auto">
+                                    <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[300px] sm:max-w-[300px]">
                                         <SheetHeader>
                                             <SheetTitle>Menu</SheetTitle>
                                             <SheetDescription>Navigate through the app</SheetDescription>
@@ -737,7 +737,7 @@ export function Navbar() {
             </nav>
 
             <Sheet open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
-                <SheetContent side="right" className="w-full sm:max-w-sm">
+                <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:max-w-sm">
                     <SheetHeader>
                         <SheetTitle>Sidebar</SheetTitle>
                         <SheetDescription>Appearance settings and quick controls</SheetDescription>
@@ -872,11 +872,33 @@ export function Navbar() {
                                             )}
                                             onClick={() => setActiveThemeSetId(themeSet.id)}
                                         >
-                                            <span className="mr-3 block h-10 w-14 shrink-0 overflow-hidden rounded-md border border-border/70 transition-transform duration-200 group-hover/button:-rotate-2">
+                                            <span className="relative isolate mr-3 block h-10 w-14 shrink-0 overflow-hidden rounded-md border border-border/70 transition-transform duration-200 group-hover/button:-rotate-2">
                                                 <span
                                                     className="block h-full w-full"
                                                     style={{ background: getThemePreviewBackground(themeSet) }}
                                                 />
+                                                <AnimatePresence>
+                                                    {isActiveTheme ? (
+                                                        <motion.span
+                                                            className="pointer-events-none absolute inset-0"
+                                                            initial={{ opacity: 0 }}
+                                                            animate={{ opacity: 1 }}
+                                                            exit={{ opacity: 0 }}
+                                                            transition={{ duration: 0.22, ease: 'easeOut' }}
+                                                        >
+                                                            <motion.span
+                                                                className="absolute -inset-y-2 -left-1/3 w-1/2 rotate-12 bg-gradient-to-r from-transparent via-white/45 to-transparent mix-blend-screen"
+                                                                animate={{ x: ['-140%', '180%'] }}
+                                                                transition={{
+                                                                    duration: 1.8,
+                                                                    repeat: Infinity,
+                                                                    repeatDelay: 1.2,
+                                                                    ease: 'easeInOut',
+                                                                }}
+                                                            />
+                                                        </motion.span>
+                                                    ) : null}
+                                                </AnimatePresence>
                                             </span>
                                             <span className="min-w-0 flex-1 text-left">
                                                 <span className="block truncate text-sm font-medium leading-none">{themeSet.name}</span>
@@ -884,7 +906,6 @@ export function Navbar() {
                                                     {themeSet.description ?? 'A balanced theme preset.'}
                                                 </span>
                                             </span>
-                                            {isActiveTheme ? <Check className="ml-2 h-4 w-4 text-primary" /> : null}
                                         </Button>
                                     );
                                 })}
