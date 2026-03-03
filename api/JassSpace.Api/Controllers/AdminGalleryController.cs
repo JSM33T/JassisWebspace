@@ -41,7 +41,6 @@ public sealed class AdminGalleryController(
         take = Math.Clamp(take, 1, 200);
         var query = dbContext.Users
             .AsNoTracking()
-            .Where(u => u.UserRoles.Any(ur => ur.Role.Name == "admin" || ur.Role.Name == "mod"))
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))

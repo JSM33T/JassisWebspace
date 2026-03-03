@@ -172,7 +172,7 @@ public sealed class AdminBlogController(
     }
 
     /// <summary>
-    /// Get list of users who can be blog authors (admin or mod roles)
+    /// Get list of users who can be blog authors
     /// </summary>
     [HttpGet("authors")]
     [ProducesResponseType(typeof(ApiResponse<List<BlogAuthorResponse>>), StatusCodes.Status200OK)]
@@ -185,7 +185,6 @@ public sealed class AdminBlogController(
 
         var query = dbContext.Users
             .AsNoTracking()
-            .Where(u => u.UserRoles.Any(ur => ur.Role.Name == "admin" || ur.Role.Name == "mod"))
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))

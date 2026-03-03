@@ -42,7 +42,6 @@ public sealed class AdminMusicController(
 
         var query = dbContext.Users
             .AsNoTracking()
-            .Where(u => u.UserRoles.Any(ur => ur.Role.Name == "admin" || ur.Role.Name == "mod"))
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
