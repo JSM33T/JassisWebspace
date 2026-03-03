@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { type CacheTagMeta } from "@/lib/home-content.types";
 import { ensureAdminRequest } from "@/lib/server/admin-auth";
 import {
+    HOME_BLOGS_TAG,
+    HOME_GALLERIES_TAG,
     getHomeCacheTagsMeta,
     revalidateAndWarmHomeCacheTag,
 } from "@/lib/server/home-content-cache";
+import {
+    MUSIC_TRACKS_TAG,
+    getMusicCacheTagsMeta,
+    revalidateAndWarmMusicCacheTag,
+} from "@/lib/server/music-content-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +23,14 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: auth.message }, { status: auth.status });
         }
 
-        const tags = await getHomeCacheTagsMeta();
+        const [homeTags, musicTags] = await Promise.all([
+            getHomeCacheTagsMeta(),
+            getMusicCacheTagsMeta(),
+        ]);
+        const tags = [...homeTags, ...musicTags];
         return NextResponse.json({ tags });
     } catch (error) {
-        console.error("Failed to load home cache meta:", error);
+        console.error("Failed to load cache metadata:", error);
         return NextResponse.json(
             { message: "Failed to load cache metadata." },
             { status: 500 },
@@ -45,8 +57,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const meta = await revalidateAndWarmHomeCacheTag(tag);
-        const tags = await getHomeCacheTagsMeta();
+        let meta: CacheTagMeta;
+        if (tag === HOME_GALLERIES_TAG || tag === HOME_BLOGS_TAG) {
+            meta = await revalidateAndWarmHomeCacheTag(tag);
+        } else if (tag === MUSIC_TRACKS_TAG) {
+            meta = await revalidateAndWarmMusicCacheTag(tag);
+        } else {
+            return NextResponse.json(
+                { message: `Unsupported cache tag: ${tag}` },
+                { status: 400 },
+            );
+        }
+
+        const [homeTags, musicTags] = await Promise.all([
+            getHomeCacheTagsMeta(),
+            getMusicCacheTagsMeta(),
+        ]);
+        const tags = [...homeTags, ...musicTags];
         return NextResponse.json({
             message: `Cache revalidated for tag: ${tag}`,
             revalidatedAt: new Date().toISOString(),
@@ -54,7 +81,7 @@ export async function POST(request: NextRequest) {
             tags,
         });
     } catch (error) {
-        console.error("Failed to revalidate home cache:", error);
+        console.error("Failed to revalidate cache:", error);
         return NextResponse.json(
             { message: "Failed to revalidate cache." },
             { status: 500 },

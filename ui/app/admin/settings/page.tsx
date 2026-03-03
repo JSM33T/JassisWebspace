@@ -117,7 +117,7 @@ export default function AdminSettingsPage() {
                 <div>
                     <h2 className="text-xl font-semibold">ISR Cache Tags</h2>
                     <p className="text-sm text-muted-foreground">
-                        Tag-wise settings for blog/gallery related homepage cache feeds.
+                        Tag-wise settings for home blog/gallery feeds and music listing cache.
                     </p>
                 </div>
                 <Card>

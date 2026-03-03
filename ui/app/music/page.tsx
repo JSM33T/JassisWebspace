@@ -12,6 +12,7 @@ import { Disc3, Music, ArrowLeft, Play } from 'lucide-react';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
 import { musicService } from '@/lib/api/music.service';
 import { MusicTrack } from '@/lib/api/music.types';
+import { MusicContentPayload } from '@/lib/music-content.types';
 import { toast } from 'sonner';
 
 const CATEGORY_ORDER = ['remixes', 'originals', 'snippets', 'radio/features', 'radio-features', 'features'];
@@ -65,9 +66,17 @@ export default function MusicPage() {
         const loadTracks = async () => {
             try {
                 setLoading(true);
-                const data = await musicService.getTracks({ page: 1, pageSize: 100 });
+                const response = await fetch('/api/music-content', {
+                    method: 'GET',
+                    cache: 'no-store',
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to load music content.');
+                }
+
+                const payload = (await response.json()) as MusicContentPayload;
                 if (active) {
-                    setTracks(data);
+                    setTracks(payload.tracks);
                 }
             } catch (error) {
                 console.error('Failed to load tracks', error);
