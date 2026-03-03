@@ -18,8 +18,8 @@ const SEO_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:50
 export const SEO_DEFAULTS = {
     siteName: SITE_NAME,
     siteUrl: SITE_URL,
-    title: "JassSpace - Build something amazing",
-    description: "The modern platform for building scalable applications.",
+    title: "Jassis Webspace",
+    description: "Browse through music, blogs, gallery and more",
     tags: [
         "JassSpace",
         "web development",
