@@ -444,6 +444,7 @@ public sealed class AdminGalleryController(
         [FromForm] string? name,
         [FromForm] string? slug,
         [FromForm] string? description,
+        [FromForm] DateTimeOffset? createdAt,
         [FromForm] IFormFile? coverImage,
         [FromForm] bool? isActive,
         [FromForm] List<Guid>? authorIds,
@@ -494,6 +495,11 @@ public sealed class AdminGalleryController(
             if (description is not null)
             {
                 album.Description = description;
+            }
+
+            if (createdAt.HasValue)
+            {
+                album.CreatedAt = createdAt.Value.ToUniversalTime();
             }
 
             // Upload new cover image if provided

@@ -33,8 +33,18 @@ const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
     slug: z.string().optional(),
     description: z.string().optional(),
+    createdAt: z.string().optional(),
     authorIds: z.array(z.string()).optional(),
 });
+
+const toDateTimeLocalValue = (value?: string | null) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const timezoneOffsetMs = date.getTimezoneOffset() * 60 * 1000;
+    return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
+};
 
 export default function EditAlbumPage() {
     const params = useParams();
@@ -76,6 +86,7 @@ export default function EditAlbumPage() {
             name: "",
             slug: "",
             description: "",
+            createdAt: "",
             authorIds: [],
         },
     });
@@ -106,6 +117,7 @@ export default function EditAlbumPage() {
                 name: data.name,
                 slug: data.slug,
                 description: data.description || "",
+                createdAt: toDateTimeLocalValue(data.createdAt),
                 authorIds: data.authors?.map((a) => a.userId) || [],
             });
             if (data.cover) {
@@ -226,10 +238,16 @@ export default function EditAlbumPage() {
     const onSaveDetails = async (values: z.infer<typeof formSchema>) => {
         try {
             setSavingDetails(true);
+            const createdAtDate = values.createdAt ? new Date(values.createdAt) : null;
+            const createdAt = createdAtDate && !Number.isNaN(createdAtDate.getTime())
+                ? createdAtDate.toISOString()
+                : undefined;
+
             await adminGalleryService.updateAlbum(albumId, {
                 name: values.name,
                 slug: values.slug,
                 description: values.description,
+                createdAt,
                 authorIds: values.authorIds || [],
                 coverImage: coverFile || undefined,
             });
@@ -352,6 +370,23 @@ export default function EditAlbumPage() {
                                                         {...field}
                                                     />
                                                 </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="createdAt"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Created At</FormLabel>
+                                                <FormControl>
+                                                    <Input type="datetime-local" {...field} />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Override the album creation timestamp.
+                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

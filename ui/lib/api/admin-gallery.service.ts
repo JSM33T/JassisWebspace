@@ -5,6 +5,7 @@ export interface CreateAlbumRequest {
     name: string;
     slug?: string;
     description?: string;
+    createdAt?: string;
     authorIds?: string[];
     coverImage?: File;
     imageFiles?: File[];
@@ -66,6 +67,7 @@ class AdminGalleryService {
         if (data.name) formData.append('name', data.name);
         if (data.slug !== undefined) formData.append('slug', data.slug || "");
         if (data.description !== undefined) formData.append('description', data.description);
+        if (data.createdAt !== undefined) formData.append('createdAt', data.createdAt);
         if (data.authorIds) {
             data.authorIds.forEach((authorId) => {
                 formData.append('authorIds', authorId);
