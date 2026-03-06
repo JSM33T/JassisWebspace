@@ -228,6 +228,14 @@ export function Navbar() {
         };
     }, []);
 
+    useEffect(() => {
+        setMenuOpen(false);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: false }));
+        }
+        setSidebarOpen(false);
+    }, [pathname]);
+
     const handleSidebarOpenChange = (open: boolean) => {
         setSidebarOpen(open);
         if (typeof window !== 'undefined') {
@@ -553,7 +561,18 @@ export function Navbar() {
                                             <SheetTitle>Menu</SheetTitle>
                                             <SheetDescription>Navigate through the app</SheetDescription>
                                         </SheetHeader>
-                                        <div className="mt-6 space-y-4 pl-2 pr-3 pb-6">
+                                        <div className="mt-6 space-y-4 px-4 pb-6">
+                                            {!isAuthenticated && (
+                                                <SheetClose asChild>
+                                                    <Link href="/login" className="block border-b pb-4">
+                                                        <Button variant="default" className="h-11 w-full text-base font-semibold">
+                                                            <User className="h-4 w-4 mr-2" />
+                                                            Login
+                                                        </Button>
+                                                    </Link>
+                                                </SheetClose>
+                                            )}
+
                                             {isAuthenticated && user && (
                                                 <div className="flex items-center gap-3 pb-4 border-b">
                                                     <Avatar>
@@ -717,16 +736,7 @@ export function Navbar() {
                                                         </Button>
                                                     </SheetClose>
                                                 </>
-                                            ) : (
-                                                <SheetClose asChild>
-                                                    <Link href="/login" className="block">
-                                                        <Button variant="default" className="w-full">
-                                                            <User className="h-3 w-3 mr-1" />
-                                                            Login
-                                                        </Button>
-                                                    </Link>
-                                                </SheetClose>
-                                            )}
+                                            ) : null}
                                         </div>
                                     </SheetContent>
                                 </Sheet>
@@ -742,7 +752,7 @@ export function Navbar() {
                         <SheetTitle>Sidebar</SheetTitle>
                         <SheetDescription>Appearance settings and quick controls</SheetDescription>
                     </SheetHeader>
-                    <div className="mt-6 space-y-4 px-2">
+                    <div className="mt-6 space-y-4 px-4">
                         <div className="space-y-3 rounded-xl border bg-card/60 p-3">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">

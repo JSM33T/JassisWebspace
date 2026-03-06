@@ -377,6 +377,59 @@ export default function HomePage() {
                     <motion.section variants={itemVariants} className="pb-16 md:pb-24">
                         <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
                             <div className="pointer-events-none absolute inset-0">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,hsl(var(--primary)/0.2),transparent_42%),radial-gradient(circle_at_86%_78%,hsl(var(--secondary)/0.14),transparent_56%)]" />
+                                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.14)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.14)_1px,transparent_1px)] bg-[size:22px_22px] opacity-40" />
+                                <div className="absolute inset-0 bg-[linear-gradient(145deg,hsl(var(--background)/0.12),transparent_58%)]" />
+                            </div>
+
+                            <div className="relative grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-center">
+                                <div className="space-y-4">
+                                    <Badge variant="secondary" className="w-fit rounded-full px-4 py-1.5">
+                                        Services
+                                    </Badge>
+                                    <h2 className="max-w-xl text-balance text-3xl font-semibold tracking-tight md:text-4xl">
+                                        Need hands-on engineering support?
+                                    </h2>
+                                    <p className="max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
+                                        Explore active services across web platforms, automation, and product delivery.
+                                        Share your scope and get a clear execution path.
+                                    </p>
+                                    <div className="flex flex-wrap gap-3">
+                                        <Button asChild size="lg" className="rounded-full px-7">
+                                            <Link href="/services">
+                                                <Layers className="mr-2 h-4 w-4" />
+                                                Explore Services
+                                                <ArrowUpRight className="ml-2 h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                        <Button asChild size="lg" variant="secondary" className="rounded-full px-7">
+                                            <Link href="/contact?ref=%2Fservices">
+                                                <Mail className="mr-2 h-4 w-4" />
+                                                Request Service
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border bg-background/55 p-5 md:p-6">
+                                    <div className="space-y-3">
+                                        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                                            What you can expect
+                                        </p>
+                                        <div className="space-y-2">
+                                            <div className="rounded-xl border bg-card/70 px-4 py-3 text-sm">Clear scope and milestones</div>
+                                            <div className="rounded-xl border bg-card/70 px-4 py-3 text-sm">Production-grade implementation</div>
+                                            <div className="rounded-xl border bg-card/70 px-4 py-3 text-sm">Reliable communication and delivery</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.section>
+
+                    <motion.section variants={itemVariants} className="pb-16 md:pb-24">
+                        <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
+                            <div className="pointer-events-none absolute inset-0">
                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_22%,hsl(var(--primary)/0.18),transparent_44%),radial-gradient(circle_at_85%_70%,hsl(var(--secondary)/0.16),transparent_54%)]" />
                                 <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.18)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.18)_1px,transparent_1px)] bg-[size:20px_20px] opacity-35" />
                                 <div className="absolute inset-0 bg-[linear-gradient(145deg,hsl(var(--background)/0.14),transparent_60%)]" />
