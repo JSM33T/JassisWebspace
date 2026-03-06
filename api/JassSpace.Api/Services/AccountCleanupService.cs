@@ -1,25 +1,23 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using JassSpace.Contracts.Interfaces;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
-namespace JassSpace.Worker.Services;
+namespace JassSpace.Api.Services;
 
-public class AccountCleanupService
+public sealed class AccountCleanupService
 {
     private readonly IUserRepository _userRepository;
     private readonly ILogger<AccountCleanupService> _logger;
     private readonly TimeSpan _unverifiedAgeThreshold;
 
-    public AccountCleanupService(IUserRepository userRepository, ILogger<AccountCleanupService> logger, IConfiguration configuration)
+    public AccountCleanupService(
+        IUserRepository userRepository,
+        ILogger<AccountCleanupService> logger,
+        IConfiguration configuration)
     {
         _userRepository = userRepository;
         _logger = logger;
 
         var cfg = configuration.GetSection("AccountCleanup:UnverifiedAccountAge").Value;
-        _unverifiedAgeThreshold = string.IsNullOrEmpty(cfg) ? TimeSpan.FromDays(1) : TimeSpan.Parse(cfg);
+        _unverifiedAgeThreshold = string.IsNullOrEmpty(cfg) ? TimeSpan.FromDays(7) : TimeSpan.Parse(cfg);
     }
 
     public async Task CleanupUnverifiedUsersAsync(CancellationToken cancellationToken = default)
@@ -28,7 +26,7 @@ public class AccountCleanupService
         _logger.LogInformation("AccountCleanup: looking for unverified users created before {Cutoff}", cutoff);
 
         var ids = await _userRepository.GetUnverifiedUserIdsCreatedBeforeAsync(cutoff, cancellationToken);
-        if (ids == null || ids.Count == 0)
+        if (ids.Count == 0)
         {
             _logger.LogInformation("AccountCleanup: no unverified users found");
             return;

@@ -130,6 +130,7 @@ builder.Services.AddScoped<JassSpace.Infra.IImageProcessingService, JassSpace.In
 
 // Repository Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<AccountCleanupService>();
 builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.Configure<IpGeolocationOptions>(builder.Configuration.GetSection("IpGeolocation"));
@@ -196,6 +197,16 @@ app.UseHangfireDashboard(dashboardPath, new DashboardOptions
             hangfireSettings.DashboardAuth.Password)
     ]
 });
+
+RecurringJob.AddOrUpdate<AccountCleanupService>(
+    recurringJobId: "account-cleanup-daily-7am",
+    queue: "default",
+    methodCall: service => service.CleanupUnverifiedUsersAsync(CancellationToken.None),
+    cronExpression: "0 7 * * *",
+    options: new RecurringJobOptions
+    {
+        TimeZone = TimeZoneInfo.Local
+    });
 
 app.MapControllers();
 

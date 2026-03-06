@@ -11,18 +11,6 @@ services:
       - /home/jassi/deployments/JassSpace/.logs/dotnet:/app/logs/dotnet
       - /home/jassi/deployments/JassSpace/.cache:/app/cache
 
-  worker:
-    build:
-      context: ./api
-      dockerfile: ./JassSpace.Worker/Dockerfile
-    env_file:
-      - .env
-    restart: unless-stopped
-    depends_on:
-      - dotnet
-    volumes:
-      - /home/jassi/deployments/JassSpace/logs/worker:/app/logs
-
   nextjs:
     build:
       context: ./ui
