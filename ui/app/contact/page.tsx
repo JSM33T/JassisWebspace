@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, ArrowLeft, Send, CheckCircle2, MoveUpRight } from 'lucide-react';
+
+type TurnstileSiteKeyApiResponse = {
+    data?: {
+        enabled?: boolean;
+        siteKey?: string;
+    };
+};
+
+declare global {
+    interface Window {
+        onContactTurnstileSuccess?: (token: string) => void;
+        onContactTurnstileExpired?: () => void;
+        onContactTurnstileError?: () => void;
+        turnstile?: {
+            reset: (widget?: string | HTMLElement) => void;
+        };
+    }
+}
 
 export default function ContactPage() {
     const searchParams = useSearchParams();
@@ -42,12 +61,90 @@ export default function ContactPage() {
     }, [ref]);
     const [submitted, setSubmitted] = useState(false);
     const [submissionMode, setSubmissionMode] = useState<'email' | 'saved' | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [turnstileEnabled, setTurnstileEnabled] = useState(false);
+    const [turnstileSiteKey, setTurnstileSiteKey] = useState('');
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const [turnstileError, setTurnstileError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         purpose: inferredPurpose,
         message: ''
     });
+
+    useEffect(() => {
+        window.onContactTurnstileSuccess = (token: string) => {
+            setTurnstileToken(token);
+            setTurnstileError(null);
+        };
+
+        window.onContactTurnstileExpired = () => {
+            setTurnstileToken(null);
+        };
+
+        window.onContactTurnstileError = () => {
+            setTurnstileToken(null);
+            setTurnstileError('Verification failed. Please retry.');
+        };
+
+        return () => {
+            delete window.onContactTurnstileSuccess;
+            delete window.onContactTurnstileExpired;
+            delete window.onContactTurnstileError;
+        };
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadTurnstileConfig = async () => {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            if (!apiUrl) {
+                return;
+            }
+
+            try {
+                const endpoint = `${apiUrl.replace(/\/$/, '')}/contact/turnstile/site-key`;
+                const response = await fetch(endpoint, { method: 'GET', cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error('Failed to load Turnstile settings.');
+                }
+
+                const payload = (await response.json()) as TurnstileSiteKeyApiResponse;
+                const enabled = Boolean(payload?.data?.enabled);
+                const siteKey = payload?.data?.siteKey?.trim() ?? '';
+
+                if (!isMounted) {
+                    return;
+                }
+
+                setTurnstileEnabled(enabled);
+                setTurnstileSiteKey(siteKey);
+
+                if (enabled && !siteKey) {
+                    setTurnstileError('Verification is currently unavailable. Please try again later.');
+                } else {
+                    setTurnstileError(null);
+                }
+            } catch {
+                if (!isMounted) {
+                    return;
+                }
+
+                setTurnstileEnabled(true);
+                setTurnstileSiteKey('');
+                setTurnstileError('Verification is currently unavailable. Please try again later.');
+            }
+        };
+
+        loadTurnstileConfig();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
@@ -61,11 +158,17 @@ export default function ContactPage() {
     const persistContactSubmission = async (messageToSave: string) => {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         if (!apiUrl) {
-            return;
+            throw new Error('API URL is not configured.');
         }
 
+        if (turnstileEnabled && !turnstileToken) {
+            throw new Error('Please complete verification before sending.');
+        }
+
+        setSubmitError(null);
+
         const endpoint = `${apiUrl.replace(/\/$/, '')}/contact`;
-        await fetch(endpoint, {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -76,13 +179,54 @@ export default function ContactPage() {
                 purpose: formData.purpose,
                 message: messageToSave,
                 refUrl: ref || null,
+                turnstileToken,
             }),
         });
+
+        if (!response.ok) {
+            let errorMessage = 'Failed to send your message. Please try again.';
+            try {
+                const payload = await response.json() as { detail?: string; title?: string; data?: { detail?: string; title?: string } };
+                errorMessage =
+                    payload?.data?.detail ??
+                    payload?.data?.title ??
+                    payload?.detail ??
+                    payload?.title ??
+                    errorMessage;
+            } catch {
+                // ignore parse failures and keep generic message
+            }
+
+            if (turnstileEnabled) {
+                setTurnstileToken(null);
+                window.turnstile?.reset();
+            }
+
+            throw new Error(errorMessage);
+        }
+    };
+
+    const requireFormValidity = (enforceTurnstile: boolean) => {
+        const formEl = formRef.current;
+        if (formEl && !formEl.reportValidity()) {
+            return false;
+        }
+
+        if (enforceTurnstile && turnstileEnabled && !turnstileSiteKey) {
+            setTurnstileError('Verification is currently unavailable. Please try again later.');
+            return false;
+        }
+
+        if (enforceTurnstile && turnstileEnabled && !turnstileToken) {
+            setTurnstileError('Please complete the verification challenge.');
+            return false;
+        }
+
+        return true;
     };
 
     const composeEmail = () => {
-        const formEl = formRef.current;
-        if (formEl && !formEl.reportValidity()) {
+        if (!requireFormValidity(false)) {
             return;
         }
 
@@ -104,8 +248,7 @@ export default function ContactPage() {
     };
 
     const saveProMessage = async () => {
-        const formEl = formRef.current;
-        if (formEl && !formEl.reportValidity()) {
+        if (!requireFormValidity(true)) {
             return;
         }
 
@@ -113,11 +256,16 @@ export default function ContactPage() {
             `Hello JassSpace Team,\n\nI am reaching out regarding "${formData.purpose}".\n\nProject context:\n${formData.message}\n\nExpected outcome:\n- High-quality, production-ready implementation\n- Strong communication and delivery clarity\n\nPlease share next steps, estimated timeline, and engagement model.\n\nThanks,\n${formData.name}`;
 
         try {
+            setIsSubmitting(true);
+            setSubmitError(null);
             await persistContactSubmission(professionalMessage);
             setSubmissionMode('saved');
             setSubmitted(true);
         } catch (error) {
             console.error('Failed to persist contact submission', error);
+            setSubmitError(error instanceof Error ? error.message : 'Failed to send your message. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -275,12 +423,34 @@ export default function ContactPage() {
                                     />
                                 </div>
 
+                                {turnstileEnabled && turnstileSiteKey && (
+                                    <div className="space-y-2.5">
+                                        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Verification</label>
+                                        <div className="rounded-2xl border border-border/60 bg-background/70 p-3 shadow-sm">
+                                            <div
+                                                className="cf-turnstile"
+                                                data-sitekey={turnstileSiteKey}
+                                                data-theme="auto"
+                                                data-callback="onContactTurnstileSuccess"
+                                                data-expired-callback="onContactTurnstileExpired"
+                                                data-error-callback="onContactTurnstileError"
+                                                data-action="contact_form"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {turnstileEnabled && turnstileError && (
+                                    <p className="text-sm text-red-600">{turnstileError}</p>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <Button
                                         type="button"
                                         size="lg"
                                         className="w-full rounded-full h-12 text-base font-medium transition-all group-hover:shadow-lg"
                                         onClick={composeEmail}
+                                        disabled={isSubmitting}
                                     >
                                         <Send className="mr-2 h-4 w-4" />
                                         Compose Email
@@ -291,17 +461,28 @@ export default function ContactPage() {
                                         variant="outline"
                                         className="w-full rounded-full h-12 text-base font-medium bg-background/70"
                                         onClick={saveProMessage}
+                                        disabled={isSubmitting}
                                     >
                                         <Send className="mr-2 h-4 w-4" />
-                                        Send Message
+                                        {isSubmitting ? 'Sending...' : 'Send Message'}
                                     </Button>
                                 </div>
+                                {submitError && (
+                                    <p className="text-sm text-red-600">{submitError}</p>
+                                )}
                             </form>
                         </CardContent>
                         </Card>
                     </div>
                 </div>
             </section>
+            {turnstileEnabled && turnstileSiteKey && (
+                <Script
+                    src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+                    async
+                    defer
+                />
+            )}
         </motion.div>
     );
 }

@@ -5,5 +5,6 @@ public sealed record CreateContactRequest(
     string Email,
     string Purpose,
     string Message,
-    string? RefUrl
+    string? RefUrl,
+    string? TurnstileToken
 );

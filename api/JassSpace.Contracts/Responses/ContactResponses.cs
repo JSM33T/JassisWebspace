@@ -5,6 +5,11 @@ public sealed record ContactResponse(
     DateTimeOffset CreatedAt
 );
 
+public sealed record TurnstileSiteKeyResponse(
+    bool Enabled,
+    string SiteKey
+);
+
 public sealed record AdminContactMessageResponse(
     Guid Id,
     string Name,

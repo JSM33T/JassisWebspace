@@ -1,10 +1,13 @@
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
+using JassSpace.Api.Configuration;
+using JassSpace.Api.Services;
 using JassSpace.Data;
 using JassSpace.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Net.Mail;
 
 namespace JassSpace.Api.Controllers;
@@ -12,9 +15,21 @@ namespace JassSpace.Api.Controllers;
 [Route("contact")]
 public sealed class ContactController(
     JassSpaceDbContext dbContext,
+    ITurnstileVerificationService turnstileVerificationService,
+    IOptions<TurnstileOptions> turnstileOptions,
     ILogger<ContactController> logger)
     : BaseApiController
 {
+    [HttpGet("turnstile/site-key")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<TurnstileSiteKeyResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetTurnstileSiteKey()
+    {
+        var options = turnstileOptions.Value ?? new TurnstileOptions();
+        var siteKey = options.Enabled ? options.SiteKey?.Trim() ?? string.Empty : string.Empty;
+        return OkEnvelope(new TurnstileSiteKeyResponse(options.Enabled, siteKey));
+    }
+
     [HttpPost]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<ContactResponse>), StatusCodes.Status201Created)]
@@ -46,6 +61,22 @@ public sealed class ContactController(
         if (string.IsNullOrWhiteSpace(request.Message))
         {
             return BadRequestProblem("Invalid message", "Message is required.");
+        }
+
+        var turnstileResult = await turnstileVerificationService.VerifyAsync(
+            request.TurnstileToken,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            cancellationToken);
+
+        if (!turnstileResult.Success)
+        {
+            logger.LogWarning(
+                "Turnstile validation failed for contact request from {Email}. Errors: {ErrorCodes}",
+                request.Email,
+                string.Join(",", turnstileResult.ErrorCodes));
+            return BadRequestProblem(
+                "Verification required",
+                "Please complete the verification challenge and try again.");
         }
 
         try
