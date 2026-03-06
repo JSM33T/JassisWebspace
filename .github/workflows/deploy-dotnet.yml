@@ -69,9 +69,9 @@ jobs:
             --remove-orphans \
             --wait \
             --wait-timeout 180 \
-            dotnet worker
+            dotnet
 
-          echo "[dotnet] Deploy verified by compose --wait ✅"
+          echo "[dotnet] Deploy verified by compose --wait"
           docker compose -p jassspace ps
           EOF
 
@@ -95,8 +95,9 @@ jobs:
 
           if flock -s -w 120 9; then
             cd "$REMOTE_DIR"
-            docker compose -p jassspace logs dotnet worker --since=5m || true
+            docker compose -p jassspace logs dotnet --since=5m || true
           else
             echo "[dotnet] Skipping logs: could not acquire shared lock within 2 minutes" >&2
           fi
           EOF
+
