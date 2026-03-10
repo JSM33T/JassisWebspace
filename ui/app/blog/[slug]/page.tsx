@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import {
     ArrowLeft,
+    Pencil,
     Calendar,
     Clock,
     BookOpen,
@@ -24,7 +25,6 @@ import { CommentSection } from '@/components/comments/CommentSection';
 import { blogService } from '@/lib/api/blog.service';
 import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
-import { adminBlogService } from '@/lib/api/admin-blog.service';
 import { AuthorModal } from '@/components/blog/AuthorModal';
 import { LikeButton } from '@/components/likes/LikeButton';
 import { useUser } from '@/contexts/UserContext';
@@ -44,34 +44,13 @@ export default function BlogViewPage() {
         username: string;
     } | null>(null);
 
-    const tryLoadAdminBlogBySlug = useCallback(async () => {
-        try {
-            const adminBlogs = await adminBlogService.getBlogs({ page: 1, pageSize: 250 });
-            const match = adminBlogs.find((item) => item.slug === slug);
-            if (!match) return null;
-            return await adminBlogService.getBlog(match.id);
-        } catch (adminError) {
-            console.error('Admin fallback blog load failed:', adminError);
-            return null;
-        }
-    }, [slug]);
-
-    const loadBlog = useCallback(async (allowAdminFallback: boolean) => {
+    const loadBlog = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
             const publishedBlog = await blogService.getBlogBySlug(slug);
             setBlog(publishedBlog);
         } catch (err) {
-            if (allowAdminFallback && err instanceof ApiError && err.isNotFound()) {
-                const adminBlog = await tryLoadAdminBlogBySlug();
-                if (adminBlog) {
-                    setBlog(adminBlog);
-                    setError(null);
-                    return;
-                }
-            }
-
             setBlog(null);
             if (err instanceof ApiError) {
                 setError(err.problemDetails.detail || err.problemDetails.title);
@@ -81,13 +60,12 @@ export default function BlogViewPage() {
         } finally {
             setLoading(false);
         }
-    }, [slug, tryLoadAdminBlogBySlug]);
+    }, [slug]);
 
     useEffect(() => {
         if (!slug || !isInitialized) return;
-        const canPreviewDraft = user?.role === 'admin' || user?.role === 'mod';
-        loadBlog(canPreviewDraft);
-    }, [slug, isInitialized, user?.role, loadBlog]);
+        loadBlog();
+    }, [slug, isInitialized, loadBlog]);
 
     const formatDate = (date: string | null) =>
         date
@@ -109,6 +87,12 @@ export default function BlogViewPage() {
     };
 
     const isInteractivityDisabled = !blog?.isPublished;
+    const canEditBlog =
+        !!blog &&
+        (
+            user?.role === "admin" ||
+            (!!user?.id && blog.authors.some((author) => author.userId === user.id))
+        );
 
     /* ---------------- loading ---------------- */
 
@@ -149,13 +133,22 @@ export default function BlogViewPage() {
         <div className="pt-32">
             <div className="container max-w-4xl mx-auto px-4 pt-4 mb-12">
 
-                {/* Back */}
-                <Button variant="ghost" size="sm" asChild className="mb-6">
-                    <Link href="/blog">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Blog
-                    </Link>
-                </Button>
+                <div className="mb-6 flex flex-wrap items-center gap-2">
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href="/blog">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to Blog
+                        </Link>
+                    </Button>
+                    {canEditBlog && (
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={`/blog/${blog.slug}/edit`}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit Post
+                            </Link>
+                        </Button>
+                    )}
+                </div>
 
                 {blog.category && (
                     <Badge variant="secondary" className="mb-4">
@@ -164,7 +157,7 @@ export default function BlogViewPage() {
                 )}
                 {!blog.isPublished && (
                     <Badge variant="outline" className="mb-4 ml-2 border-amber-500/40 text-amber-600">
-                        Draft (Staff Preview)
+                        Draft (Unpublished)
                     </Badge>
                 )}
 

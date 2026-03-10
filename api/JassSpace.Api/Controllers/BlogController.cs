@@ -161,13 +161,11 @@ public sealed class BlogController(
     {
         try
         {
-            var canPreviewDrafts = User.IsInRole("admin") || User.IsInRole("mod");
-
             var blog = await dbContext.Blogs
                 .Include(b => b.Category)
                 .Include(b => b.Authors)
                     .ThenInclude(ba => ba.User)
-                .Where(b => b.Slug == slug && (b.IsPublished || canPreviewDrafts))
+                .Where(b => b.Slug == slug)
                 .Select(b => new BlogDetailResponse(
                     b.Id,
                     dbContext.Contents.FirstOrDefault(c => c.ContentRefId == b.Id && c.ContentType == ContentType.Blog)!.Id,
@@ -205,7 +203,7 @@ public sealed class BlogController(
 
             if (blog is null)
             {
-                return NotFoundProblem("Blog not found", $"No published blog found with slug '{slug}'.");
+                return NotFoundProblem("Blog not found", $"No blog found with slug '{slug}'.");
             }
 
             return OkEnvelope(blog with { FeaturedImage = NormalizeBlogMediaUrl(blog.FeaturedImage) });

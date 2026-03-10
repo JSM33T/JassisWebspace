@@ -20,7 +20,7 @@ namespace JassSpace.Api.Controllers;
 /// Admin endpoints for managing blogs
 /// </summary>
 [Route("admin/blog")]
-[Authorize(Roles = "admin,mod")]
+[Authorize]
 public sealed class AdminBlogController(
     JassSpaceDbContext dbContext,
     ILogger<AdminBlogController> logger,
@@ -58,6 +58,7 @@ public sealed class AdminBlogController(
     }
 
     [HttpPost("categories")]
+    [Authorize(Roles = "admin,mod")]
     [ProducesResponseType(typeof(ApiResponse<BlogCategoryResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateCategory(
@@ -108,6 +109,7 @@ public sealed class AdminBlogController(
     }
 
     [HttpPut("categories/{id:guid}")]
+    [Authorize(Roles = "admin,mod")]
     [ProducesResponseType(typeof(ApiResponse<BlogCategoryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -175,6 +177,7 @@ public sealed class AdminBlogController(
     /// Get list of users who can be blog authors
     /// </summary>
     [HttpGet("authors")]
+    [Authorize(Roles = "admin,mod")]
     [ProducesResponseType(typeof(ApiResponse<List<BlogAuthorResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuthors(
         [FromQuery] string? search = null,
@@ -212,6 +215,7 @@ public sealed class AdminBlogController(
     }
 
     [HttpGet]
+    [Authorize(Roles = "admin,mod")]
     [ProducesResponseType(typeof(ApiResponse<List<BlogListItemResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBlogs(
         [FromQuery] string? search = null,
@@ -332,6 +336,11 @@ public sealed class AdminBlogController(
             return NotFoundProblem("Blog not found", $"No blog found with ID '{id}'.");
         }
 
+        if (!CanCurrentUserEditBlog(blog.Authors.Select(a => a.UserId)))
+        {
+            return ForbiddenProblem("You are not authorized to edit this blog.");
+        }
+
         return OkEnvelope(blog);
     }
 
@@ -373,6 +382,7 @@ public sealed class AdminBlogController(
     /// Create a new blog post
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "admin,mod")]
     [ProducesResponseType(typeof(ApiResponse<BlogDetailResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateBlog(
@@ -513,6 +523,11 @@ public sealed class AdminBlogController(
             return NotFoundProblem("Blog not found", $"No blog found with ID '{id}'.");
         }
 
+        if (!CanCurrentUserEditBlog(blog.Authors.Select(a => a.UserId)))
+        {
+            return ForbiddenProblem("You are not authorized to edit this blog.");
+        }
+
         try
         {
             // Handle Slug Update
@@ -626,8 +641,13 @@ public sealed class AdminBlogController(
             }
 
             // Update Authors
+            // Only privileged users can modify author assignments.
+            // Assigned authors can still edit content/metadata but cannot reassign authors.
+            var requestAuthorIds = IsPrivilegedUser()
+                ? request.AuthorIds ?? new List<Guid>()
+                : blog.Authors.Select(a => a.UserId).ToList();
+
             // Remove existing not in request
-            var requestAuthorIds = request.AuthorIds ?? new List<Guid>();
             var authorsToRemove = blog.Authors.Where(a => !requestAuthorIds.Contains(a.UserId)).ToList();
             foreach (var author in authorsToRemove)
             {
@@ -732,6 +752,7 @@ public sealed class AdminBlogController(
     /// Delete a blog
     /// </summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "admin,mod")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteBlog(Guid id, CancellationToken cancellationToken = default)
@@ -792,6 +813,27 @@ public sealed class AdminBlogController(
                 "Failed to delete blog",
                 "An unexpected error occurred while deleting the blog.");
         }
+    }
+
+    private bool IsPrivilegedUser()
+    {
+        return User.IsInRole("admin") || User.IsInRole("mod");
+    }
+
+    private bool CanCurrentUserEditBlog(IEnumerable<Guid> authorIds)
+    {
+        if (IsPrivilegedUser())
+        {
+            return true;
+        }
+
+        if (!Guid.TryParse(UserId, out var currentUserId))
+        {
+            return false;
+        }
+
+        var authorIdSet = authorIds.Distinct().ToList();
+        return authorIdSet.Contains(currentUserId);
     }
 
     // Helper to get response DTO

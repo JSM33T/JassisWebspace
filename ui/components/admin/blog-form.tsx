@@ -48,9 +48,15 @@ type BlogFormValues = z.infer<typeof blogSchema>;
 
 interface BlogFormProps {
     initialData?: BlogDetail;
+    allowCategoryManagement?: boolean;
+    allowAuthorSelection?: boolean;
 }
 
-export function BlogForm({ initialData }: BlogFormProps) {
+export function BlogForm({
+    initialData,
+    allowCategoryManagement = true,
+    allowAuthorSelection = true,
+}: BlogFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<BlogCategory[]>([]);
@@ -93,6 +99,10 @@ export function BlogForm({ initialData }: BlogFormProps) {
     }, []);
 
     useEffect(() => {
+        if (!allowAuthorSelection) {
+            return;
+        }
+
         const timeoutId = setTimeout(async () => {
             try {
                 const auths = await adminBlogService.getPotentialAuthors(authorSearch.trim() || undefined);
@@ -103,7 +113,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
         }, 250);
 
         return () => clearTimeout(timeoutId);
-    }, [authorSearch]);
+    }, [allowAuthorSelection, authorSearch]);
 
     const selectedCategoryId = form.watch("categoryId");
 
@@ -496,92 +506,96 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                 )}
                             />
 
-                            <Card className="p-4 space-y-3">
-                                <div>
-                                    <FormLabel>Manage Categories</FormLabel>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Create a new category or update the selected one.
-                                    </p>
-                                </div>
-                                <div className="space-y-2">
-                                    <Input
-                                        placeholder="Category name"
-                                        value={categoryEditorName}
-                                        onChange={(e) => setCategoryEditorName(e.target.value)}
-                                    />
-                                    <Textarea
-                                        placeholder="Category description (optional)"
-                                        value={categoryEditorDescription}
-                                        onChange={(e) => setCategoryEditorDescription(e.target.value)}
-                                        className="min-h-[80px]"
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={handleCreateCategory}
-                                        disabled={savingCategory}
-                                    >
-                                        {savingCategory && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                                        Create
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={handleUpdateCategory}
-                                        disabled={savingCategory || !selectedCategoryId}
-                                    >
-                                        {savingCategory && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                                        Update Selected
-                                    </Button>
-                                </div>
-                            </Card>
+                            {allowCategoryManagement && (
+                                <Card className="p-4 space-y-3">
+                                    <div>
+                                        <FormLabel>Manage Categories</FormLabel>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Create a new category or update the selected one.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Input
+                                            placeholder="Category name"
+                                            value={categoryEditorName}
+                                            onChange={(e) => setCategoryEditorName(e.target.value)}
+                                        />
+                                        <Textarea
+                                            placeholder="Category description (optional)"
+                                            value={categoryEditorDescription}
+                                            onChange={(e) => setCategoryEditorDescription(e.target.value)}
+                                            className="min-h-[80px]"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={handleCreateCategory}
+                                            disabled={savingCategory}
+                                        >
+                                            {savingCategory && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                                            Create
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={handleUpdateCategory}
+                                            disabled={savingCategory || !selectedCategoryId}
+                                        >
+                                            {savingCategory && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                                            Update Selected
+                                        </Button>
+                                    </div>
+                                </Card>
+                            )}
 
-                            <FormField
-                                control={form.control}
-                                name="authorIds"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Authors</FormLabel>
-                                        <FormControl>
-                                            <div className="border rounded-md p-4 space-y-3 max-h-56 overflow-y-auto">
-                                                <Input
-                                                    placeholder="Search authors..."
-                                                    value={authorSearch}
-                                                    onChange={(e) => setAuthorSearch(e.target.value)}
-                                                    className="h-8"
-                                                />
-                                                {authors.map((author) => (
-                                                    <div key={author.userId} className="flex items-center space-x-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={field.value?.includes(author.userId) || false}
-                                                            onChange={(e) => {
-                                                                const checked = e.target.checked;
-                                                                const current = field.value || [];
-                                                                const updated = checked
-                                                                    ? [...current, author.userId]
-                                                                    : current.filter((id) => id !== author.userId);
-                                                                field.onChange(updated);
-                                                            }}
-                                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                                                        />
-                                                        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                                            {author.displayName || author.username}
-                                                        </label>
-                                                    </div>
-                                                ))}
-                                                {authors.length === 0 && (
-                                                    <p className="text-xs text-muted-foreground">No authors found.</p>
-                                                )}
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {allowAuthorSelection && (
+                                <FormField
+                                    control={form.control}
+                                    name="authorIds"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Authors</FormLabel>
+                                            <FormControl>
+                                                <div className="border rounded-md p-4 space-y-3 max-h-56 overflow-y-auto">
+                                                    <Input
+                                                        placeholder="Search authors..."
+                                                        value={authorSearch}
+                                                        onChange={(e) => setAuthorSearch(e.target.value)}
+                                                        className="h-8"
+                                                    />
+                                                    {authors.map((author) => (
+                                                        <div key={author.userId} className="flex items-center space-x-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={field.value?.includes(author.userId) || false}
+                                                                onChange={(e) => {
+                                                                    const checked = e.target.checked;
+                                                                    const current = field.value || [];
+                                                                    const updated = checked
+                                                                        ? [...current, author.userId]
+                                                                        : current.filter((id) => id !== author.userId);
+                                                                    field.onChange(updated);
+                                                                }}
+                                                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                                            />
+                                                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                                {author.displayName || author.username}
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                    {authors.length === 0 && (
+                                                        <p className="text-xs text-muted-foreground">No authors found.</p>
+                                                    )}
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                         </div>
 
                         <FormField

@@ -10,8 +10,10 @@ import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useUser } from "@/contexts/UserContext";
 
 export default function AdminBlogsPage() {
+    const { user } = useUser();
     const [blogs, setBlogs] = useState<BlogListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
@@ -79,16 +81,25 @@ export default function AdminBlogsPage() {
                             No blog posts found. Create one to get started.
                         </div>
                     ) : (
-                        blogs.map((blog) => (
+                        blogs.map((blog) => {
+                            const isAssignedAuthor = !!user?.id && blog.authors.some((author) => author.userId === user.id);
+                            const isAdmin = user?.role === "admin";
+                            const canEdit = isAssignedAuthor || isAdmin;
+
+                            return (
                             <Card key={blog.id} className="p-6 flex flex-col md:flex-row gap-6 relative overflow-hidden transition-all hover:shadow-md">
                                 <div className="flex-1 space-y-3">
                                     <div className="flex items-start justify-between">
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
                                                 <CardTitle className="text-xl">
-                                                    <Link href={`/admin/blogs/${blog.id}`} className="hover:underline">
-                                                        {blog.title}
-                                                    </Link>
+                                                    {canEdit ? (
+                                                        <Link href={`/admin/blogs/${blog.id}`} className="hover:underline">
+                                                            {blog.title}
+                                                        </Link>
+                                                    ) : (
+                                                        blog.title
+                                                    )}
                                                 </CardTitle>
                                                 {blog.isPublished ? (
                                                     <Badge variant="default" className="bg-green-600 hover:bg-green-700">Published</Badge>
@@ -121,23 +132,30 @@ export default function AdminBlogsPage() {
                                 </div>
 
                                 <div className="flex items-center gap-2 md:self-center">
-                                    <Button variant="outline" size="sm" asChild>
-                                        <Link href={`/admin/blogs/${blog.id}`}>
-                                            <Pencil className="h-4 w-4 mr-2" />
-                                            Edit
-                                        </Link>
-                                    </Button>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleDelete(blog.id, blog.title)}
-                                        disabled={deleting === blog.id}
-                                    >
-                                        <Trash className="h-4 w-4" />
-                                    </Button>
+                                    {canEdit ? (
+                                        <>
+                                            <Button variant="outline" size="sm" asChild>
+                                                <Link href={`/admin/blogs/${blog.id}`}>
+                                                    <Pencil className="h-4 w-4 mr-2" />
+                                                    Edit
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                onClick={() => handleDelete(blog.id, blog.title)}
+                                                disabled={deleting === blog.id}
+                                            >
+                                                <Trash className="h-4 w-4" />
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground">Not assigned</span>
+                                    )}
                                 </div>
                             </Card>
-                        ))
+                        );
+                    })
                     )}
                 </div>
             )}
