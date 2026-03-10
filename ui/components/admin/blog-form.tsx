@@ -27,7 +27,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { BlogAuthor, BlogCategory, BlogDetail, CreateBlogRequest } from "@/lib/api/blog.types";
 import { adminBlogService } from "@/lib/api/admin-blog.service";
 import Image from "next/image";
@@ -196,7 +195,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
         if (!file) return;
 
         if (!file.type.startsWith("image/")) {
-            alert("Please select an image file");
+            toast.error("Please select an image file");
             return;
         }
 
@@ -228,7 +227,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
                     featuredImageUrl = url;
                 } catch (error) {
                     console.error("Failed to upload image", error);
-                    alert("Failed to upload image.");
+                    toast.error("Failed to upload image");
                     return; // Stop submission if upload fails
                 }
             }
@@ -246,22 +245,24 @@ export function BlogForm({ initialData }: BlogFormProps) {
 
             if (initialData) {
                 await adminBlogService.updateBlog(initialData.id, requestData);
+                toast.success("Blog updated");
                 router.refresh();
                 // Stay on page or optional redirect
             } else {
-                const response = await adminBlogService.createBlog(requestData);
+                const created = await adminBlogService.createBlog(requestData);
+                toast.success("Blog created");
                 // Redirect to the edit page for this new blog to enable content editing
                 // response should ideally contain the ID, but we generated 'blogId' so we know it.
                 // However, let's use the response ID if available to be safe, or fall back to ours.
                 // The API might return the created object.
                 // Assuming createBlog returns the created blog or we can use our generated ID.
                 // Let's assume we can navigate to /admin/blogs/{blogId}
-                router.push(`/admin/blogs/${blogId}`);
+                router.push(`/admin/blogs/${created.id || blogId}`);
                 router.refresh();
             }
         } catch (error) {
             console.error("Failed to save blog", error);
-            alert("Failed to save blog. Please try again.");
+            toast.error("Failed to save blog");
         } finally {
             setLoading(false);
         }
@@ -336,7 +337,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                                                     // Generate custom filename: blog-{blogId}-{random/timestamp}
                                                                     const blogId = initialData?.id;
                                                                     if (!blogId) {
-                                                                        alert("Error: Missing Blog ID");
+                                                                        toast.error("Error: Missing blog ID");
                                                                         return;
                                                                     }
 
@@ -365,7 +366,7 @@ export function BlogForm({ initialData }: BlogFormProps) {
                                                                     }
                                                                 } catch (error) {
                                                                     console.error("Failed to upload content image", error);
-                                                                    alert("Failed to upload image");
+                                                                    toast.error("Failed to upload image");
                                                                 } finally {
                                                                     setUploading(false);
                                                                     // Reset input

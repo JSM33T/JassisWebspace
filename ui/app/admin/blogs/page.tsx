@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function AdminBlogsPage() {
     const [blogs, setBlogs] = useState<BlogListItem[]>([]);
@@ -26,6 +27,7 @@ export default function AdminBlogsPage() {
             setBlogs(data);
         } catch (error) {
             console.error("Failed to load blogs", error);
+            toast.error("Failed to load blogs");
         } finally {
             setLoading(false);
         }
@@ -40,9 +42,10 @@ export default function AdminBlogsPage() {
             setDeleting(blogId);
             await adminBlogService.deleteBlog(blogId);
             setBlogs(blogs.filter(b => b.id !== blogId));
+            toast.success("Blog deleted");
         } catch (error) {
             console.error("Failed to delete blog", error);
-            alert("Failed to delete blog. Please try again.");
+            toast.error("Failed to delete blog");
         } finally {
             setDeleting(null);
         }
