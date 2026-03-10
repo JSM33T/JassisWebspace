@@ -11,8 +11,22 @@ import { apiClient } from "@/lib/api/client";
 import authService from "@/lib/api/auth.service";
 import Link from "next/link";
 import { useUser } from "@/contexts/UserContext";
+import { sanitizeRedirectTarget } from "@/lib/auth-redirect";
 
 type CallbackState = "loading" | "success" | "error";
+
+interface OAuthCallbackResponse {
+    accessToken?: string;
+    refreshToken?: string;
+    user?: unknown;
+}
+
+interface OAuthCallbackError {
+    problemDetails?: {
+        title?: string;
+    };
+    message?: string;
+}
 
 export default function OAuthCallbackPage() {
     const [state, setState] = useState<CallbackState>("loading");
@@ -64,7 +78,7 @@ export default function OAuthCallbackPage() {
 
                         // Redirect after a short delay
                         setTimeout(() => {
-                            const redirectUrl = localStorage.getItem("oauthRedirect") || "/";
+                            const redirectUrl = sanitizeRedirectTarget(localStorage.getItem("oauthRedirect"));
                             localStorage.removeItem("oauthRedirect");
                             router.push(redirectUrl);
                         }, 2000);
@@ -76,7 +90,7 @@ export default function OAuthCallbackPage() {
                         toast.success("Successfully logged in!");
 
                         setTimeout(() => {
-                            const redirectUrl = localStorage.getItem("oauthRedirect") || "/";
+                            const redirectUrl = sanitizeRedirectTarget(localStorage.getItem("oauthRedirect"));
                             localStorage.removeItem("oauthRedirect");
                             router.push(redirectUrl);
                         }, 2000);
@@ -94,7 +108,7 @@ export default function OAuthCallbackPage() {
                     }
 
                     // Call backend callback endpoint
-                    const response = await apiClient.get<any>(`/auth/google/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateParam)}`);
+                    const response = await apiClient.get<OAuthCallbackResponse>(`/auth/google/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateParam)}`);
 
                     if (response.accessToken && response.user) {
                         // Set access token in localStorage (refresh token is now in HTTP-only cookie)
@@ -111,7 +125,7 @@ export default function OAuthCallbackPage() {
 
                         // Redirect after a short delay
                         setTimeout(() => {
-                            const redirectUrl = localStorage.getItem("oauthRedirect") || "/";
+                            const redirectUrl = sanitizeRedirectTarget(localStorage.getItem("oauthRedirect"));
                             localStorage.removeItem("oauthRedirect");
                             router.push(redirectUrl);
                         }, 2000);
@@ -124,15 +138,16 @@ export default function OAuthCallbackPage() {
                     throw new Error("Missing authentication parameters");
                 }
 
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const callbackError = error as OAuthCallbackError;
                 console.error("OAuth callback error:", error);
                 setState("error");
 
                 let errorMessage = "Authentication failed";
-                if (error?.problemDetails?.title) {
-                    errorMessage = error.problemDetails.title;
-                } else if (error?.message) {
-                    errorMessage = error.message;
+                if (callbackError?.problemDetails?.title) {
+                    errorMessage = callbackError.problemDetails.title;
+                } else if (callbackError?.message) {
+                    errorMessage = callbackError.message;
                 }
 
                 setError(errorMessage);
@@ -141,7 +156,7 @@ export default function OAuthCallbackPage() {
         };
 
         handleCallback();
-    }, [searchParams, router]);
+    }, [searchParams, router, setUser]);
 
     const renderContent = () => {
         switch (state) {

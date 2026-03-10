@@ -17,8 +17,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JassSpace.Data", "JassSpace
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JassSpace.Services", "JassSpace.Services\JassSpace.Services.csproj", "{6D4D5E6E-B201-48AD-A927-BA9A69AA3E72}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JassSpace.Worker", "JassSpace.Worker\JassSpace.Worker.csproj", "{D8078553-A193-40B9-B1AF-3AE56F835266}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

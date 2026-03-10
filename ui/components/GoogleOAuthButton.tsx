@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Chrome, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
+import { sanitizeRedirectTarget } from "@/lib/auth-redirect";
 
 interface GoogleOAuthButtonProps {
     variant?: "default" | "outline" | "ghost" | "destructive" | "secondary" | "link";
@@ -12,10 +13,18 @@ interface GoogleOAuthButtonProps {
     className?: string;
     children?: React.ReactNode;
     disabled?: boolean;
+    redirectTo?: string;
 }
 
 interface GoogleInitResponse {
     authUrl: string;
+}
+
+interface OAuthButtonError {
+    problemDetails?: {
+        title?: string;
+    };
+    message?: string;
 }
 
 export default function GoogleOAuthButton({
@@ -23,7 +32,8 @@ export default function GoogleOAuthButton({
     size = "default",
     className = "",
     children,
-    disabled = false
+    disabled = false,
+    redirectTo
 }: GoogleOAuthButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -39,9 +49,15 @@ export default function GoogleOAuthButton({
             const authUrl = response.authUrl;
 
             if (authUrl) {
-                // Store current page URL for redirect after OAuth
-                const currentUrl = window.location.pathname;
-                localStorage.setItem("oauthRedirect", currentUrl === "/login" || currentUrl === "/signup" ? "/" : currentUrl);
+                // Store return URL for redirect after OAuth
+                const queryParams = new URLSearchParams(window.location.search);
+                const queryRedirect = queryParams.get("redirect") ?? queryParams.get("returnUrl");
+                const currentUrl = `${window.location.pathname}${window.location.search}`;
+                const isAuthPage = window.location.pathname === "/login" || window.location.pathname === "/signup";
+                const redirectTarget = sanitizeRedirectTarget(
+                    redirectTo ?? (isAuthPage ? queryRedirect : currentUrl)
+                );
+                localStorage.setItem("oauthRedirect", redirectTarget);
 
                 // Show success message before redirect
                 toast.success("Redirecting to Google...");
@@ -57,14 +73,15 @@ export default function GoogleOAuthButton({
                 setIsLoading(false);
                 throw new Error("Failed to get Google OAuth URL");
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const oauthError = error as OAuthButtonError;
             console.error("Google OAuth initiation failed:", error);
             setIsLoading(false);
 
-            if (error?.problemDetails?.title) {
-                toast.error(error.problemDetails.title);
-            } else if (error?.message) {
-                toast.error(error.message);
+            if (oauthError?.problemDetails?.title) {
+                toast.error(oauthError.problemDetails.title);
+            } else if (oauthError?.message) {
+                toast.error(oauthError.message);
             } else {
                 toast.error("Failed to initiate Google login. Please try again.");
             }

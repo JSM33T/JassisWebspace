@@ -33,11 +33,12 @@ import {
 } from '@/components/ui/sheet';
 import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useThemeSet } from '@/components/theme-provider';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { cn } from '@/lib/utils';
+import { buildLoginHref } from '@/lib/auth-redirect';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const SIDEBAR_OPEN_EVENT = 'app-sidebar:set-open';
@@ -60,6 +61,7 @@ export function Navbar() {
     const { activeThemeSetId, setActiveThemeSetId, themeSets } = useThemeSet();
     const router = useRouter();
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const [menuOpen, setMenuOpen] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -174,6 +176,10 @@ export function Navbar() {
     };
 
     const activeMode = resolvedTheme === 'dark' ? 'dark' : 'light';
+    const currentPathWithQuery = searchParams.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname;
+    const loginHref = buildLoginHref(currentPathWithQuery);
 
 
     const roleDisplayName =
@@ -531,7 +537,7 @@ export function Navbar() {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 ) : (
-                                    <Link href="/login">
+                                    <Link href={loginHref}>
                                         <Button variant="ghost" size="sm" className="h-8 hover:bg-accent/50">
                                             <User className="h-4 w-4" />
                                         </Button>
@@ -564,7 +570,7 @@ export function Navbar() {
                                         <div className="mt-6 space-y-4 px-4 pb-6">
                                             {!isAuthenticated && (
                                                 <SheetClose asChild>
-                                                    <Link href="/login" className="block border-b pb-4">
+                                                    <Link href={loginHref} className="block border-b pb-4">
                                                         <Button variant="default" className="h-11 w-full text-base font-semibold">
                                                             <User className="h-4 w-4 mr-2" />
                                                             Login

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Github, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
+import { sanitizeRedirectTarget } from "@/lib/auth-redirect";
 
 interface GitHubOAuthButtonProps {
     variant?: "default" | "outline" | "ghost" | "destructive" | "secondary" | "link";
@@ -12,10 +13,18 @@ interface GitHubOAuthButtonProps {
     className?: string;
     children?: React.ReactNode;
     disabled?: boolean;
+    redirectTo?: string;
 }
 
 interface GitHubInitResponse {
     authUrl: string;
+}
+
+interface OAuthButtonError {
+    problemDetails?: {
+        title?: string;
+    };
+    message?: string;
 }
 
 export default function GitHubOAuthButton({
@@ -24,6 +33,7 @@ export default function GitHubOAuthButton({
     className = "",
     children,
     disabled = false,
+    redirectTo
 }: GitHubOAuthButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -37,9 +47,14 @@ export default function GitHubOAuthButton({
             const authUrl = response.authUrl;
 
             if (authUrl) {
-                const currentUrl = window.location.pathname;
-                const shouldResetToHome = currentUrl === "/login" || currentUrl === "/signup";
-                localStorage.setItem("oauthRedirect", shouldResetToHome ? "/" : currentUrl);
+                const queryParams = new URLSearchParams(window.location.search);
+                const queryRedirect = queryParams.get("redirect") ?? queryParams.get("returnUrl");
+                const currentUrl = `${window.location.pathname}${window.location.search}`;
+                const isAuthPage = window.location.pathname === "/login" || window.location.pathname === "/signup";
+                const redirectTarget = sanitizeRedirectTarget(
+                    redirectTo ?? (isAuthPage ? queryRedirect : currentUrl)
+                );
+                localStorage.setItem("oauthRedirect", redirectTarget);
 
                 toast.success("Redirecting to GitHub...");
 
@@ -50,14 +65,15 @@ export default function GitHubOAuthButton({
                 setIsLoading(false);
                 throw new Error("Failed to get GitHub OAuth URL");
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const oauthError = error as OAuthButtonError;
             console.error("GitHub OAuth initiation failed:", error);
             setIsLoading(false);
 
-            if (error?.problemDetails?.title) {
-                toast.error(error.problemDetails.title);
-            } else if (error?.message) {
-                toast.error(error.message);
+            if (oauthError?.problemDetails?.title) {
+                toast.error(oauthError.problemDetails.title);
+            } else if (oauthError?.message) {
+                toast.error(oauthError.message);
             } else {
                 toast.error("Failed to initiate GitHub login. Please try again.");
             }

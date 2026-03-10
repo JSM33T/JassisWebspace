@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,9 +14,11 @@ import authService, { ApiError } from '@/lib/api';
 import GoogleOAuthButton from '@/components/GoogleOAuthButton';
 import GitHubOAuthButton from '@/components/GitHubOAuthButton';
 import { useUser } from '@/contexts/UserContext';
+import { sanitizeRedirectTarget } from '@/lib/auth-redirect';
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { setUser } = useUser();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,9 @@ export default function LoginPage() {
         password: '',
         rememberMe: true,
     });
+    const redirectTarget = sanitizeRedirectTarget(
+        searchParams.get('redirect') ?? searchParams.get('returnUrl')
+    );
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -58,7 +63,7 @@ export default function LoginPage() {
             });
 
             toast.success('Login successful!');
-            router.push('/');
+            router.push(redirectTarget);
         } catch (err) {
             if (err instanceof ApiError) {
                 const errorMsg = err.problemDetails.detail || err.problemDetails.title;
@@ -86,8 +91,8 @@ export default function LoginPage() {
                 <CardContent className="space-y-4">
                     {/* Social Login Buttons */}
                     <div className="grid grid-cols-2 gap-3">
-                        <GoogleOAuthButton className="w-full" />
-                        <GitHubOAuthButton className="w-full" />
+                        <GoogleOAuthButton className="w-full" redirectTo={redirectTarget} />
+                        <GitHubOAuthButton className="w-full" redirectTo={redirectTarget} />
                     </div>
 
                     <div className="relative">
@@ -174,7 +179,7 @@ export default function LoginPage() {
                 </CardContent>
                 <CardFooter className="flex justify-center">
                     <p className="text-sm text-muted-foreground">
-                        Don't have an account?{' '}
+                        Don&apos;t have an account?{' '}
                         <Link href="/signup" className="text-primary font-medium hover:underline">
                             Sign up
                         </Link>
