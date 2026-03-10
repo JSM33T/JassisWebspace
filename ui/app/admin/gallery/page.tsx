@@ -10,13 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function AdminGalleryPage() {
     const [albums, setAlbums] = useState<Album[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
-    const router = useRouter();
 
     useEffect(() => {
         loadAlbums();
@@ -29,6 +28,7 @@ export default function AdminGalleryPage() {
             setAlbums(data);
         } catch (error) {
             console.error("Failed to load albums", error);
+            toast.error("Failed to load albums");
         } finally {
             setLoading(false);
         }
@@ -43,9 +43,10 @@ export default function AdminGalleryPage() {
             setDeleting(albumId);
             await adminGalleryService.deleteAlbum(albumId);
             setAlbums(albums.filter(a => a.id !== albumId));
+            toast.success("Album deleted");
         } catch (error) {
             console.error("Failed to delete album", error);
-            alert("Failed to delete album. Please try again.");
+            toast.error("Failed to delete album");
         } finally {
             setDeleting(null);
         }
