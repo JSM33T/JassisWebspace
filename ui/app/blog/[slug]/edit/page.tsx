@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { BlogForm } from "@/components/admin/blog-form";
 import { blogService } from "@/lib/api/blog.service";
@@ -11,10 +11,12 @@ import { ApiError } from "@/lib/api/types";
 import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildAuthRequiredLoginHref, persistLoginRedirectTarget } from "@/lib/auth-redirect";
 
 export default function EditAssignedBlogPage() {
     const { slug } = useParams<{ slug: string }>();
     const { user, isAuthenticated, isInitialized } = useUser();
+    const router = useRouter();
 
     const [blog, setBlog] = useState<BlogDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -26,7 +28,9 @@ export default function EditAssignedBlogPage() {
 
         const loadBlog = async () => {
             if (!isAuthenticated || !user?.id) {
-                setLoading(false);
+                const editPath = `/blog/${slug}/edit`;
+                persistLoginRedirectTarget(editPath);
+                router.replace(buildAuthRequiredLoginHref(editPath));
                 return;
             }
 
@@ -60,7 +64,7 @@ export default function EditAssignedBlogPage() {
         };
 
         loadBlog();
-    }, [slug, isInitialized, isAuthenticated, user?.id, user?.role]);
+    }, [slug, isInitialized, isAuthenticated, user?.id, user?.role, router]);
 
     if (loading || !isInitialized) {
         return (
@@ -82,27 +86,7 @@ export default function EditAssignedBlogPage() {
         );
     }
 
-    if (!isAuthenticated || !user?.id) {
-        return (
-            <div className="container max-w-3xl mx-auto pt-24 px-4 text-center space-y-4">
-                <h1 className="text-2xl font-bold">Sign in required</h1>
-                <p className="text-muted-foreground">
-                    You need to sign in with an assigned author or admin account to edit this blog.
-                </p>
-                <div className="flex justify-center gap-2">
-                    <Button variant="outline" asChild>
-                        <Link href={`/blog/${encodeURIComponent(slug)}`}>
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Blog
-                        </Link>
-                    </Button>
-                    <Button asChild>
-                        <Link href={`/login?redirect=${encodeURIComponent(`/blog/${slug}/edit`)}`}>Sign In</Link>
-                    </Button>
-                </div>
-            </div>
-        );
-    }
+    if (!isAuthenticated || !user?.id) return null;
 
     if (forbidden) {
         return (

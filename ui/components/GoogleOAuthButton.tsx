@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Chrome, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
-import { sanitizeRedirectTarget } from "@/lib/auth-redirect";
+import { persistLoginRedirectTarget, sanitizeRedirectTarget } from "@/lib/auth-redirect";
 
 interface GoogleOAuthButtonProps {
     variant?: "default" | "outline" | "ghost" | "destructive" | "secondary" | "link";
@@ -58,6 +58,7 @@ export default function GoogleOAuthButton({
                     redirectTo ?? (isAuthPage ? queryRedirect : currentUrl)
                 );
                 localStorage.setItem("oauthRedirect", redirectTarget);
+                persistLoginRedirectTarget(redirectTarget);
 
                 // Show success message before redirect
                 toast.success("Redirecting to Google...");

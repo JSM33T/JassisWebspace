@@ -9,11 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Camera, User, Mail, Calendar, Shield, Edit, Save, X, Clock, Globe } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Camera, User, Edit, Save, X, Clock, Globe } from "lucide-react";
 import { toast } from "sonner";
-import { useUser, userHelpers } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/UserContext";
 import authService from "@/lib/api/auth.service";
 import AvatarCropDialog from "@/components/profile/AvatarCropDialog";
+import { buildAuthRequiredLoginHref, persistLoginRedirectTarget } from "@/lib/auth-redirect";
 
 interface ProfileData {
     username?: string;
@@ -51,6 +53,12 @@ const itemVariants = {
 export default function ProfilePage() {
     const [isMounted, setIsMounted] = useState(false);
     const { user, setUser, updateUser, isInitialized } = useUser();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const currentPathWithQuery = searchParams.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname;
 
     const [isEditing, setIsEditing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -287,6 +295,17 @@ export default function ProfilePage() {
         setIsMounted(true);
     }, []);
 
+    useEffect(() => {
+        if (!isMounted || !isInitialized) {
+            return;
+        }
+
+        if (!user) {
+            persistLoginRedirectTarget(currentPathWithQuery);
+            router.replace(buildAuthRequiredLoginHref(currentPathWithQuery));
+        }
+    }, [currentPathWithQuery, isInitialized, isMounted, router, user]);
+
     // Initialize form data when user changes or editing starts
     useEffect(() => {
         if (user) {
@@ -320,9 +339,11 @@ export default function ProfilePage() {
         </div>;
     }
 
-    if (!user) return <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">Please log in to view your profile.</div>
-    </div>;
+    if (!user) {
+        return <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>;
+    }
 
     return (
         <div className="min-h-screen bg-background">

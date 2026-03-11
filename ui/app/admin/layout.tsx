@@ -1,9 +1,10 @@
 "use client";
 
 import { useUser } from "@/contexts/UserContext";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/sidebar";
+import { buildAuthRequiredLoginHref, persistLoginRedirectTarget } from "@/lib/auth-redirect";
 
 export default function AdminLayout({
     children,
@@ -12,12 +13,28 @@ export default function AdminLayout({
 }) {
     const { user, isInitialized } = useUser();
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const currentPathWithQuery = searchParams.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname;
 
     useEffect(() => {
-        if (isInitialized && (!user || user.role !== "admin")) {
-            router.push("/");
+        if (!isInitialized) {
+            return;
         }
-    }, [user, isInitialized, router]);
+
+        if (!user) {
+            persistLoginRedirectTarget(currentPathWithQuery);
+            router.replace(buildAuthRequiredLoginHref(currentPathWithQuery));
+            return;
+        }
+
+        if (user.role !== "admin") {
+            router.replace("/");
+        }
+    }, [currentPathWithQuery, isInitialized, router, user]);
 
     if (!isInitialized) {
         return null;

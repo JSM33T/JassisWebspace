@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Github, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
-import { sanitizeRedirectTarget } from "@/lib/auth-redirect";
+import { persistLoginRedirectTarget, sanitizeRedirectTarget } from "@/lib/auth-redirect";
 
 interface GitHubOAuthButtonProps {
     variant?: "default" | "outline" | "ghost" | "destructive" | "secondary" | "link";
@@ -55,6 +55,7 @@ export default function GitHubOAuthButton({
                     redirectTo ?? (isAuthPage ? queryRedirect : currentUrl)
                 );
                 localStorage.setItem("oauthRedirect", redirectTarget);
+                persistLoginRedirectTarget(redirectTarget);
 
                 toast.success("Redirecting to GitHub...");
 

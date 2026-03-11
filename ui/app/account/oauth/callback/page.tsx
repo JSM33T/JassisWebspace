@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,11 @@ import { apiClient } from "@/lib/api/client";
 import authService from "@/lib/api/auth.service";
 import Link from "next/link";
 import { useUser } from "@/contexts/UserContext";
-import { sanitizeRedirectTarget } from "@/lib/auth-redirect";
+import {
+    clearPersistedLoginRedirectTarget,
+    readPersistedLoginRedirectTarget,
+    sanitizeRedirectTarget
+} from "@/lib/auth-redirect";
 
 type CallbackState = "loading" | "success" | "error";
 
@@ -28,14 +32,43 @@ interface OAuthCallbackError {
     message?: string;
 }
 
+function resolvePostOAuthRedirect(): string {
+    const oauthRedirect = sanitizeRedirectTarget(localStorage.getItem("oauthRedirect"));
+    const persistedRedirect = readPersistedLoginRedirectTarget();
+
+    localStorage.removeItem("oauthRedirect");
+    clearPersistedLoginRedirectTarget();
+
+    return oauthRedirect !== "/" ? oauthRedirect : persistedRedirect;
+}
+
 export default function OAuthCallbackPage() {
     const [state, setState] = useState<CallbackState>("loading");
     const [error, setError] = useState<string>("");
     const router = useRouter();
     const searchParams = useSearchParams();
     const { setUser } = useUser();
+    const hasHandledCallbackRef = useRef(false);
+    const hasScheduledRedirectRef = useRef(false);
+    const redirectTimeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
+        if (hasHandledCallbackRef.current) {
+            return;
+        }
+        hasHandledCallbackRef.current = true;
+
+        const scheduleRedirect = () => {
+            if (hasScheduledRedirectRef.current) {
+                return;
+            }
+
+            hasScheduledRedirectRef.current = true;
+            redirectTimeoutRef.current = window.setTimeout(() => {
+                router.push(resolvePostOAuthRedirect());
+            }, 2000);
+        };
+
         const handleCallback = async () => {
             try {
                 // Check if this is a redirect from our backend with auth results
@@ -77,11 +110,7 @@ export default function OAuthCallbackPage() {
                         toast.success("Successfully logged in!");
 
                         // Redirect after a short delay
-                        setTimeout(() => {
-                            const redirectUrl = sanitizeRedirectTarget(localStorage.getItem("oauthRedirect"));
-                            localStorage.removeItem("oauthRedirect");
-                            router.push(redirectUrl);
-                        }, 2000);
+                        scheduleRedirect();
 
                     } catch (error) {
                         console.error("Error getting user info:", error);
@@ -89,11 +118,7 @@ export default function OAuthCallbackPage() {
                         setState("success");
                         toast.success("Successfully logged in!");
 
-                        setTimeout(() => {
-                            const redirectUrl = sanitizeRedirectTarget(localStorage.getItem("oauthRedirect"));
-                            localStorage.removeItem("oauthRedirect");
-                            router.push(redirectUrl);
-                        }, 2000);
+                        scheduleRedirect();
                     }
                 }
                 // Handle backend redirect with error (new approach)
@@ -124,11 +149,7 @@ export default function OAuthCallbackPage() {
                         toast.success("Successfully logged in!");
 
                         // Redirect after a short delay
-                        setTimeout(() => {
-                            const redirectUrl = sanitizeRedirectTarget(localStorage.getItem("oauthRedirect"));
-                            localStorage.removeItem("oauthRedirect");
-                            router.push(redirectUrl);
-                        }, 2000);
+                        scheduleRedirect();
 
                     } else {
                         throw new Error("Invalid response from server");
@@ -156,6 +177,12 @@ export default function OAuthCallbackPage() {
         };
 
         handleCallback();
+
+        return () => {
+            if (redirectTimeoutRef.current !== null) {
+                window.clearTimeout(redirectTimeoutRef.current);
+            }
+        };
     }, [searchParams, router, setUser]);
 
     const renderContent = () => {

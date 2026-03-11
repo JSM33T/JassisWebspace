@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,12 @@ import authService, { ApiError } from '@/lib/api';
 import GoogleOAuthButton from '@/components/GoogleOAuthButton';
 import GitHubOAuthButton from '@/components/GitHubOAuthButton';
 import { useUser } from '@/contexts/UserContext';
-import { sanitizeRedirectTarget } from '@/lib/auth-redirect';
+import {
+    clearPersistedLoginRedirectTarget,
+    persistLoginRedirectTarget,
+    readPersistedLoginRedirectTarget,
+    sanitizeRedirectTarget
+} from '@/lib/auth-redirect';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -27,9 +32,33 @@ export default function LoginPage() {
         password: '',
         rememberMe: true,
     });
-    const redirectTarget = sanitizeRedirectTarget(
+    const queryRedirectTarget = sanitizeRedirectTarget(
         searchParams.get('redirect') ?? searchParams.get('returnUrl')
     );
+    const loginReason = searchParams.get('reason');
+    const showAuthRequiredNotice = loginReason === 'auth_required';
+    const redirectTarget = useMemo(() => {
+        if (queryRedirectTarget !== '/') {
+            return queryRedirectTarget;
+        }
+
+        if (showAuthRequiredNotice) {
+            return readPersistedLoginRedirectTarget();
+        }
+
+        return '/';
+    }, [queryRedirectTarget, showAuthRequiredNotice]);
+
+    useEffect(() => {
+        if (queryRedirectTarget !== '/') {
+            persistLoginRedirectTarget(queryRedirectTarget);
+            return;
+        }
+
+        if (!showAuthRequiredNotice) {
+            clearPersistedLoginRedirectTarget();
+        }
+    }, [queryRedirectTarget, showAuthRequiredNotice]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,6 +92,7 @@ export default function LoginPage() {
             });
 
             toast.success('Login successful!');
+            clearPersistedLoginRedirectTarget();
             router.push(redirectTarget);
         } catch (err) {
             if (err instanceof ApiError) {
@@ -89,6 +119,21 @@ export default function LoginPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {showAuthRequiredNotice && (
+                        <div className="flex items-start justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                            <div className="flex items-start gap-2">
+                                <AlertCircle className="mt-0.5 h-4 w-4 text-primary" />
+                                <div>
+                                    <p className="font-medium text-foreground">Login required</p>
+                                    <p className="text-muted-foreground">Sign in to view this page.</p>
+                                </div>
+                            </div>
+                            <Button asChild variant="outline" size="sm" className="h-8">
+                                <Link href="/">Go Home</Link>
+                            </Button>
+                        </div>
+                    )}
+
                     {/* Social Login Buttons */}
                     <div className="grid grid-cols-2 gap-3">
                         <GoogleOAuthButton className="w-full" redirectTo={redirectTarget} />

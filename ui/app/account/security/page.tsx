@@ -5,12 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Shield, Smartphone, Laptop, LogOut, Lock, KeyRound, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
 import { authService, SessionInfo } from "@/lib/api/auth.service";
 import { ApiError } from "@/lib/api/types";
+import { buildAuthRequiredLoginHref, persistLoginRedirectTarget } from "@/lib/auth-redirect";
 
 import {
     Dialog,
@@ -63,7 +65,13 @@ function isMobile(userAgent: string): boolean {
 }
 
 export default function SecurityPage() {
-    const { user } = useUser();
+    const { user, isInitialized } = useUser();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const currentPathWithQuery = searchParams.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname;
     const [isLoading, setIsLoading] = useState(false);
     const [sessions, setSessions] = useState<SessionInfo[]>([]);
     const [isRevokingAll, setIsRevokingAll] = useState(false);
@@ -160,6 +168,17 @@ export default function SecurityPage() {
     };
 
     useEffect(() => {
+        if (!isInitialized) {
+            return;
+        }
+
+        if (!user) {
+            persistLoginRedirectTarget(currentPathWithQuery);
+            router.replace(buildAuthRequiredLoginHref(currentPathWithQuery));
+        }
+    }, [currentPathWithQuery, isInitialized, router, user]);
+
+    useEffect(() => {
         const fetchSessions = async () => {
             try {
                 const activeSessions = await authService.getActiveSessions();
@@ -174,6 +193,14 @@ export default function SecurityPage() {
             fetchSessions();
         }
     }, [user]);
+
+    if (!isInitialized || !user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
 
 
@@ -308,7 +335,7 @@ export default function SecurityPage() {
                                     Active Sessions
                                 </CardTitle>
                                 <CardDescription>
-                                    Manage devices where you're currently logged in
+                                    Manage devices where you&apos;re currently logged in
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -328,7 +355,7 @@ export default function SecurityPage() {
                                                 <DialogHeader>
                                                     <DialogTitle>Active Sessions</DialogTitle>
                                                     <DialogDescription>
-                                                        Manage devices where you're currently logged in
+                                                        Manage devices where you&apos;re currently logged in
                                                     </DialogDescription>
                                                 </DialogHeader>
                                                 <div className="space-y-4 pt-4">

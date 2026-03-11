@@ -9,6 +9,8 @@ import Link from "next/link";
 import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -17,6 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useThemeSet } from "@/components/theme-provider";
+import { useUser } from "@/contexts/UserContext";
+import { buildAuthRequiredLoginHref, persistLoginRedirectTarget } from "@/lib/auth-redirect";
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -36,13 +40,31 @@ const itemVariants = {
 };
 
 export default function PreferencesPage() {
+  const { user, isInitialized } = useUser();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { activeThemeSetId, setActiveThemeSetId, themeSets } = useThemeSet();
+  const currentPathWithQuery = searchParams.toString()
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname;
+
+  useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
+
+    if (!user) {
+      persistLoginRedirectTarget(currentPathWithQuery);
+      router.replace(buildAuthRequiredLoginHref(currentPathWithQuery));
+    }
+  }, [currentPathWithQuery, isInitialized, router, user]);
 
   const handleSaveSettings = () => {
     toast.success("Settings saved successfully!");
   };
-  if (!resolvedTheme) {
+  if (!isInitialized || !user || !resolvedTheme) {
     return null;
   }
 
