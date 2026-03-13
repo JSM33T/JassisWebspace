@@ -43,8 +43,10 @@ export default function ProjectsPage() {
     const [slideIndex, setSlideIndex] = useState(0);
 
     const screenshots = selectedProject?.screenshots ?? [];
-    const activeScreenshot =
-        screenshots.length > 0 ? screenshots[slideIndex % screenshots.length] : undefined;
+    const hasScreenshots = screenshots.length > 0;
+    const activeScreenshot = hasScreenshots
+        ? screenshots[slideIndex % screenshots.length] ?? null
+        : null;
     const swipeThreshold = 40;
 
     const goToPreviousSlide = () => {
@@ -160,7 +162,7 @@ export default function ProjectsPage() {
                                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Project Details</span>
                             </div>
                         <DialogTitle className="text-3xl font-bold tracking-tight">{selectedProject?.title}</DialogTitle>
-                            {screenshots.length > 0 && (
+                            {hasScreenshots && activeScreenshot && (
                                 <div className="pt-6 space-y-3">
                                     <div className="relative rounded-2xl border border-border bg-muted/40 p-3 sm:p-4">
                                         <div
@@ -188,7 +190,7 @@ export default function ProjectsPage() {
                                         >
                                             <Image
                                                 src={activeScreenshot}
-                                                alt={`${selectedProject?.title} screenshot ${slideIndex + 1}`}
+                                                alt={`${selectedProject?.title ?? 'Project'} screenshot ${slideIndex + 1}`}
                                                 fill
                                                 sizes="(max-width: 1024px) 100vw, 65vw"
                                                 className="object-cover"
