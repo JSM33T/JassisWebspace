@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Calendar, ImageIcon, MessageSquare, Share2, ZoomIn } from 'lucide-react';
@@ -14,6 +13,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 import { CommentSection } from '@/components/comments/CommentSection';
+import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { LikeButton } from '@/components/likes/LikeButton';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
@@ -270,14 +270,14 @@ export default function AlbumDetailPage() {
                                     onClick={() => setImageParam(image.id)}
                                 >
                                     <div className="relative w-full">
-                                        <Image
+                                        <GalleryThumb
                                             src={toThumbUrl(image.url)}
                                             alt={image.title || 'Album image'}
                                             width={800}
                                             height={600}
-                                            className="w-full h-auto transform transition-transform duration-500 group-hover:scale-105"
+                                            wrapperClassName="w-full"
+                                            imageClassName="group-hover:scale-105"
                                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                            unoptimized // Since we don't know dimensions, unoptimized helps prevent layout shift issues if aspect ratio is unknown
                                         />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
 

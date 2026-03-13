@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import {
     ArrowLeft,
     ArrowUpRight,
@@ -140,22 +140,13 @@ export default function GalleryPage() {
                                 >
                                     <Link href={`/gallery/${album.slug}`} className="group block h-full">
                                         <article className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-card/55 backdrop-blur-sm transition-all duration-300 hover:bg-card/75 hover:shadow-xl">
-                                            {album.cover ? (
-                                                <Image
-                                                    src={album.cover}
-                                                    alt={album.name}
-                                                    fill
-                                                    sizes="(max-width: 767px) 100vw, 50vw"
-                                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                                    unoptimized
-                                                />
-                                            ) : (
-                                                <div className="flex h-full items-center justify-center bg-muted">
-                                                    <div className="rounded-2xl bg-background/60 p-4">
-                                                        <ImageIcon className="h-8 w-8 text-primary/80" />
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <GalleryThumb
+                                                src={album.cover}
+                                                alt={album.name}
+                                                fill
+                                                sizes="(max-width: 767px) 100vw, 50vw"
+                                                imageClassName="group-hover:scale-105"
+                                            />
 
                                             <div className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-background/85 px-3 py-1 text-xs text-foreground backdrop-blur-md">
                                                 <Images className="h-3.5 w-3.5" />
