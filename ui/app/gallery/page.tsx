@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { PageIntroCard } from '@/components/page-intro-card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import {
-    ArrowLeft,
     ArrowUpRight,
     CalendarDays,
     Image as ImageIcon,
@@ -59,34 +58,16 @@ export default function GalleryPage() {
                 <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            <section className="border-b bg-muted/30 px-4 py-8 backdrop-blur-sm md:py-12">
-                <div className="container mx-auto max-w-7xl pt-16">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-3">
-                            <Badge
-                                variant="secondary"
-                                className="w-fit gap-2 rounded-full border-border/50 bg-background/50 px-4 py-1.5 text-sm font-normal backdrop-blur-sm"
-                            >
-                                <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                                <span>Creative Showcase</span>
-                            </Badge>
-                            <h1 className="text-4xl font-bold tracking-tight md:text-5xl">Gallery</h1>
-                            <p className="max-w-2xl text-lg text-muted-foreground">
-                                Explore our curated collection of albums and creative works.
-                            </p>
-                        </div>
-                        <Button variant="ghost" asChild className="rounded-full px-6">
-                            <Link href="/">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-            </section>
+            <main className="flex-1 px-4 pb-14 pt-8 md:pb-16 md:pt-10">
+                <div className="container mx-auto max-w-7xl pt-12">
+                    <PageIntroCard
+                        badge="Creative Showcase"
+                        badgeIcon={ImageIcon}
+                        title="Gallery"
+                        description="Explore our curated collection of albums and creative works."
+                    />
 
-            <section className="flex-1 px-4 py-12">
-                <div className="container mx-auto max-w-7xl">
+                    <section className="mt-6">
                     {loading && (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {Array.from({ length: 6 }).map((_, index) => (
@@ -176,8 +157,10 @@ export default function GalleryPage() {
                             ))}
                         </div>
                     )}
+
+                    </section>
                 </div>
-            </section>
+            </main>
         </div>
     );
 }

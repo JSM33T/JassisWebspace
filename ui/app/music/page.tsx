@@ -5,10 +5,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { PageIntroCard } from '@/components/page-intro-card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
-import { Disc3, Music, ArrowLeft, Play } from 'lucide-react';
+import { Disc3, Music, Play } from 'lucide-react';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
 import { musicService } from '@/lib/api/music.service';
 import { MusicTrack } from '@/lib/api/music.types';
@@ -139,35 +139,16 @@ export default function MusicPage() {
                 <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            {/* Header */}
-            <section className="px-4 py-8 md:py-12 border-b bg-muted/30 backdrop-blur-sm">
-                <div className="container mx-auto max-w-7xl pt-16">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="space-y-3">
-                            <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-sm font-normal backdrop-blur-sm bg-background/50 border-border/50 gap-2 w-fit">
-                                <Music className="h-3.5 w-3.5 text-primary" />
-                                <span>Audio Library</span>
-                            </Badge>
-                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                                Music
-                            </h1>
-                            <p className="text-lg text-muted-foreground max-w-2xl">
-                                Explore all published tracks from the catalog.
-                            </p>
-                        </div>
-                        <Button variant="ghost" asChild className="rounded-full px-6">
-                            <Link href="/">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-            </section>
+            <main className="flex-1 px-4 pb-14 pt-8 md:pb-16 md:pt-10">
+                <div className="container mx-auto max-w-6xl pt-12">
+                    <PageIntroCard
+                        badge="Audio Library"
+                        badgeIcon={Music}
+                        title="Music"
+                        description="Explore all published tracks from the catalog."
+                    />
 
-            <section className="flex-1 px-4 py-12">
-                <div className="container mx-auto max-w-6xl">
-                    <div className="max-w-6xl mx-auto mb-6 flex flex-wrap gap-2">
+                    <div className="mt-6 mb-6 flex max-w-6xl flex-wrap gap-2">
                         {categories.map((category) => {
                             const isActive = selectedCategory === category;
                             const count = category === 'all'
@@ -189,16 +170,16 @@ export default function MusicPage() {
                         })}
                     </div>
                     {loading ? (
-                        <div className="max-w-6xl mx-auto py-10 text-center text-muted-foreground">
+                        <div className="max-w-6xl py-10 text-center text-muted-foreground">
                             Loading tracks...
                         </div>
                     ) : null}
                     {!loading && filteredTracks.length === 0 ? (
-                        <div className="max-w-6xl mx-auto py-10 text-center text-muted-foreground">
+                        <div className="max-w-6xl py-10 text-center text-muted-foreground">
                             No tracks found.
                         </div>
                     ) : null}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl mx-auto">
+                    <div className="grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-2">
                         {filteredTracks.map((track, index) => (
                             <motion.div
                                 key={track.id}
@@ -279,7 +260,7 @@ export default function MusicPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </main>
         </motion.div>
     );
 }

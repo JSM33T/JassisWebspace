@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { PageIntroCard } from '@/components/page-intro-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +17,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { FolderCode, ArrowLeft, ChevronLeft, ChevronRight, MoveUpRight, Rocket, Send } from 'lucide-react';
+import { FolderCode, ChevronLeft, ChevronRight, MoveUpRight, Rocket, Send } from 'lucide-react';
 import { projects as projectsData, type Project as ProjectType } from '../../data/projects';
 
 type ProjectCard = ProjectType & { id: string };
@@ -39,9 +41,6 @@ export default function ProjectsPage() {
         projects.find((project) => project.id === searchParams.get('project')) || null;
 
     const [slideIndex, setSlideIndex] = useState(0);
-    useEffect(() => {
-        setSlideIndex(0);
-    }, [selectedProject]);
 
     const screenshots = selectedProject?.screenshots ?? [];
     const activeScreenshot =
@@ -70,10 +69,12 @@ export default function ProjectsPage() {
     };
 
     const openProject = (project: (typeof projects)[0]) => {
+        setSlideIndex(0);
         setProjectParam(project.id);
     };
 
     const closeProject = () => {
+        setSlideIndex(0);
         setProjectParam(null);
     };
 
@@ -97,32 +98,16 @@ export default function ProjectsPage() {
                 <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            <section className="px-4 py-8 md:py-12 border-b bg-muted/30 backdrop-blur-sm">
-                <div className="container mx-auto max-w-7xl pt-16">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="space-y-3">
-                            <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-sm font-normal backdrop-blur-sm bg-background/50 border-border/50 gap-2 w-fit">
-                                <FolderCode className="h-3.5 w-3.5 text-primary" />
-                                <span>Portfolio</span>
-                            </Badge>
-                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Projects</h1>
-                            <p className="text-lg text-muted-foreground max-w-2xl">
-                                A showcase of our innovative projects and technical solutions.
-                            </p>
-                        </div>
-                        <Button variant="ghost" asChild className="rounded-full px-6">
-                            <Link href="/">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-            </section>
+            <main className="flex-1 px-4 pb-14 pt-8 md:pb-16 md:pt-10">
+                <div className="container mx-auto max-w-6xl pt-12">
+                    <PageIntroCard
+                        badge="Portfolio"
+                        badgeIcon={FolderCode}
+                        title="Projects"
+                        description="A showcase of our innovative projects and technical solutions."
+                    />
 
-            <section className="flex-1 px-4 py-12">
-                <div className="container mx-auto max-w-6xl">
-                    <div className="grid grid-cols-1 gap-6 max-w-6xl mx-auto md:grid-cols-2">
+                    <div className="mt-6 grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
                         {projects.map((project, index) => (
                             <motion.div
                                 key={project.title}
@@ -161,7 +146,7 @@ export default function ProjectsPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </main>
 
             <Dialog open={!!selectedProject} onOpenChange={(open) => !open && closeProject()}>
                 <DialogContent className="max-h-[85vh] rounded-3xl border bg-card/90 p-0 backdrop-blur-xl overflow-hidden sm:max-w-[calc(100vw-2rem)] md:max-w-[80vw] lg:max-w-[65vw] xl:max-w-[50vw]">
@@ -201,10 +186,13 @@ export default function ProjectsPage() {
                                                 }
                                             }}
                                         >
-                                            <img
+                                            <Image
                                                 src={activeScreenshot}
                                                 alt={`${selectedProject?.title} screenshot ${slideIndex + 1}`}
-                                                className="h-full w-full object-cover"
+                                                fill
+                                                sizes="(max-width: 1024px) 100vw, 65vw"
+                                                className="object-cover"
+                                                unoptimized
                                             />
                                         </div>
                                         {screenshots.length > 1 && (

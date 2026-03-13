@@ -131,7 +131,7 @@ export default function BlogViewPage() {
 
     return (
         <div className="pt-32">
-            <div className="container max-w-4xl mx-auto px-4 pt-4 mb-12">
+            <div className="container max-w-4xl mx-auto px-4 pt-2 mb-12">
 
                 <div className="mb-6 flex flex-wrap items-center gap-2">
                     <Button variant="ghost" size="sm" asChild>

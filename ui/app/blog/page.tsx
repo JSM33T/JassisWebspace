@@ -5,11 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { PageIntroCard } from '@/components/page-intro-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
-    ArrowLeft,
     ArrowUpRight,
     BookOpen,
     CalendarDays,
@@ -139,35 +139,17 @@ export default function BlogHomePage() {
                 <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            <section className="border-b bg-muted/30 px-4 py-8 backdrop-blur-sm md:py-12">
-                <div className="container mx-auto max-w-7xl pt-16">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-3">
-                            <Badge
-                                variant="secondary"
-                                className="w-fit gap-2 rounded-full border-border/50 bg-background/50 px-4 py-1.5 text-sm font-normal backdrop-blur-sm"
-                            >
-                                <BookOpen className="h-3.5 w-3.5 text-primary" />
-                                <span>Insights & Stories</span>
-                            </Badge>
-                            <h1 className="text-4xl font-bold tracking-tight md:text-5xl">Blog</h1>
-                            <p className="max-w-2xl text-lg text-muted-foreground">
-                                Explore our latest articles, tutorials, and insights.
-                            </p>
-                        </div>
-                        <Button variant="ghost" asChild className="rounded-full px-6">
-                            <Link href="/">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-            </section>
+            <main className="flex-1 px-4 pb-14 pt-8 md:pb-16 md:pt-10">
+                <div className="container mx-auto max-w-7xl pt-12">
+                    <PageIntroCard
+                        badge="Insights & Stories"
+                        badgeIcon={BookOpen}
+                        title="Blog"
+                        description="Explore our latest articles, tutorials, and insights."
+                    />
 
-            <section className="bg-muted/30 px-4 py-6">
-                <div className="container mx-auto max-w-7xl">
-                    <form
+                    <section className="mt-6 rounded-[1.5rem] border border-border/60 bg-card/45 p-4 backdrop-blur-lg md:p-5">
+                        <form
                         onSubmit={(e) => {
                             e.preventDefault();
                             setPage(1);
@@ -211,12 +193,10 @@ export default function BlogHomePage() {
                                 Clear
                             </Button>
                         )}
-                    </form>
-                </div>
-            </section>
+                        </form>
+                    </section>
 
-            <section className="flex-1 px-4 py-12">
-                <div className="container mx-auto max-w-7xl">
+                    <section className="mt-6">
                     {error && (
                         <div className="pb-8 text-center text-sm text-destructive">{error}</div>
                     )}
@@ -338,8 +318,9 @@ export default function BlogHomePage() {
                             </Button>
                         </div>
                     )}
+                    </section>
                 </div>
-            </section>
+            </main>
 
             {selectedAuthorData && (
                 <AuthorModal

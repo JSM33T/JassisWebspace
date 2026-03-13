@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { PageIntroCard } from '@/components/page-intro-card';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -188,65 +189,58 @@ export default function AlbumDetailPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
-            {/* Header */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="px-4 py-12 md:py-16 border-b bg-muted/20"
-            >
-                <div className="container mx-auto pt-16">
-                    <div className="mb-8">
-                        <Link href="/gallery" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Gallery
-                        </Link>
-                    </div>
+            <div className="fixed inset-0 z-[-1] pointer-events-none">
+                <div className="absolute top-[-10%] left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary/5 blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-secondary/8 blur-[120px]" />
+            </div>
 
-                    <div className="max-w-4xl">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                            {album.name}
-                        </h1>
-                        {album.description && (
-                            <p className="text-xl text-muted-foreground mb-6 leading-relaxed">
-                                {album.description}
-                            </p>
-                        )}
-                        <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1 rounded-full">
+            <main className="flex-1 px-4 pb-16 pt-8 md:pt-10">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="container mx-auto max-w-5xl pt-12"
+                >
+                    <PageIntroCard
+                        badge="Creative Showcase"
+                        badgeIcon={ImageIcon}
+                        title={album.name}
+                        description={album.description}
+                        backHref="/gallery"
+                        backLabel="Back to Gallery"
+                    >
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
                                 <Calendar className="h-4 w-4" />
                                 <span>{formatDate(album.createdAt)}</span>
                             </div>
-                            <div className="flex items-center gap-2 bg-muted/50 px-3 py-1 rounded-full">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
                                 <ImageIcon className="h-4 w-4" />
                                 <span>{album.images.length} {album.images.length === 1 ? 'image' : 'images'}</span>
                             </div>
                             {album.contentId && (
-                                <span className="flex items-center gap-2">
+                                <div className="inline-flex items-center rounded-full border border-border/50 bg-background/55 px-1 py-1 backdrop-blur-sm">
                                     <LikeButton
                                         contentId={album.contentId}
                                         initialCount={album.likeCount}
                                         initialLiked={album.isLiked}
                                     />
-                                </span>
+                                </div>
                             )}
-                            <span className="flex items-center gap-2 text-muted-foreground">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
                                 <MessageSquare className="h-4 w-4" />
                                 <span>{album.commentCount}</span>
-                            </span>
+                            </div>
                         </div>
+
                         {album.authors.length > 0 && (
                             <div className="mt-4 text-sm text-muted-foreground">
                                 By {album.authors.map((a) => a.displayName || a.username).join(', ')}
                             </div>
                         )}
-                    </div>
-                </div>
-            </motion.section>
+                    </PageIntroCard>
 
-            {/* Images Grid */}
-            <section className="flex-1 px-4 py-12 md:py-16">
-                <div className="container mx-auto max-w-5xl">
+                    <section className="mt-6">
                     {/* Grid uses thumbs by default; Lightbox uses original `image.url` for full size. */}
                     {album.images.length === 0 ? (
                         <div className="text-center py-20 bg-muted/10 rounded-3xl border border-dashed">
@@ -304,8 +298,9 @@ export default function AlbumDetailPage() {
                             ))}
                         </div>
                     )}
-                </div>
-            </section>
+                    </section>
+                </motion.div>
+            </main>
 
             <Lightbox
                 open={isLightboxOpen}

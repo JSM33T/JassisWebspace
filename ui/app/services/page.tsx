@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { PageIntroCard } from '@/components/page-intro-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Briefcase, ArrowLeft, Send, Info } from 'lucide-react';
+import { Briefcase, Send, Info } from 'lucide-react';
 
 const services = [
     {
@@ -142,36 +142,16 @@ export default function ServicesPage() {
                 <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            {/* Header */}
-            <section className="px-4 py-8 md:py-12 border-b bg-muted/30 backdrop-blur-sm">
-                <div className="container mx-auto max-w-7xl pt-16">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="space-y-3">
-                            <Badge variant="secondary" className="px-4 py-1.5 rounded-full text-sm font-normal backdrop-blur-sm bg-background/50 border-border/50 gap-2 w-fit">
-                                <Briefcase className="h-3.5 w-3.5 text-primary" />
-                                <span>Our Solutions</span>
-                            </Badge>
-                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                                Services
-                            </h1>
-                            <p className="text-lg text-muted-foreground max-w-2xl">
-                                Explore our technical expertise and professional offerings.
-                            </p>
-                        </div>
-                        <Button variant="ghost" asChild className="rounded-full px-6">
-                            <Link href="/">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-            </section>
+            <main className="flex-1 px-4 pb-14 pt-8 md:pb-16 md:pt-10">
+                <div className="container mx-auto max-w-7xl pt-12">
+                    <PageIntroCard
+                        badge="Our Solutions"
+                        badgeIcon={Briefcase}
+                        title="Services"
+                        description="Explore our technical expertise and professional offerings."
+                    />
 
-            {/* Services Grid */}
-            <section className="flex-1 px-4 py-12">
-                <div className="container mx-auto max-w-7xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {services.map((service, index) => (
                             <motion.div
                                 key={index}
@@ -208,7 +188,7 @@ export default function ServicesPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </main>
 
             {/* Service Details Dialog */}
             <Dialog open={!!selectedService} onOpenChange={(open) => !open && closeService()}>
