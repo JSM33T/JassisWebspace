@@ -63,7 +63,9 @@ export default function RootLayout({
             <UserProvider>
               <RouteProgressBar />
               <Navbar />
-              {children}
+              <div className="min-h-screen pb-24 lg:pb-0 lg:pl-28">
+                {children}
+              </div>
               <BackToTopProgress />
               <Toaster
                 position="bottom-center"

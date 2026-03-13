@@ -253,7 +253,7 @@ export default function MusicPage() {
                                                 <Button
                                                     type="button"
                                                     size="sm"
-                                                    className="rounded-full h-8 px-4"
+                                                    className="h-8 cursor-pointer rounded-full px-4"
                                                     onClick={(event) => {
                                                         event.stopPropagation();
                                                         void handlePlay(track);

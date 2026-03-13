@@ -223,7 +223,7 @@ export default function MusicTrackViewPage() {
                                 <Button
                                     type="button"
                                     size="lg"
-                                    className="rounded-full px-6"
+                                    className="cursor-pointer rounded-full px-6"
                                     onClick={handlePlay}
                                     disabled={playing}
                                 >

@@ -31,7 +31,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Star, Sparkles, AtSign, BookOpen, FileText, Video, Code, Lightbulb, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -74,7 +74,7 @@ export function Navbar() {
     };
 
     // Liquid hover effect state
-    const [hoveredLink, setHoveredLink] = useState<string | null>(null);
+    const [, setHoveredLink] = useState<string | null>(null);
     const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
     const navRef = useRef<HTMLDivElement>(null);
 
@@ -235,11 +235,15 @@ export function Navbar() {
     }, []);
 
     useEffect(() => {
-        setMenuOpen(false);
-        if (typeof window !== 'undefined') {
+        const timeoutId = window.setTimeout(() => {
+            setMenuOpen(false);
             window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: false }));
-        }
-        setSidebarOpen(false);
+            setSidebarOpen(false);
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
     }, [pathname]);
 
     const handleSidebarOpenChange = (open: boolean) => {
@@ -249,9 +253,399 @@ export function Navbar() {
         }
     };
 
+    const desktopRailSections = [
+        [{ href: '/blog', label: 'Blogs', icon: FileText }],
+        studioMenuItems,
+        workMenuItems,
+        aboutMenuItems.filter((item) => item.href === '/about' || item.href === '/contact'),
+    ];
+
+    const supportMenuItems = aboutMenuItems.filter(
+        (item) => item.href === '/privacy' || item.href === '/faq'
+    );
+
+    const mobileDockItems = [
+        { href: '/', label: 'Home', icon: Sparkles },
+        { href: '/blog', label: 'Blogs', icon: FileText },
+        { href: '/music', label: 'Music', icon: Music },
+        { href: '/gallery', label: 'Gallery', icon: Image },
+    ];
+
+    const mobileMenuSections = [
+        {
+            title: 'Explore',
+            items: [
+                { href: '/', label: 'Home', icon: Sparkles },
+                { href: '/blog', label: 'Blogs', icon: FileText },
+                ...studioMenuItems,
+            ],
+        },
+        { title: 'Work', items: workMenuItems },
+        { title: 'Info', items: aboutMenuItems },
+    ];
+
+    const railItemClassName =
+        'group relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-border/70 hover:bg-accent/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
+
+    const railBubbleClassName =
+        'pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-xl border border-border/70 bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground opacity-0 shadow-lg shadow-black/10 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100';
+
 
     return (
         <>
+            <nav className="fixed inset-y-4 left-4 z-50 hidden lg:flex">
+                <div className="relative h-full">
+                    <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-primary/20 via-primary/8 to-primary/16 blur-2xl" />
+                    <div className="relative flex h-full w-20 flex-col items-center justify-between rounded-[2rem] border border-border/60 bg-background/85 px-3 py-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
+                        <div className="flex flex-col items-center gap-3">
+                            <Link
+                                href="/"
+                                className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/18 to-background/80 text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-primary/20"
+                                aria-label="Home"
+                                title="Home"
+                            >
+                                <Sparkles className="h-5 w-5" />
+                                <span className={railBubbleClassName}>Home</span>
+                            </Link>
+
+                            <div className="h-px w-10 bg-gradient-to-r from-transparent via-border to-transparent" />
+
+                            {desktopRailSections.map((section, sectionIndex) => (
+                                <div key={`rail-section-${sectionIndex}`} className="flex flex-col items-center gap-2">
+                                    {section.map((item) => {
+                                        const Icon = item.icon;
+                                        const isActive = isActivePath(item.href);
+
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                aria-current={isActive ? 'page' : undefined}
+                                                aria-label={item.label}
+                                                title={item.label}
+                                                className={cn(
+                                                    railItemClassName,
+                                                    isActive && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
+                                                )}
+                                            >
+                                                <Icon className="h-4 w-4" />
+                                                {isActive ? (
+                                                    <span className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
+                                                ) : null}
+                                                <span className={railBubbleClassName}>{item.label}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                    {sectionIndex < desktopRailSections.length - 1 ? (
+                                        <div className="mt-1 h-px w-8 bg-gradient-to-r from-transparent via-border/80 to-transparent" />
+                                    ) : null}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col items-center gap-3">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className={railItemClassName}
+                                        aria-label="More links"
+                                        title="More links"
+                                    >
+                                        <Menu className="h-4 w-4" />
+                                        <span className={railBubbleClassName}>More</span>
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className={navDropdownContentClassName} side="right" align="end" sideOffset={16}>
+                                    {supportMenuItems.map((item) => {
+                                        const Icon = item.icon;
+                                        const isActive = isActivePath(item.href);
+                                        return (
+                                            <DropdownMenuItem key={item.href} asChild>
+                                                <Link
+                                                    href={item.href}
+                                                    className={cn(
+                                                        'flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors',
+                                                        'hover:border-border/50 hover:bg-accent/60',
+                                                        isActive && 'border-border/70 bg-accent/70'
+                                                    )}
+                                                >
+                                                    <Icon className={cn('h-5 w-5 shrink-0 text-primary', isActive && 'text-foreground')} />
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{item.label}</span>
+                                                        <span className="text-xs text-muted-foreground">{item.description}</span>
+                                                    </div>
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        );
+                                    })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <button
+                                type="button"
+                                className={cn(
+                                    railItemClassName,
+                                    sidebarOpen && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
+                                )}
+                                onClick={() => handleSidebarOpenChange(true)}
+                                aria-label="Open controls"
+                                title="Open controls"
+                            >
+                                <PanelRight className="h-4 w-4" />
+                                <span className={railBubbleClassName}>Player and theme</span>
+                            </button>
+
+                            {isAuthenticated ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className={cn(railItemClassName, 'overflow-hidden p-0')}
+                                            aria-label="Account"
+                                            title="Account"
+                                        >
+                                            <Avatar className="h-full w-full rounded-2xl border border-border/60">
+                                                <AvatarImage
+                                                    src={user?.avatarUrl || '/placeholder-avatar.jpg'}
+                                                    alt="User Avatar"
+                                                />
+                                                <AvatarFallback className="rounded-2xl text-xs">{userHelpers.getInitials(user)}</AvatarFallback>
+                                            </Avatar>
+                                            <span className={railBubbleClassName}>Account</span>
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56" side="right" align="end" sideOffset={16} forceMount>
+                                        <DropdownMenuLabel className="font-normal">
+                                            <div className="flex flex-col space-y-1">
+                                                <p className="text-sm font-medium leading-none truncate">{userHelpers.getFirstName(user)}</p>
+                                                <div className="flex items-center justify-between w-full gap-2 pt-0.5 text-xs text-muted-foreground">
+                                                    <div className="flex items-center gap-1 truncate">
+                                                        <AtSign className="h-3 w-3 text-muted-foreground/80 flex-shrink-0" />
+                                                        <span className="font-medium truncate max-w-[10rem]">{user?.username?.replace(/^@+/, '')}</span>
+                                                    </div>
+                                                    {user?.role && (
+                                                        <div className="flex-shrink-0">
+                                                            <span className="text-xs text-muted-foreground/70 uppercase tracking-wide">{roleDisplayName}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {normalizedRole === 'admin' && (
+                                            <DropdownMenuItem asChild>
+                                                <Link href="/admin" className="cursor-pointer">
+                                                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                                                    Admin
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/account/profile" className="cursor-pointer">
+                                                <UserCircle className="mr-2 h-4 w-4" />
+                                                Profile
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/account/preferences" className="cursor-pointer">
+                                                <Settings className="mr-2 h-4 w-4" />
+                                                Settings
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/account/security" className="cursor-pointer">
+                                                <Shield className="mr-2 h-4 w-4" />
+                                                Security
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => setShowLogoutDialog(true)} className="cursor-pointer text-red-600 focus:text-red-600">
+                                            <LogOut className="mr-2 h-4 w-4" />
+                                            Logout
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : (
+                                <Link href={loginHref} className={railItemClassName} aria-label="Login" title="Login">
+                                    <User className="h-4 w-4" />
+                                    <span className={railBubbleClassName}>Login</span>
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <nav
+                className={cn(
+                    'fixed inset-x-0 bottom-4 z-50 px-4 transition-all duration-300 lg:hidden',
+                    isNavbarHidden ? 'pointer-events-none translate-y-24 opacity-0' : 'translate-y-0 opacity-100'
+                )}
+            >
+                <div className="mx-auto max-w-sm rounded-[2rem] border border-border/60 bg-background/90 p-2 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
+                    <div className="grid grid-cols-5 gap-1">
+                        {mobileDockItems.map((item) => {
+                            const Icon = item.icon;
+                            const isActive = isActivePath(item.href);
+
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    aria-current={isActive ? 'page' : undefined}
+                                    className={cn(
+                                        'flex h-14 flex-col items-center justify-center rounded-2xl text-[11px] font-medium transition-all duration-200',
+                                        isActive
+                                            ? 'bg-primary/12 text-foreground shadow-sm shadow-primary/10'
+                                            : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'
+                                    )}
+                                >
+                                    <Icon className="mb-1 h-4 w-4" />
+                                    <span>{item.label}</span>
+                                </Link>
+                            );
+                        })}
+
+                        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+                            <SheetTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="flex h-14 cursor-pointer flex-col items-center justify-center rounded-2xl text-[11px] font-medium text-muted-foreground transition-all duration-200 hover:bg-accent/70 hover:text-foreground"
+                                    aria-label="Open menu"
+                                >
+                                    <Menu className="mb-1 h-4 w-4" />
+                                    <span>Menu</span>
+                                </button>
+                            </SheetTrigger>
+                            <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[340px] sm:max-w-[340px]">
+                                <SheetHeader>
+                                    <SheetTitle>Navigation</SheetTitle>
+                                    <SheetDescription>Browse the site and open quick controls.</SheetDescription>
+                                </SheetHeader>
+                                <div className="mt-6 space-y-5 px-4 pb-6">
+                                    {isAuthenticated && user ? (
+                                        <div className="rounded-3xl border border-border/60 bg-card/60 p-4">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-11 w-11 border border-border/60">
+                                                    <AvatarImage
+                                                        src={user.avatarUrl || '/placeholder-avatar.jpg'}
+                                                        alt="User Avatar"
+                                                    />
+                                                    <AvatarFallback>{userHelpers.getInitials(user)}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate text-sm font-medium">{userHelpers.getFirstName(user)}</p>
+                                                    <p className="truncate text-xs text-muted-foreground">@{user.username?.replace(/^@+/, '')}</p>
+                                                </div>
+                                                {user.role ? <Badge variant="secondary" className="rounded-full">{roleDisplayName}</Badge> : null}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <SheetClose asChild>
+                                            <Link href={loginHref}>
+                                                <Button className="h-12 w-full cursor-pointer rounded-2xl">
+                                                    <User className="mr-2 h-4 w-4" />
+                                                    Login
+                                                </Button>
+                                            </Link>
+                                        </SheetClose>
+                                    )}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="h-12 w-full cursor-pointer justify-start rounded-2xl"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            setTimeout(() => handleSidebarOpenChange(true), 180);
+                                        }}
+                                    >
+                                        <PanelRight className="mr-2 h-4 w-4" />
+                                        Player and theme controls
+                                    </Button>
+
+                                    {mobileMenuSections.map((section) => (
+                                        <div key={section.title} className="rounded-3xl border border-border/60 bg-card/60 p-3">
+                                            <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                {section.title}
+                                            </p>
+                                            <div className="space-y-1">
+                                                {section.items.map((item) => {
+                                                    const Icon = item.icon;
+                                                    const isActive = isActivePath(item.href);
+                                                    return (
+                                                        <SheetClose key={item.href} asChild>
+                                                            <Link
+                                                                href={item.href}
+                                                                className={cn(
+                                                                    'flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors',
+                                                                    isActive ? 'bg-primary/12 text-foreground' : 'hover:bg-accent/70'
+                                                                )}
+                                                            >
+                                                                <Icon className={cn('h-4 w-4 text-primary', isActive && 'text-foreground')} />
+                                                                <span>{item.label}</span>
+                                                            </Link>
+                                                        </SheetClose>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {isAuthenticated ? (
+                                        <div className="rounded-3xl border border-border/60 bg-card/60 p-3">
+                                            <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                Account
+                                            </p>
+                                            <div className="space-y-1">
+                                                {normalizedRole === 'admin' && (
+                                                    <SheetClose asChild>
+                                                        <Link href="/admin" className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70">
+                                                            <LayoutDashboard className="h-4 w-4 text-primary" />
+                                                            <span>Admin</span>
+                                                        </Link>
+                                                    </SheetClose>
+                                                )}
+                                                <SheetClose asChild>
+                                                    <Link href="/account/profile" className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70">
+                                                        <UserCircle className="h-4 w-4 text-primary" />
+                                                        <span>Profile</span>
+                                                    </Link>
+                                                </SheetClose>
+                                                <SheetClose asChild>
+                                                    <Link href="/account/preferences" className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70">
+                                                        <Settings className="h-4 w-4 text-primary" />
+                                                        <span>Settings</span>
+                                                    </Link>
+                                                </SheetClose>
+                                                <SheetClose asChild>
+                                                    <Link href="/account/security" className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70">
+                                                        <Shield className="h-4 w-4 text-primary" />
+                                                        <span>Security</span>
+                                                    </Link>
+                                                </SheetClose>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="h-12 w-full cursor-pointer justify-start rounded-2xl px-3 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                                    onClick={() => {
+                                                        setMenuOpen(false);
+                                                        setTimeout(() => setShowLogoutDialog(true), 180);
+                                                    }}
+                                                >
+                                                    <LogOut className="mr-3 h-4 w-4" />
+                                                    Logout
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                    </div>
+                </div>
+            </nav>
+            {false ? (
             <nav className={`fixed top-4 left-1/2 z-50 w-full max-w-5xl px-4 transition-transform duration-300 ${isNavbarHidden ? "-translate-x-1/2 -translate-y-28" : "-translate-x-1/2 translate-y-0"}`}>
                 {/* Gradient border wrapper */}
                 <div className="p-[1px] rounded-full bg-gradient-to-br from-primary/15 via-primary/10 to-primary/12">
@@ -751,6 +1145,7 @@ export function Navbar() {
                     </div>
                 </div>
             </nav>
+            ) : null}
 
             <Sheet open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
                 <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:max-w-sm">
