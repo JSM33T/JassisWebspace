@@ -529,16 +529,16 @@ export function Navbar() {
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-11 w-11 border border-border/60">
                                                     <AvatarImage
-                                                        src={user.avatarUrl || '/placeholder-avatar.jpg'}
+                                                        src={user?.avatarUrl || '/placeholder-avatar.jpg'}
                                                         alt="User Avatar"
                                                     />
                                                     <AvatarFallback>{userHelpers.getInitials(user)}</AvatarFallback>
                                                 </Avatar>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="truncate text-sm font-medium">{userHelpers.getFirstName(user)}</p>
-                                                    <p className="truncate text-xs text-muted-foreground">@{user.username?.replace(/^@+/, '')}</p>
+                                                    <p className="truncate text-xs text-muted-foreground">@{user?.username?.replace(/^@+/, '')}</p>
                                                 </div>
-                                                {user.role ? <Badge variant="secondary" className="rounded-full">{roleDisplayName}</Badge> : null}
+                                                {user?.role ? <Badge variant="secondary" className="rounded-full">{roleDisplayName}</Badge> : null}
                                             </div>
                                         </div>
                                     ) : (
@@ -977,7 +977,7 @@ export function Navbar() {
                                                 <div className="flex items-center gap-3 pb-4 border-b">
                                                     <Avatar>
                                                         <AvatarImage
-                                                            src={user.avatarUrl || '/placeholder-avatar.jpg'}
+                                                            src={user?.avatarUrl || '/placeholder-avatar.jpg'}
                                                             alt="User Avatar"
                                                         />
                                                         <AvatarFallback>{userHelpers.getInitials(user)}</AvatarFallback>
