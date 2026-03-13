@@ -204,7 +204,7 @@ export default function MusicPage() {
                                     }}
                                 >
                                     <div className="px-4 py-0 flex items-center gap-3">
-                                        <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-xl border border-primary/30 bg-muted">
+                                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-primary/30 bg-muted sm:h-32 sm:w-32">
                                             {track.cover ? (
                                                 <Image
                                                     src={track.cover}

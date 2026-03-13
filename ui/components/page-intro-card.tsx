@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type PageIntroCardProps = {
-    badge: string;
-    badgeIcon: LucideIcon;
+    badge?: string;
+    badgeIcon?: LucideIcon;
     title: React.ReactNode;
     description?: React.ReactNode;
+    topContent?: React.ReactNode;
     backHref?: string;
     backLabel?: string;
     className?: string;
@@ -21,6 +22,7 @@ export function PageIntroCard({
     badgeIcon: BadgeIcon,
     title,
     description,
+    topContent,
     backHref = '/',
     backLabel = 'Back',
     className,
@@ -39,14 +41,21 @@ export function PageIntroCard({
             <div className="absolute inset-0 bg-gradient-to-br from-transparent via-accent/6 to-primary/6" />
 
             <div className="relative">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <Badge
-                        variant="secondary"
-                        className="w-fit gap-2 rounded-full border-border/50 bg-background/55 px-4 py-1.5 text-sm font-normal backdrop-blur-sm"
-                    >
-                        <BadgeIcon className="h-3.5 w-3.5 text-primary" />
-                        <span>{badge}</span>
-                    </Badge>
+                <div
+                    className={cn(
+                        'flex flex-col gap-4 sm:flex-row sm:items-start',
+                        badge && BadgeIcon ? 'sm:justify-between' : 'sm:justify-end',
+                    )}
+                >
+                    {badge && BadgeIcon ? (
+                        <Badge
+                            variant="secondary"
+                            className="w-fit gap-2 rounded-full border-border/50 bg-background/55 px-4 py-1.5 text-sm font-normal backdrop-blur-sm"
+                        >
+                            <BadgeIcon className="h-3.5 w-3.5 text-primary" />
+                            <span>{badge}</span>
+                        </Badge>
+                    ) : null}
                     <Button
                         variant="ghost"
                         asChild
@@ -59,7 +68,9 @@ export function PageIntroCard({
                     </Button>
                 </div>
 
-                <div className="mt-6 max-w-3xl space-y-4">
+                {topContent ? <div className="mt-6">{topContent}</div> : null}
+
+                <div className={cn('max-w-3xl space-y-4', topContent ? 'mt-5' : 'mt-6')}>
                     <h1 className="break-words text-4xl font-bold tracking-tight md:text-5xl">{title}</h1>
                     {description ? (
                         <p className={cn('text-lg leading-relaxed text-muted-foreground', descriptionClassName)}>

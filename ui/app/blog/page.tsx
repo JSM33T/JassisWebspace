@@ -139,10 +139,10 @@ export default function BlogHomePage() {
                 <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            <main className="flex-1 px-4 pb-14 pt-8 md:pb-16 md:pt-10">
+            <main className="flex-1 px-4 pb-14 pt-0 md:pb-16 md:pt-10">
                 <div className="container mx-auto max-w-7xl pt-12">
                     <PageIntroCard
-                        badge="Insights & Stories"
+                        badge="Blogs"
                         badgeIcon={BookOpen}
                         title="Blog"
                         description="Explore our latest articles, tutorials, and insights."

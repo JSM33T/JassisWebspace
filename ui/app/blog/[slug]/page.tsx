@@ -27,6 +27,7 @@ import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
 import { AuthorModal } from '@/components/blog/AuthorModal';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { PageIntroCard } from '@/components/page-intro-card';
 import { useUser } from '@/contexts/UserContext';
 
 export default function BlogViewPage() {
@@ -130,137 +131,144 @@ export default function BlogViewPage() {
     /* ---------------- render ---------------- */
 
     return (
-        <div className="pt-32">
-            <div className="container max-w-4xl mx-auto px-4 pt-2 mb-12">
-
-                <div className="mb-6 flex flex-wrap items-center gap-2">
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href="/blog">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Blog
-                        </Link>
-                    </Button>
-                    {canEditBlog && (
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href={`/blog/${blog.slug}/edit`}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit Post
-                            </Link>
-                        </Button>
-                    )}
-                </div>
-
-                {blog.category && (
-                    <Badge variant="secondary" className="mb-4">
-                        {blog.category.name}
-                    </Badge>
-                )}
-                {!blog.isPublished && (
-                    <Badge variant="outline" className="mb-4 ml-2 border-amber-500/40 text-amber-600">
-                        Draft (Unpublished)
-                    </Badge>
-                )}
-
-                <h1 className="text-4xl md:text-5xl font-bold mb-6">{blog.title}</h1>
-
-                {blog.excerpt && (
-                    <p className="text-xl text-muted-foreground mb-8">{blog.excerpt}</p>
-                )}
-
-                {/* Meta */}
-                <div className="flex flex-wrap gap-6 text-sm text-muted-foreground mb-8">
-                    <span className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(blog.publishedAt)}
-                    </span>
-
-                    {blog.authors.length > 0 && (
-                        <span className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            {blog.authors.map((a, i) => (
-                                <span key={a.userId}>
-                                    <button
-                                        onClick={() => openAuthor(a.userId, a.username)}
-                                        className="underline hover:text-primary"
-                                    >
-                                        {a.displayName || a.username}
-                                    </button>
-                                    {i < blog.authors.length - 1 && ', '}
-                                </span>
-                            ))}
-                        </span>
-                    )}
-
-                    <span className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        {estimateReadingTime(blog.content)} min read
-                    </span>
-
-                    {isInteractivityDisabled ? (
-                        <span
-                            className="flex items-center gap-2 text-muted-foreground/70"
-                            title="Interactivity is disabled because this blog is unpublished."
-                        >
-                            <Heart className="h-4 w-4" />
-                            <span>{blog.likeCount}</span>
-                            <span className="text-xs uppercase tracking-wide">Likes disabled</span>
-                        </span>
-                    ) : (
-                        <span className="flex items-center gap-2">
-                            <LikeButton
-                                contentId={blog.contentId}
-                                initialCount={blog.likeCount}
-                                initialLiked={blog.isLiked}
-                            />
-                        </span>
-                    )}
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                        <MessageSquare className="h-4 w-4" />
-                        <span>{blog.commentCount}</span>
-                    </span>
-                </div>
-
-                <Separator className="mb-8" />
-
-                {blog.featuredImage && (
-                    <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-12">
-                        <Image
-                            src={blog.featuredImage}
-                            alt={blog.title}
-                            fill
-                            className="object-cover"
-                            priority
-                            unoptimized
-                        />
-                    </div>
-                )}
-
-                {/* Content */}
-                <MarkdownRenderer content={blog.content} />
-
-                <div className="mt-12">
-                    {isInteractivityDisabled ? (
-                        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
-                            <p className="font-semibold flex items-center gap-2">
-                                <AlertTriangle className="h-4 w-4" />
-                                Interactivity is disabled
-                            </p>
-                            <p className="mt-1">
-                                Likes and comments are disabled because this blog is unpublished.
-                            </p>
-                        </div>
-                    ) : (
-                        <CommentSection contentId={blog.contentId} />
-                    )}
-                </div>
-
-                {/* Footer */}
-                <div className="mt-16 pt-8 border-t flex justify-between items-center">
-                    <Button asChild variant="outline">
-                        <Link href="/blog">View More Articles</Link>
-                    </Button>
-                </div>
+        <div className="flex min-h-screen flex-col bg-background text-foreground">
+            <div className="fixed inset-0 z-[-1] pointer-events-none">
+                <div className="absolute top-[-10%] left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary/5 blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-secondary/8 blur-[120px]" />
             </div>
+
+            <main className="flex-1 px-4 pb-16 pt-2 md:pt-4">
+                <div className="container mx-auto max-w-6xl">
+                    <PageIntroCard
+                        title={blog.title}
+                        topContent={
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>{formatDate(blog.publishedAt)}</span>
+                                </div>
+                                {blog.authors.length > 0 && (
+                                    <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                                        <Users className="h-4 w-4" />
+                                        <span className="flex flex-wrap items-center gap-1">
+                                            {blog.authors.map((a, i) => (
+                                                <span key={a.userId}>
+                                                    <button
+                                                        onClick={() => openAuthor(a.userId, a.username)}
+                                                        className="underline underline-offset-4 transition-colors hover:text-primary"
+                                                    >
+                                                        {a.displayName || a.username}
+                                                    </button>
+                                                    {i < blog.authors.length - 1 && ', '}
+                                                </span>
+                                            ))}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        }
+                        backHref="/blog"
+                        backLabel="Back to Blog"
+                        className="px-6 py-7 sm:px-10 sm:py-9 md:px-12 md:py-11"
+                    >
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                            {blog.category && (
+                                <Badge
+                                    variant="secondary"
+                                    className="rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm"
+                                >
+                                    {blog.category.name}
+                                </Badge>
+                            )}
+                            {!blog.isPublished && (
+                                <Badge
+                                    variant="outline"
+                                    className="rounded-full border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-amber-600"
+                                >
+                                    Draft (Unpublished)
+                                </Badge>
+                            )}
+                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                                <Clock className="h-4 w-4" />
+                                <span>{estimateReadingTime(blog.content)} min read</span>
+                            </div>
+                            {isInteractivityDisabled ? (
+                                <div
+                                    className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 text-muted-foreground/70 backdrop-blur-sm"
+                                    title="Interactivity is disabled because this blog is unpublished."
+                                >
+                                    <Heart className="h-4 w-4" />
+                                    <span>{blog.likeCount}</span>
+                                    <span className="text-xs uppercase tracking-wide">Likes disabled</span>
+                                </div>
+                            ) : (
+                                <div className="inline-flex items-center rounded-full border border-border/50 bg-background/55 px-1 py-1 backdrop-blur-sm">
+                                    <LikeButton
+                                        contentId={blog.contentId}
+                                        initialCount={blog.likeCount}
+                                        initialLiked={blog.isLiked}
+                                    />
+                                </div>
+                            )}
+                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                                <MessageSquare className="h-4 w-4" />
+                                <span>{blog.commentCount}</span>
+                            </div>
+                            {canEditBlog && (
+                                <Button variant="outline" size="sm" asChild className="rounded-full">
+                                    <Link href={`/blog/${blog.slug}/edit`}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit Post
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
+                    </PageIntroCard>
+                </div>
+
+                <div className="container mx-auto mt-6 max-w-4xl">
+                    <div>
+                        <Separator className="mb-8" />
+
+                        {blog.featuredImage && (
+                            <div className="relative mb-12 aspect-[16/9] overflow-hidden rounded-xl">
+                                <Image
+                                    src={blog.featuredImage}
+                                    alt={blog.title}
+                                    fill
+                                    className="object-cover"
+                                    priority
+                                    unoptimized
+                                />
+                            </div>
+                        )}
+
+                        <MarkdownRenderer content={blog.content} />
+
+                        <div className="mt-12">
+                            {isInteractivityDisabled ? (
+                                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
+                                    <p className="flex items-center gap-2 font-semibold">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        Interactivity is disabled
+                                    </p>
+                                    <p className="mt-1">
+                                        Likes and comments are disabled because this blog is unpublished.
+                                    </p>
+                                </div>
+                            ) : (
+                                <CommentSection contentId={blog.contentId} />
+                            )}
+                        </div>
+
+                        <div className="mt-16 flex items-center justify-between border-t pt-8">
+                            <Button asChild variant="outline">
+                                <Link href="/blog">View More Articles</Link>
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </main>
 
             {/* Author Modal */}
             {selectedAuthorData && (
