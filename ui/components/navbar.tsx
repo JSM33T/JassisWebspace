@@ -39,6 +39,7 @@ import { useThemeSet } from '@/components/theme-provider';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { cn } from '@/lib/utils';
 import { buildLoginHref } from '@/lib/auth-redirect';
+import { AudioSidebarVisualizer } from '@/components/audio-sidebar-visualizer';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const SIDEBAR_OPEN_EVENT = 'app-sidebar:set-open';
@@ -56,6 +57,7 @@ export function Navbar() {
         stop,
         seekBy,
         seekTo,
+        getVisualizerAnalyser,
     } = useAudioPlayer();
     const { resolvedTheme, setTheme } = useTheme();
     const { activeThemeSetId, setActiveThemeSetId, themeSets } = useThemeSet();
@@ -77,6 +79,14 @@ export function Navbar() {
     const [, setHoveredLink] = useState<string | null>(null);
     const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
     const navRef = useRef<HTMLDivElement>(null);
+    const railRef = useRef<HTMLDivElement>(null);
+    const [railHoverStyle, setRailHoverStyle] = useState({
+        top: 0,
+        left: 0,
+        width: 0,
+        height: 0,
+        opacity: 0,
+    });
 
     // Navigation menu configuration - single source of truth
     const normalizedRole = (user?.role ?? '').toLowerCase();
@@ -253,6 +263,25 @@ export function Navbar() {
         }
     };
 
+    const updateRailHoverStyle = (element: HTMLElement) => {
+        const rect = element.getBoundingClientRect();
+        const parentRect = railRef.current?.getBoundingClientRect();
+
+        if (!parentRect) return;
+
+        setRailHoverStyle({
+            top: rect.top - parentRect.top - 2,
+            left: rect.left - parentRect.left - 2,
+            width: rect.width + 4,
+            height: rect.height + 4,
+            opacity: 1,
+        });
+    };
+
+    const clearRailHoverStyle = () => {
+        setRailHoverStyle((prev) => ({ ...prev, opacity: 0 }));
+    };
+
     const desktopRailSections = [
         [{ href: '/blog', label: 'Blogs', icon: FileText }],
         studioMenuItems,
@@ -287,6 +316,9 @@ export function Navbar() {
     const railItemClassName =
         'group relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-border/70 hover:bg-accent/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
+    const railIconClassName = 'h-[18px] w-[18px]';
+    const railHomeIconClassName = 'h-[22px] w-[22px]';
+
     const railBubbleClassName =
         'pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-xl border border-border/70 bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground opacity-0 shadow-lg shadow-black/10 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100';
 
@@ -296,15 +328,39 @@ export function Navbar() {
             <nav className="fixed inset-y-4 left-4 z-50 hidden lg:flex">
                 <div className="relative h-full">
                     <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-primary/20 via-primary/8 to-primary/16 blur-2xl" />
-                    <div className="relative flex h-full w-20 flex-col items-center justify-between rounded-[2rem] border border-border/60 bg-background/85 px-3 py-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
+                    <div
+                        ref={railRef}
+                        className="relative flex h-full w-20 flex-col items-center justify-between rounded-[2rem] border border-border/60 bg-background/85 px-3 py-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75"
+                        onMouseLeave={clearRailHoverStyle}
+                        onBlurCapture={(event) => {
+                            const nextTarget = event.relatedTarget;
+                            if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+                                clearRailHoverStyle();
+                            }
+                        }}
+                    >
+                        <motion.span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute rounded-[1.35rem] border border-border/70 bg-accent/70 shadow-lg shadow-primary/10 backdrop-blur-sm"
+                            animate={{
+                                top: railHoverStyle.top,
+                                left: railHoverStyle.left,
+                                width: railHoverStyle.width,
+                                height: railHoverStyle.height,
+                                opacity: railHoverStyle.opacity,
+                            }}
+                            transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.45 }}
+                        />
                         <div className="flex flex-col items-center gap-3">
                             <Link
                                 href="/"
                                 className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/18 to-background/80 text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-primary/20"
                                 aria-label="Home"
                                 title="Home"
+                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                             >
-                                <Sparkles className="h-5 w-5" />
+                                <Sparkles className={railHomeIconClassName} />
                                 <span className={railBubbleClassName}>Home</span>
                             </Link>
 
@@ -327,8 +383,10 @@ export function Navbar() {
                                                     railItemClassName,
                                                     isActive && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
                                                 )}
+                                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                                             >
-                                                <Icon className="h-4 w-4" />
+                                                <Icon className={railIconClassName} />
                                                 {isActive ? (
                                                     <span className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
                                                 ) : null}
@@ -351,8 +409,10 @@ export function Navbar() {
                                         className={railItemClassName}
                                         aria-label="More links"
                                         title="More links"
+                                        onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                        onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                                     >
-                                        <Menu className="h-4 w-4" />
+                                        <Menu className={railIconClassName} />
                                         <span className={railBubbleClassName}>More</span>
                                     </button>
                                 </DropdownMenuTrigger>
@@ -391,8 +451,10 @@ export function Navbar() {
                                 onClick={() => handleSidebarOpenChange(true)}
                                 aria-label="Open controls"
                                 title="Open controls"
+                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                             >
-                                <PanelRight className="h-4 w-4" />
+                                <PanelRight className={railIconClassName} />
                                 <span className={railBubbleClassName}>Player and theme</span>
                             </button>
 
@@ -404,6 +466,8 @@ export function Navbar() {
                                             className={cn(railItemClassName, 'overflow-hidden p-0')}
                                             aria-label="Account"
                                             title="Account"
+                                            onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                            onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                                         >
                                             <Avatar className="h-full w-full rounded-2xl border border-border/60">
                                                 <AvatarImage
@@ -1174,6 +1238,13 @@ export function Navbar() {
                                         <p className="truncate text-sm font-semibold">{currentTitle || 'Untitled Track'}</p>
                                         <p className="truncate text-xs text-muted-foreground">{currentArtist || 'Unknown Artist'}</p>
                                     </div>
+                                    {sidebarOpen ? (
+                                        <AudioSidebarVisualizer
+                                            isOpen={sidebarOpen}
+                                            isPlaying={isPlaying}
+                                            getVisualizerAnalyser={getVisualizerAnalyser}
+                                        />
+                                    ) : null}
                                     <div className="space-y-2">
                                         <Slider
                                             value={[Math.min(currentTime, duration > 0 ? duration : 1)]}

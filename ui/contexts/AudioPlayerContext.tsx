@@ -24,13 +24,23 @@ type AudioPlayerContextValue = {
     stop: () => void;
     seekBy: (offsetSeconds: number) => void;
     seekTo: (seconds: number) => void;
+    getVisualizerAnalyser: () => AnalyserNode | null;
 };
+
+type WindowWithWebkitAudioContext = Window &
+    typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+    };
 
 const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
 const SIDEBAR_OPEN_EVENT = "app-sidebar:set-open";
 
 export function AudioPlayerProvider({ children }: { children: React.ReactNode }) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const outputGainRef = useRef<GainNode | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [currentUrl, setCurrentUrl] = useState<string>("");
     const [currentTitle, setCurrentTitle] = useState<string>("");
@@ -44,7 +54,59 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: open }));
     }, []);
 
+    const getVisualizerAnalyser = useCallback(() => {
+        if (typeof window === "undefined") return null;
+
+        const audio = audioRef.current;
+        if (!audio) return null;
+
+        const AudioContextConstructor =
+            window.AudioContext ||
+            (window as WindowWithWebkitAudioContext).webkitAudioContext;
+
+        if (!AudioContextConstructor) return null;
+
+        if (!audioContextRef.current) {
+            audioContextRef.current = new AudioContextConstructor();
+        }
+
+        const audioContext = audioContextRef.current;
+
+        if (!sourceNodeRef.current) {
+            try {
+                sourceNodeRef.current = audioContext.createMediaElementSource(audio);
+            } catch {
+                return analyserRef.current;
+            }
+        }
+
+        if (!analyserRef.current) {
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.minDecibels = -92;
+            analyser.maxDecibels = -16;
+            analyser.smoothingTimeConstant = 0.84;
+
+            sourceNodeRef.current.connect(analyser);
+            const outputGain = audioContext.createGain();
+            outputGain.gain.value = 1;
+            analyser.connect(outputGain);
+            outputGain.connect(audioContext.destination);
+
+            analyserRef.current = analyser;
+            outputGainRef.current = outputGain;
+        }
+
+        if (audioContext.state === "suspended") {
+            void audioContext.resume().catch(() => undefined);
+        }
+
+        return analyserRef.current;
+    }, []);
+
     const openPlayer = useCallback((input: OpenPlayerInput | string, title?: string, artist?: string) => {
+        getVisualizerAnalyser();
+
         if (typeof input === "string") {
             if (!input.trim()) return;
             setCurrentTime(0);
@@ -67,7 +129,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         setCurrentArtist(input.artist?.trim() || "");
         setIsOpen(true);
         dispatchSidebarState(true);
-    }, [dispatchSidebarState]);
+    }, [dispatchSidebarState, getVisualizerAnalyser]);
 
     const closePlayer = useCallback(() => {
         setIsOpen(false);
@@ -118,6 +180,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         if (!audio || !hasSource) return;
 
         if (audio.paused) {
+            getVisualizerAnalyser();
             audio.play().catch(() => {
                 setIsPlaying(false);
             });
@@ -125,7 +188,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         }
 
         audio.pause();
-    }, [hasSource]);
+    }, [getVisualizerAnalyser, hasSource]);
 
     const seekTo = useCallback((seconds: number) => {
         const next = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
@@ -152,6 +215,18 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
         setCurrentTime(next);
     }, [hasSource]);
 
+    useEffect(() => {
+        return () => {
+            analyserRef.current?.disconnect();
+            sourceNodeRef.current?.disconnect();
+            outputGainRef.current?.disconnect();
+
+            if (audioContextRef.current) {
+                void audioContextRef.current.close().catch(() => undefined);
+            }
+        };
+    }, []);
+
     const value = useMemo(
         () => ({
             openPlayer,
@@ -168,6 +243,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
             stop,
             seekBy,
             seekTo,
+            getVisualizerAnalyser,
         }),
         [
             openPlayer,
@@ -184,6 +260,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
             stop,
             seekBy,
             seekTo,
+            getVisualizerAnalyser,
         ]
     );
 
@@ -193,6 +270,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
             <audio
                 ref={audioRef}
                 src={currentUrl || undefined}
+                crossOrigin="anonymous"
                 preload="metadata"
                 className="hidden"
                 onPlay={() => setIsPlaying(true)}
