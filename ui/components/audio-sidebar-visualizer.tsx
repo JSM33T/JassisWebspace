@@ -9,8 +9,8 @@ const IDLE_LEVELS = [
 ];
 
 const BOX_ROWS = 8;
-const HIGH_END_CUTOFF_RATIO = 0.9;
-const FREQUENCY_SPREAD_EXPONENT = 1.4;
+const HIGH_END_CUTOFF_RATIO = 0.76;
+const FREQUENCY_SPREAD_EXPONENT = 1.58;
 
 type AudioSidebarVisualizerProps = {
     isOpen: boolean;
@@ -79,10 +79,10 @@ export function AudioSidebarVisualizer({
                                     'w-full rounded-[3px] border transition-[background-color,opacity,box-shadow] duration-150 ease-out',
                                     isActive
                                         ? rowFromBottom <= 2
-                                            ? 'border-lime-300/60 bg-lime-400 shadow-[0_0_12px_rgba(132,204,22,0.4)]'
+                                            ? 'border-primary/40 bg-primary/50 shadow-sm shadow-primary/20'
                                             : rowFromBottom <= 5
-                                            ? 'border-yellow-300/60 bg-yellow-400 shadow-[0_0_14px_rgba(250,204,21,0.34)]'
-                                            : 'border-orange-300/60 bg-orange-500 shadow-[0_0_16px_rgba(249,115,22,0.32)]'
+                                                ? 'border-primary/55 bg-primary/70 shadow-sm shadow-primary/25'
+                                                : 'border-primary/70 bg-primary shadow-sm shadow-primary/30'
                                         : 'border-border/70 bg-background/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] dark:border-black/60 dark:bg-black/45 dark:shadow-none',
                                     isActive
                                         ? muted
@@ -176,15 +176,9 @@ export function AudioSidebarVisualizer({
                 </span>
             </div>
             <div className="relative mt-4">
-                <div className="absolute inset-0 rounded-lg border border-border/50 dark:border-white/5" />
+                <div className="pointer-events-none absolute inset-0 rounded-lg border border-border/50 dark:border-white/5" />
                 <div className="relative flex h-28 items-stretch gap-1.5 rounded-lg bg-muted/55 px-2 py-2 dark:bg-black/40">
                     {renderColumns()}
-                </div>
-                <div className="pointer-events-none relative mt-2 overflow-hidden">
-                    <div className="flex h-12 origin-top scale-y-[-0.55] items-stretch gap-1.5 px-2 opacity-45 blur-[1px]">
-                        {renderColumns(true)}
-                    </div>
-                    <div className="absolute inset-0 bg-background/75 dark:bg-black/75" />
                 </div>
             </div>
         </div>
