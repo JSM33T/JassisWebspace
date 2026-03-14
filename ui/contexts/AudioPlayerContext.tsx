@@ -82,10 +82,10 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
         if (!analyserRef.current) {
             const analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256;
+            analyser.fftSize = 128;
             analyser.minDecibels = -92;
             analyser.maxDecibels = -16;
-            analyser.smoothingTimeConstant = 0.84;
+            analyser.smoothingTimeConstant = 0.42;
 
             sourceNodeRef.current.connect(analyser);
             const outputGain = audioContext.createGain();
