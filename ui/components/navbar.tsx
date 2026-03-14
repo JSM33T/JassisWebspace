@@ -31,7 +31,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, House, AtSign, BookOpen, FileText, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -137,7 +137,7 @@ export function Navbar() {
             href: '/about',
             label: 'Me',
             description: 'Learn about JassSpace and our mission',
-            icon: Sparkles,
+            icon: UserCircle,
         },
         {
             href: '/contact',
@@ -294,7 +294,7 @@ export function Navbar() {
     );
 
     const mobileDockItems = [
-        { href: '/', label: 'Home', icon: Sparkles },
+        { href: '/', label: 'Home', icon: House },
         { href: '/blog', label: 'Blogs', icon: FileText },
         { href: '/music', label: 'Music', icon: Music },
         { href: '/gallery', label: 'Gallery', icon: Image },
@@ -304,7 +304,7 @@ export function Navbar() {
         {
             title: 'Explore',
             items: [
-                { href: '/', label: 'Home', icon: Sparkles },
+                { href: '/', label: 'Home', icon: House },
                 { href: '/blog', label: 'Blogs', icon: FileText },
                 ...studioMenuItems,
             ],
@@ -360,7 +360,7 @@ export function Navbar() {
                                 onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
                                 onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                             >
-                                <Sparkles className={railHomeIconClassName} />
+                                <House className={railHomeIconClassName} />
                                 <span className={railBubbleClassName}>Home</span>
                             </Link>
 

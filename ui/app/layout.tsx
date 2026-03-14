@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { buildMetadata } from "@/lib/seo";
 import { BackToTopProgress } from "@/components/back-to-top-progress";
 import { RouteProgressBar } from "@/components/route-progress-bar";
+import { CursorMeshBackground } from "@/components/cursor-mesh-background";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -61,10 +62,15 @@ export default function RootLayout({
         >
           <AudioPlayerProvider>
             <UserProvider>
-              <RouteProgressBar />
-              <Navbar />
-              <div className="min-h-screen pb-24 lg:pb-0 lg:pl-28">
-                {children}
+              <div className="relative isolate min-h-screen">
+                <CursorMeshBackground />
+                <div className="relative z-10">
+                  <RouteProgressBar />
+                  <Navbar />
+                  <div className="min-h-screen pb-24 lg:pb-0 lg:pl-28">
+                    {children}
+                  </div>
+                </div>
               </div>
               <BackToTopProgress />
               <Toaster

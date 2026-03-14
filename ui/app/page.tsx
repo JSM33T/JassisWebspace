@@ -103,7 +103,7 @@ export default function HomePage() {
             <main className="relative mx-auto max-w-6xl px-6">
                 <motion.div variants={containerVariants} initial="hidden" animate="visible">
                     <motion.section
-                        className="mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col items-center justify-center pb-8 pt-24 text-center md:pb-10 md:pt-28"
+                        className="relative mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col items-center justify-center pb-8 pt-24 text-center md:pb-10 md:pt-28"
                         variants={itemVariants}
                     >
                         <motion.div variants={itemVariants} className="mb-10 flex items-center justify-center gap-3 sm:gap-5">
@@ -179,6 +179,25 @@ export default function HomePage() {
                                     </Button>
                                 );
                             })}
+                        </motion.div>
+
+                        <motion.div
+                            variants={itemVariants}
+                            className="pointer-events-none absolute bottom-7 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80"
+                        >
+                            <motion.span
+                                animate={{ opacity: [0.55, 1, 0.55], y: [0, 2, 0] }}
+                                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                            >
+                                Scroll to explore
+                            </motion.span>
+                            <div className="flex h-12 w-7 items-start justify-center rounded-full border border-border/70 bg-background/70 p-1 shadow-sm backdrop-blur-sm">
+                                <motion.span
+                                    className="block h-2.5 w-2.5 rounded-full bg-primary"
+                                    animate={{ y: [0, 24, 0], opacity: [0.45, 1, 0.45], scale: [0.9, 1, 0.9] }}
+                                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                                />
+                            </div>
                         </motion.div>
                     </motion.section>
 
