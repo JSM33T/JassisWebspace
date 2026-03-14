@@ -37,11 +37,11 @@ function sampleFrequencyLevels(data: Uint8Array) {
 
         const average = total / Math.max(1, end - start);
         const position = index / Math.max(1, barCount - 1);
-        const threshold = 0.12 - position * 0.06;
-        const gain = 0.82 + position * 0.32;
+        const threshold = 0.08 - position * 0.04;
+        const gain = 0.9 + position * 0.34;
         const normalized = Math.max(0, average / 255 - threshold) * gain;
 
-        return Math.min(0.98, Math.max(0.14, normalized * 1.28));
+        return Math.min(0.98, Math.max(0.08, normalized * 1.22));
     });
 }
 
