@@ -19,7 +19,7 @@ type AudioSidebarVisualizerProps = {
     className?: string;
 };
 
-function sampleFrequencyLevels(data: Uint8Array) {
+function sampleFrequencyLevels(data: Uint8Array<ArrayBuffer>) {
     const barCount = IDLE_LEVELS.length;
     const usableBins = Math.max(16, Math.floor(data.length * HIGH_END_CUTOFF_RATIO));
 
@@ -53,7 +53,7 @@ export function AudioSidebarVisualizer({
 }: AudioSidebarVisualizerProps) {
     const [levels, setLevels] = useState(IDLE_LEVELS);
     const frameRef = useRef<number | null>(null);
-    const frequencyDataRef = useRef<Uint8Array | null>(null);
+    const frequencyDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
     const smoothedLevelsRef = useRef<number[]>(IDLE_LEVELS.slice());
     const bassAverageRef = useRef(0.18);
     const displayLevels = isOpen && isPlaying ? levels : IDLE_LEVELS;
@@ -115,7 +115,7 @@ export function AudioSidebarVisualizer({
                 const buffer =
                     existingBuffer && existingBuffer.length === analyser.frequencyBinCount
                         ? existingBuffer
-                        : new Uint8Array(analyser.frequencyBinCount);
+                        : new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
 
                 frequencyDataRef.current = buffer;
                 analyser.getByteFrequencyData(buffer);
