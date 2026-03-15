@@ -314,7 +314,7 @@ export function Navbar() {
     ];
 
     const railItemClassName =
-        'group relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-border/70 hover:bg-accent/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
+        'group relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
     const railIconClassName = 'h-[18px] w-[18px]';
     const railHomeIconClassName = 'h-[22px] w-[22px]';
@@ -354,7 +354,7 @@ export function Navbar() {
                         <div className="flex flex-col items-center gap-3">
                             <Link
                                 href="/"
-                                className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/18 to-background/80 text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md hover:shadow-primary/20"
+                                className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/18 to-background/80 text-primary transition-all duration-200 hover:-translate-y-0.5"
                                 aria-label="Home"
                                 title="Home"
                                 onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
