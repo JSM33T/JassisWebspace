@@ -17,7 +17,9 @@ public record AlbumResponse(
     DateTimeOffset? UpdatedAt,
     int ImageCount,
     List<GalleryAuthorResponse> Authors,
-    Guid? ContentId = null
+    Guid? ContentId = null,
+    bool IsActive = true,
+    int SortOrder = 0
 );
 
 public record ImageResponse(
@@ -43,5 +45,7 @@ public record AlbumWithImagesResponse(
     Guid? ContentId = null,
     int LikeCount = 0,
     bool IsLiked = false,
-    int CommentCount = 0
+    int CommentCount = 0,
+    bool IsActive = true,
+    int SortOrder = 0
 );

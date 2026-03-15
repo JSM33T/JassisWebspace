@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Pencil, Trash } from "lucide-react";
 import { Album } from "@/lib/api/gallery.types";
-import { galleryService } from "@/lib/api/gallery.service";
 import { adminGalleryService } from "@/lib/api/admin-gallery.service";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
@@ -24,7 +24,7 @@ export default function AdminGalleryPage() {
     const loadAlbums = async () => {
         try {
             setLoading(true);
-            const data = await galleryService.getAllAlbums();
+            const data = await adminGalleryService.getAllAlbums();
             setAlbums(data);
         } catch (error) {
             console.error("Failed to load albums", error);
@@ -96,6 +96,12 @@ export default function AdminGalleryPage() {
                                 <CardTitle>{album.name}</CardTitle>
                             </CardHeader>
                             <CardContent>
+                                <div className="flex items-center gap-2 text-xs">
+                                    <Badge variant={album.isActive ? "secondary" : "outline"}>
+                                        {album.isActive ? "Active" : "Inactive"}
+                                    </Badge>
+                                    <span className="text-muted-foreground">Sort {album.sortOrder}</span>
+                                </div>
                                 <p className="text-sm text-muted-foreground line-clamp-2">
                                     {album.description || "No description"}
                                 </p>

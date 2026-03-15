@@ -67,6 +67,73 @@ public sealed class AdminGalleryController(
         return OkEnvelope(authors);
     }
 
+    [HttpGet("albums")]
+    [ProducesResponseType(typeof(ApiResponse<List<AlbumResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAlbums(
+        [FromQuery] bool? isActive = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.Albums
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(a => a.IsActive == isActive.Value);
+        }
+
+        var albums = await query
+            .OrderBy(a => a.SortOrder)
+            .ThenByDescending(a => a.UpdatedAt ?? a.CreatedAt)
+            .Select(a => new AlbumResponse(
+                a.Id,
+                a.Name,
+                a.Slug,
+                a.Cover,
+                a.Description,
+                a.CreatedAt,
+                a.UpdatedAt,
+                a.Images.Count,
+                a.Authors
+                    .OrderBy(ga => ga.Order)
+                    .Select(ga => new GalleryAuthorResponse(
+                        ga.UserId,
+                        ga.User.Username,
+                        ga.User.DisplayName,
+                        ga.Order
+                    ))
+                    .ToList(),
+                dbContext.Contents
+                    .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == a.Id)
+                    .Select(c => (Guid?)c.Id)
+                    .FirstOrDefault(),
+                a.IsActive,
+                a.SortOrder
+            ))
+            .ToListAsync(cancellationToken);
+
+        var normalized = albums
+            .Select(a => a with { Cover = NormalizeGalleryMediaUrl(a.Cover) })
+            .ToList();
+
+        return OkEnvelope(normalized);
+    }
+
+    [HttpGet("albums/{albumId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<AlbumWithImagesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAlbum(Guid albumId, CancellationToken cancellationToken = default)
+    {
+        var album = await GetAlbumWithDetails(albumId, cancellationToken);
+
+        if (album is null)
+        {
+            return NotFoundProblem("Album not found", $"No album found with ID '{albumId}'.");
+        }
+
+        return OkEnvelope(album);
+    }
+
     private string GetBaseUrl()
     {
         var request = httpContextAccessor.HttpContext?.Request;
@@ -155,6 +222,8 @@ public sealed class AdminGalleryController(
         [FromForm] string name,
         [FromForm] string? slug,
         [FromForm] string? description,
+        [FromForm] bool? isActive,
+        [FromForm] int? sortOrder,
         [FromForm] IFormFile? coverImage,
         [FromForm] List<IFormFile>? imageFiles,
         [FromForm] List<string>? imageTitles,
@@ -203,7 +272,8 @@ public sealed class AdminGalleryController(
                 Slug = targetSlug,
                 Cover = coverUrl,
                 Description = description,
-                IsActive = true,
+                IsActive = isActive ?? true,
+                SortOrder = sortOrder ?? await GetNextAlbumSortOrder(cancellationToken),
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -331,7 +401,12 @@ public sealed class AdminGalleryController(
                     i.CreatedAt
                 )).ToList(),
                 authorResponses,
-                content.Id
+                content.Id,
+                0,
+                false,
+                0,
+                album.IsActive,
+                album.SortOrder
             );
 
             return OkEnvelope(response);
@@ -434,7 +509,7 @@ public sealed class AdminGalleryController(
     }
 
     /// <summary>
-    /// Update album details (name, description, cover, active status)
+    /// Update album details (name, description, cover, active status, sort order)
     /// </summary>
     [HttpPut("albums/{albumId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<AlbumResponse>), StatusCodes.Status200OK)]
@@ -447,6 +522,7 @@ public sealed class AdminGalleryController(
         [FromForm] DateTimeOffset? createdAt,
         [FromForm] IFormFile? coverImage,
         [FromForm] bool? isActive,
+        [FromForm] int? sortOrder,
         [FromForm] List<Guid>? authorIds,
         CancellationToken cancellationToken = default)
     {
@@ -461,6 +537,8 @@ public sealed class AdminGalleryController(
 
         try
         {
+            var originalName = album.Name;
+
             // Update name and slug
             if (!string.IsNullOrWhiteSpace(name))
             {
@@ -473,7 +551,7 @@ public sealed class AdminGalleryController(
             // Handle Slug Update
             var targetSlug = !string.IsNullOrWhiteSpace(slug)
                 ? GenerateSlug(slug)
-                : (name != null && name != album.Name ? GenerateSlug(name) : album.Slug);
+                : (!string.IsNullOrWhiteSpace(name) && name != originalName ? GenerateSlug(name) : album.Slug);
 
             if (targetSlug != album.Slug)
             {
@@ -513,6 +591,11 @@ public sealed class AdminGalleryController(
             if (isActive.HasValue)
             {
                 album.IsActive = isActive.Value;
+            }
+
+            if (sortOrder.HasValue)
+            {
+                album.SortOrder = sortOrder.Value;
             }
 
             album.UpdatedAt = DateTimeOffset.UtcNow;
@@ -584,10 +667,12 @@ public sealed class AdminGalleryController(
                 await dbContext.Contents
                     .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
                     .Select(c => (Guid?)c.Id)
-                    .FirstOrDefaultAsync(cancellationToken)
+                    .FirstOrDefaultAsync(cancellationToken),
+                album.IsActive,
+                album.SortOrder
             );
 
-            return OkEnvelope(response);
+            return OkEnvelope(response with { Cover = NormalizeGalleryMediaUrl(response.Cover) });
         }
         catch (Exception ex)
         {
@@ -803,5 +888,127 @@ public sealed class AdminGalleryController(
         slug = Regex.Replace(slug, @"-+", "-");
         slug = slug.Trim('-');
         return slug;
+    }
+
+    private async Task<int> GetNextAlbumSortOrder(CancellationToken cancellationToken)
+    {
+        var maxSortOrder = await dbContext.Albums
+            .Select(a => (int?)a.SortOrder)
+            .MaxAsync(cancellationToken);
+
+        return (maxSortOrder ?? -1) + 1;
+    }
+
+    private async Task<AlbumWithImagesResponse?> GetAlbumWithDetails(Guid albumId, CancellationToken cancellationToken)
+    {
+        var albumData = await dbContext.Albums
+            .AsNoTracking()
+            .Where(a => a.Id == albumId)
+            .Select(a => new
+            {
+                a.Id,
+                a.Name,
+                a.Slug,
+                a.Cover,
+                a.Description,
+                a.CreatedAt,
+                a.UpdatedAt,
+                a.IsActive,
+                a.SortOrder,
+                Authors = a.Authors
+                    .OrderBy(ga => ga.Order)
+                    .Select(ga => new GalleryAuthorResponse(
+                        ga.UserId,
+                        ga.User.Username,
+                        ga.User.DisplayName,
+                        ga.Order
+                    ))
+                    .ToList(),
+                Images = a.Images
+                    .OrderBy(i => i.Order)
+                    .Select(i => new ImageResponse(
+                        i.Id,
+                        i.AlbumId,
+                        i.Url,
+                        i.Title,
+                        i.Description,
+                        i.Order,
+                        i.CreatedAt
+                    ))
+                    .ToList()
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (albumData is null)
+        {
+            return null;
+        }
+
+        var contentId = await dbContext.Contents
+            .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
+            .Select(c => (Guid?)c.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var likeCount = 0;
+        var commentCount = 0;
+        var isLiked = false;
+
+        if (contentId.HasValue)
+        {
+            likeCount = await dbContext.Likes
+                .CountAsync(l => l.ContentId == contentId.Value, cancellationToken);
+
+            commentCount = await dbContext.Comments
+                .CountAsync(cm => cm.ContentId == contentId.Value && !cm.IsDeleted, cancellationToken);
+
+            if (Guid.TryParse(UserId, out var userGuid))
+            {
+                isLiked = await dbContext.Likes
+                    .AnyAsync(l => l.ContentId == contentId.Value && l.UserId == userGuid, cancellationToken);
+            }
+        }
+
+        return new AlbumWithImagesResponse(
+            albumData.Id,
+            albumData.Name,
+            albumData.Slug,
+            NormalizeGalleryMediaUrl(albumData.Cover),
+            albumData.Description,
+            albumData.CreatedAt,
+            albumData.UpdatedAt,
+            albumData.Images
+                .Select(i => i with { Url = NormalizeGalleryMediaUrl(i.Url) ?? i.Url })
+                .ToList(),
+            albumData.Authors,
+            contentId,
+            likeCount,
+            isLiked,
+            commentCount,
+            albumData.IsActive,
+            albumData.SortOrder
+        );
+    }
+
+    private string? NormalizeGalleryMediaUrl(string? mediaUrl)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl))
+        {
+            return mediaUrl;
+        }
+
+        var trimmed = mediaUrl.Trim();
+        if (!MediaUrlHelper.TryExtractMediaBlobName(trimmed, out var blobName))
+        {
+            return trimmed;
+        }
+
+        var publicBlobName = StripGalleryPrefix(blobName);
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
+        {
+            return $"{absolute.Scheme}://{absolute.Authority}/media/{publicBlobName}";
+        }
+
+        return $"/media/{publicBlobName}";
     }
 }

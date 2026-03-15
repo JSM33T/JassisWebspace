@@ -8,6 +8,7 @@ public class Album
     public string? Cover { get; set; }
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 

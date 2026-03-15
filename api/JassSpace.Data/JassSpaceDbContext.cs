@@ -324,6 +324,7 @@ public class JassSpaceDbContext : DbContext
         // Indexes
         entity.HasIndex(e => e.Name);
         entity.HasIndex(e => e.CreatedAt);
+        entity.HasIndex(e => e.SortOrder);
 
         // Relationships
         entity.HasMany(a => a.Images)

@@ -22,10 +22,10 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { adminGalleryService } from "@/lib/api/admin-gallery.service";
-import { galleryService } from "@/lib/api/gallery.service";
 import { AlbumWithImages, GalleryAuthor, Image as GalleryImage } from "@/lib/api/gallery.types";
 import { Separator } from "@/components/ui/separator";
 
@@ -35,6 +35,14 @@ const formSchema = z.object({
     description: z.string().optional(),
     createdAt: z.string().optional(),
     authorIds: z.array(z.string()).optional(),
+    isActive: z.boolean(),
+    sortOrder: z.string().optional().refine(
+        (value) => {
+            const normalized = value?.trim() ?? "";
+            return normalized === "" || /^\d+$/.test(normalized);
+        },
+        "Sort order must be zero or greater",
+    ),
 });
 
 const toDateTimeLocalValue = (value?: string | null) => {
@@ -88,6 +96,8 @@ export default function EditAlbumPage() {
             description: "",
             createdAt: "",
             authorIds: [],
+            isActive: true,
+            sortOrder: "",
         },
     });
 
@@ -111,7 +121,7 @@ export default function EditAlbumPage() {
     const loadAlbum = async () => {
         try {
             setLoading(true);
-            const data = await galleryService.getAlbumById(albumId);
+            const data = await adminGalleryService.getAlbumById(albumId);
             setAlbum(data);
             form.reset({
                 name: data.name,
@@ -119,6 +129,8 @@ export default function EditAlbumPage() {
                 description: data.description || "",
                 createdAt: toDateTimeLocalValue(data.createdAt),
                 authorIds: data.authors?.map((a) => a.userId) || [],
+                isActive: data.isActive,
+                sortOrder: data.sortOrder.toString(),
             });
             if (data.cover) {
                 setCoverPreview(`${data.cover}?t=${new Date().getTime()}`);
@@ -242,6 +254,7 @@ export default function EditAlbumPage() {
             const createdAt = createdAtDate && !Number.isNaN(createdAtDate.getTime())
                 ? createdAtDate.toISOString()
                 : undefined;
+            const sortOrder = values.sortOrder?.trim() ? Number(values.sortOrder) : undefined;
 
             await adminGalleryService.updateAlbum(albumId, {
                 name: values.name,
@@ -249,6 +262,8 @@ export default function EditAlbumPage() {
                 description: values.description,
                 createdAt,
                 authorIds: values.authorIds || [],
+                isActive: values.isActive,
+                sortOrder,
                 coverImage: coverFile || undefined,
             });
             toast.success("Album details updated");
@@ -388,6 +403,46 @@ export default function EditAlbumPage() {
                                                     Override the album creation timestamp.
                                                 </FormDescription>
                                                 <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="sortOrder"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Sort Order</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        min={0}
+                                                        value={field.value ?? ""}
+                                                        onChange={(event) => field.onChange(event.target.value)}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Lower values appear first in the public gallery.
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="isActive"
+                                        render={({ field }) => (
+                                            <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-1 pr-4">
+                                                    <FormLabel>Album Active</FormLabel>
+                                                    <FormDescription>
+                                                        Disable this album to hide it from the public gallery.
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                </FormControl>
                                             </FormItem>
                                         )}
                                     />

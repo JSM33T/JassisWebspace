@@ -35,7 +35,8 @@ public sealed class GalleryController(
         {
             var albums = await dbContext.Albums
                 .Where(a => a.IsActive)
-                .OrderByDescending(a => a.CreatedAt)
+                .OrderBy(a => a.SortOrder)
+                .ThenByDescending(a => a.CreatedAt)
                 .Select(a => new AlbumResponse(
                     a.Id,
                     a.Name,
@@ -57,7 +58,9 @@ public sealed class GalleryController(
                     dbContext.Contents
                         .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == a.Id)
                         .Select(c => (Guid?)c.Id)
-                        .FirstOrDefault()
+                        .FirstOrDefault(),
+                    a.IsActive,
+                    a.SortOrder
                 ))
                 .ToListAsync(cancellationToken);
 
@@ -98,6 +101,8 @@ public sealed class GalleryController(
                     a.Description,
                     a.CreatedAt,
                     a.UpdatedAt,
+                    a.IsActive,
+                    a.SortOrder,
                     Authors = a.Authors
                         .OrderBy(ga => ga.Order)
                         .Select(ga => new GalleryAuthorResponse(
@@ -166,7 +171,9 @@ public sealed class GalleryController(
                 contentId,
                 likeCount,
                 isLiked,
-                commentCount);
+                commentCount,
+                albumData.IsActive,
+                albumData.SortOrder);
 
             return OkEnvelope(response);
         }
@@ -254,6 +261,8 @@ public sealed class GalleryController(
                 Name = request.Name,
                 Slug = slug,
                 Description = request.Description,
+                IsActive = request.IsActive ?? true,
+                SortOrder = request.SortOrder ?? await GetNextAlbumSortOrder(cancellationToken),
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -336,7 +345,9 @@ public sealed class GalleryController(
                 album.UpdatedAt,
                 0, // No images yet
                 authors,
-                content.Id
+                content.Id,
+                album.IsActive,
+                album.SortOrder
             );
 
             return OkEnvelope(response);
@@ -434,6 +445,15 @@ public sealed class GalleryController(
         slug = slug.Trim('-');
 
         return slug;
+    }
+
+    private async Task<int> GetNextAlbumSortOrder(CancellationToken cancellationToken)
+    {
+        var maxSortOrder = await dbContext.Albums
+            .Select(a => (int?)a.SortOrder)
+            .MaxAsync(cancellationToken);
+
+        return (maxSortOrder ?? -1) + 1;
     }
 
     private static string? NormalizeGalleryMediaUrl(string? mediaUrl)

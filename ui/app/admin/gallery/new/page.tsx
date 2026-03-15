@@ -22,6 +22,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { adminGalleryService } from "@/lib/api/admin-gallery.service";
@@ -32,6 +33,14 @@ const formSchema = z.object({
     slug: z.string().optional(),
     description: z.string().optional(),
     authorIds: z.array(z.string()).optional(),
+    isActive: z.boolean(),
+    sortOrder: z.string().optional().refine(
+        (value) => {
+            const normalized = value?.trim() ?? "";
+            return normalized === "" || /^\d+$/.test(normalized);
+        },
+        "Sort order must be zero or greater",
+    ),
 });
 
 export default function CreateAlbumPage() {
@@ -55,6 +64,8 @@ export default function CreateAlbumPage() {
             slug: "",
             description: "",
             authorIds: [],
+            isActive: true,
+            sortOrder: "",
         },
     });
 
@@ -112,6 +123,7 @@ export default function CreateAlbumPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
             setLoading(true);
+            const sortOrder = values.sortOrder?.trim() ? Number(values.sortOrder) : undefined;
 
             const imageTitles = imageFiles.map((_, i) => `Image ${i + 1}`);
             const imageDescriptions = imageFiles.map(() => "");
@@ -121,6 +133,8 @@ export default function CreateAlbumPage() {
                 name: values.name,
                 description: values.description,
                 authorIds: values.authorIds || [],
+                isActive: values.isActive,
+                sortOrder,
                 coverImage: coverFile || undefined,
                 imageFiles: imageFiles.length > 0 ? imageFiles : undefined,
                 imageTitles,
@@ -200,6 +214,47 @@ export default function CreateAlbumPage() {
                                             />
                                         </FormControl>
                                         <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="sortOrder"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Sort Order</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                placeholder="Leave empty to append at the end"
+                                                value={field.value ?? ""}
+                                                onChange={(event) => field.onChange(event.target.value)}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Lower values appear first in the public gallery.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="isActive"
+                                render={({ field }) => (
+                                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                        <div className="space-y-1 pr-4">
+                                            <FormLabel>Album Active</FormLabel>
+                                            <FormDescription>
+                                                Inactive albums stay hidden from the public gallery until enabled.
+                                            </FormDescription>
+                                        </div>
+                                        <FormControl>
+                                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                        </FormControl>
                                     </FormItem>
                                 )}
                             />

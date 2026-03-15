@@ -1,4 +1,4 @@
-import { AlbumWithImages, GalleryAuthor, Image } from "./gallery.types";
+import { Album, AlbumWithImages, GalleryAuthor, Image } from "./gallery.types";
 import { post, put, del, get } from "./client";
 
 export interface CreateAlbumRequest {
@@ -7,6 +7,8 @@ export interface CreateAlbumRequest {
     description?: string;
     createdAt?: string;
     authorIds?: string[];
+    isActive?: boolean;
+    sortOrder?: number;
     coverImage?: File;
     imageFiles?: File[];
     imageTitles?: string[];
@@ -15,6 +17,17 @@ export interface CreateAlbumRequest {
 }
 
 class AdminGalleryService {
+    async getAllAlbums(isActive?: boolean): Promise<Album[]> {
+        const queryParams = new URLSearchParams();
+        if (isActive !== undefined) queryParams.append('isActive', isActive.toString());
+        const query = queryParams.toString();
+        return get<Album[]>(`/admin/gallery/albums${query ? `?${query}` : ''}`);
+    }
+
+    async getAlbumById(id: string): Promise<AlbumWithImages> {
+        return get<AlbumWithImages>(`/admin/gallery/albums/${id}`);
+    }
+
     async getPotentialAuthors(search?: string): Promise<GalleryAuthor[]> {
         const queryParams = new URLSearchParams();
         if (search) queryParams.append('search', search);
@@ -28,6 +41,8 @@ class AdminGalleryService {
         formData.append('name', data.name);
         if (data.slug) formData.append('slug', data.slug);
         if (data.description) formData.append('description', data.description);
+        if (data.isActive !== undefined) formData.append('isActive', data.isActive.toString());
+        if (data.sortOrder !== undefined) formData.append('sortOrder', data.sortOrder.toString());
         if (data.authorIds) {
             data.authorIds.forEach((authorId) => {
                 formData.append('authorIds', authorId);
@@ -62,7 +77,7 @@ class AdminGalleryService {
         return post<AlbumWithImages>('/admin/gallery/albums', formData);
     }
 
-    async updateAlbum(id: string, data: Partial<CreateAlbumRequest> & { isActive?: boolean }): Promise<AlbumWithImages> {
+    async updateAlbum(id: string, data: Partial<CreateAlbumRequest>): Promise<Album> {
         const formData = new FormData();
         if (data.name) formData.append('name', data.name);
         if (data.slug !== undefined) formData.append('slug', data.slug || "");
@@ -75,8 +90,9 @@ class AdminGalleryService {
         }
         if (data.coverImage) formData.append('coverImage', data.coverImage);
         if (data.isActive !== undefined) formData.append('isActive', data.isActive.toString());
+        if (data.sortOrder !== undefined) formData.append('sortOrder', data.sortOrder.toString());
 
-        return put<AlbumWithImages>(`/admin/gallery/albums/${id}`, formData);
+        return put<Album>(`/admin/gallery/albums/${id}`, formData);
     }
 
     async addImagesToAlbum(albumId: string, data: Pick<CreateAlbumRequest, 'imageFiles' | 'imageTitles' | 'imageDescriptions' | 'imageOrders'>): Promise<Image[]> {

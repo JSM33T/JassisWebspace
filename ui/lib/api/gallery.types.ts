@@ -13,6 +13,8 @@ export interface Album {
     slug: string;
     cover: string | null;
     description: string | null;
+    isActive: boolean;
+    sortOrder: number;
     createdAt: string;
     updatedAt: string | null;
     imageCount: number;
@@ -39,6 +41,8 @@ export interface AlbumWithImages {
     slug: string;
     cover: string | null;
     description: string | null;
+    isActive: boolean;
+    sortOrder: number;
     createdAt: string;
     updatedAt: string | null;
     images: Image[];
@@ -50,6 +54,8 @@ export interface CreateAlbumRequest {
     slug?: string;
     description?: string;
     authorIds?: string[];
+    isActive?: boolean;
+    sortOrder?: number;
 }
 
 export interface AddImageRequest {

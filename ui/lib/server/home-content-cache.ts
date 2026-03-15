@@ -82,7 +82,11 @@ const getCachedHomeGalleries = unstable_cache(
     async (): Promise<TaggedResult<Album>> => {
         const albums = await fetchAlbums();
         const galleries = [...albums]
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .sort(
+                (a, b) =>
+                    a.sortOrder - b.sortOrder ||
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            )
             .slice(0, 5);
 
         return {
