@@ -9,7 +9,18 @@ import { CommentForm } from './CommentForm';
 import { CommentItem } from './CommentItem';
 import { CommentUserModal } from './CommentUserModal';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MessageSquare } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogMedia,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { MessageSquare, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CommentSectionProps {
@@ -20,6 +31,8 @@ export function CommentSection({ contentId }: CommentSectionProps) {
     const { user, isAuthenticated } = useUser();
     const [comments, setComments] = useState<CommentResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const [selectedUser, setSelectedUser] = useState<{
         userId: string;
         username: string;
@@ -155,22 +168,47 @@ export function CommentSection({ contentId }: CommentSectionProps) {
             throw new Error('Authentication required to delete');
         }
 
+        setPendingDeleteId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) {
+            return;
+        }
+
         try {
-            await commentService.deleteComment(id);
+            setIsDeleting(true);
+            await commentService.deleteComment(pendingDeleteId);
 
             // Get all descendant IDs (including the parent)
-            const idsToRemove = getAllDescendantIds(id, comments);
+            const idsToRemove = getAllDescendantIds(pendingDeleteId, comments);
 
             // Remove the comment and all its descendants
             setComments(prev => prev.filter(c => !idsToRemove.includes(c.id)));
+            setPendingDeleteId(null);
 
             toast.success('Comment deleted successfully');
         } catch (error) {
             console.error('Failed to delete comment', error);
             toast.error('Failed to delete comment');
             throw error;
+        } finally {
+            setIsDeleting(false);
         }
     };
+
+    const pendingDeleteComment = useMemo(
+        () => comments.find(comment => comment.id === pendingDeleteId) ?? null,
+        [comments, pendingDeleteId]
+    );
+
+    const pendingDeleteReplyCount = useMemo(() => {
+        if (!pendingDeleteId) {
+            return 0;
+        }
+
+        return Math.max(getAllDescendantIds(pendingDeleteId, comments).length - 1, 0);
+    }, [comments, pendingDeleteId]);
 
     const handleOpenUserProfile = (
         userId: string,
@@ -234,6 +272,45 @@ export function CommentSection({ contentId }: CommentSectionProps) {
                 fallbackAvatarUrl={selectedUser?.avatarUrl}
                 fallbackDisplayName={selectedUser?.displayName}
             />
+
+            <AlertDialog
+                open={Boolean(pendingDeleteId)}
+                onOpenChange={(open) => {
+                    if (!open && !isDeleting) {
+                        setPendingDeleteId(null);
+                    }
+                }}
+            >
+                <AlertDialogContent size="sm">
+                    <AlertDialogHeader>
+                        <AlertDialogMedia className="bg-destructive/10 text-destructive">
+                            <Trash2 className="h-7 w-7" />
+                        </AlertDialogMedia>
+                        <AlertDialogTitle>Delete this comment?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {pendingDeleteReplyCount > 0
+                                ? `This will permanently remove this comment and ${pendingDeleteReplyCount} ${pendingDeleteReplyCount === 1 ? 'reply' : 'replies'}.`
+                                : 'This will permanently remove this comment.'}
+                            {pendingDeleteComment?.text
+                                ? ` "${pendingDeleteComment.text.slice(0, 120)}${pendingDeleteComment.text.length > 120 ? '...' : ''}"`
+                                : ''}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            disabled={isDeleting}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                void confirmDelete();
+                            }}
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete comment'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </section>
     );
 }

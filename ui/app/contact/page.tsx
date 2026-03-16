@@ -426,7 +426,7 @@ export default function ContactPage() {
                                 {turnstileEnabled && turnstileSiteKey && (
                                     <div className="space-y-2.5">
                                         <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Verification</label>
-                                        <div className="rounded-2xl border border-border/60 bg-background/70 p-3 shadow-sm">
+                                        <div className="flex justify-center rounded-2xl border border-border/60 bg-background/70 p-3 shadow-sm">
                                             <div
                                                 className="cf-turnstile"
                                                 data-sitekey={turnstileSiteKey}
