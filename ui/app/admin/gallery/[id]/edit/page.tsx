@@ -83,6 +83,7 @@ export default function EditAlbumPage() {
     }
 
     const [newImages, setNewImages] = useState<NewImage[]>([]);
+    const [shouldRenderExistingImages, setShouldRenderExistingImages] = useState(false);
 
     // State for managing existing image edits
     const [editingImageId, setEditingImageId] = useState<string | null>(null);
@@ -630,11 +631,33 @@ export default function EditAlbumPage() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold">Existing Images ({album.images.length})</h2>
+                            {album.images.length > 0 ? (
+                                <Button
+                                    type="button"
+                                    variant={shouldRenderExistingImages ? "secondary" : "outline"}
+                                    onClick={() => setShouldRenderExistingImages((prev) => !prev)}
+                                >
+                                    {shouldRenderExistingImages ? "Hide Images" : "Load Images"}
+                                </Button>
+                            ) : null}
                         </div>
 
                         {album.images.length === 0 ? (
                             <div className="text-center py-10 text-muted-foreground">
                                 No images in this album yet.
+                            </div>
+                        ) : !shouldRenderExistingImages ? (
+                            <div className="rounded-lg border border-dashed bg-muted/20 px-6 py-10 text-center text-sm text-muted-foreground">
+                                Existing album images are hidden by default to keep this page fast.
+                                <div className="mt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setShouldRenderExistingImages(true)}
+                                    >
+                                        Load Images
+                                    </Button>
+                                </div>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
