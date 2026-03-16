@@ -204,28 +204,47 @@ export function Navbar() {
                         : 'User';
 
     useEffect(() => {
+        const topThreshold = 24;
+        const scrollDeltaThreshold = 12;
         let lastScrollY = window.scrollY || document.documentElement.scrollTop;
+        let animationFrameId: number | null = null;
 
-        const handleScroll = () => {
+        const updateNavbarVisibility = () => {
             const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+            const scrollDelta = currentScrollY - lastScrollY;
 
-            if (currentScrollY < 12) {
+            if (currentScrollY <= topThreshold) {
                 setIsNavbarHidden(false);
                 lastScrollY = currentScrollY;
                 return;
             }
 
-            if (currentScrollY > lastScrollY) {
-                setIsNavbarHidden(true);
-            } else if (currentScrollY < lastScrollY) {
-                setIsNavbarHidden(false);
+            if (Math.abs(scrollDelta) < scrollDeltaThreshold) {
+                return;
             }
 
+            setIsNavbarHidden(scrollDelta > 0);
             lastScrollY = currentScrollY;
         };
 
+        const handleScroll = () => {
+            if (animationFrameId !== null) {
+                return;
+            }
+
+            animationFrameId = window.requestAnimationFrame(() => {
+                updateNavbarVisibility();
+                animationFrameId = null;
+            });
+        };
+
+        updateNavbarVisibility();
+
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => {
+            if (animationFrameId !== null) {
+                window.cancelAnimationFrame(animationFrameId);
+            }
             window.removeEventListener('scroll', handleScroll);
         };
     }, []);
