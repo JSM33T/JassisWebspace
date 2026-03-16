@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { LogoMark } from '@/components/logo-mark';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,7 +32,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, House, AtSign, BookOpen, FileText, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -313,7 +314,7 @@ export function Navbar() {
     );
 
     const mobileDockItems = [
-        { href: '/', label: 'Home', icon: House },
+        { href: '/', label: 'Home', icon: LogoMark },
         { href: '/blog', label: 'Blogs', icon: FileText },
         { href: '/music', label: 'Music', icon: Music },
         { href: '/gallery', label: 'Gallery', icon: Image },
@@ -323,7 +324,7 @@ export function Navbar() {
         {
             title: 'Explore',
             items: [
-                { href: '/', label: 'Home', icon: House },
+                { href: '/', label: 'Home', icon: LogoMark },
                 { href: '/blog', label: 'Blogs', icon: FileText },
                 ...studioMenuItems,
             ],
@@ -336,7 +337,7 @@ export function Navbar() {
         'group relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
     const railIconClassName = 'h-[18px] w-[18px]';
-    const railHomeIconClassName = 'h-[22px] w-[22px]';
+    const railHomeIconClassName = 'h-[28px] w-[28px]';
 
     const railBubbleClassName =
         'pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-xl border border-border/70 bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground opacity-0 shadow-lg shadow-black/10 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100';
@@ -379,7 +380,7 @@ export function Navbar() {
                                 onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
                                 onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                             >
-                                <House className={railHomeIconClassName} />
+                                <LogoMark className={railHomeIconClassName} />
                                 <span className={railBubbleClassName}>Home</span>
                             </Link>
 
@@ -571,6 +572,7 @@ export function Navbar() {
                         {mobileDockItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = isActivePath(item.href);
+                            const isHomeItem = item.href === '/';
 
                             return (
                                 <Link
@@ -584,7 +586,7 @@ export function Navbar() {
                                             : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'
                                     )}
                                 >
-                                    <Icon className="mb-1 h-4 w-4" />
+                                    <Icon className={cn('mb-1', isHomeItem ? 'h-6 w-6' : 'h-4 w-4')} />
                                     <span>{item.label}</span>
                                 </Link>
                             );
@@ -657,6 +659,7 @@ export function Navbar() {
                                                 {section.items.map((item) => {
                                                     const Icon = item.icon;
                                                     const isActive = isActivePath(item.href);
+                                                    const isHomeItem = item.href === '/';
                                                     return (
                                                         <SheetClose key={item.href} asChild>
                                                             <Link
@@ -666,7 +669,13 @@ export function Navbar() {
                                                                     isActive ? 'bg-primary/12 text-foreground' : 'hover:bg-accent/70'
                                                                 )}
                                                             >
-                                                                <Icon className={cn('h-4 w-4 text-primary', isActive && 'text-foreground')} />
+                                                                <Icon
+                                                                    className={cn(
+                                                                        isHomeItem ? 'h-6 w-6' : 'h-4 w-4',
+                                                                        'text-primary',
+                                                                        isActive && 'text-foreground'
+                                                                    )}
+                                                                />
                                                                 <span>{item.label}</span>
                                                             </Link>
                                                         </SheetClose>

@@ -5,8 +5,9 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { useSearchParams } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
-import { ArrowUpRight, BookOpen, Folder, Image as GalleryIcon, Info, Layers, Mail, Plus } from "lucide-react";
+import { ArrowUpRight, BookOpen, Folder, Image as GalleryIcon, Info, Layers, Mail } from "lucide-react";
 
+import { LogoMark } from "@/components/logo-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -122,7 +123,7 @@ export default function HomePage() {
                             })}
 
                             <div className="flex h-24 w-24 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-lg shadow-primary/20 sm:h-28 sm:w-28">
-                                <Plus className="h-10 w-10 sm:h-12 sm:w-12" />
+                                <LogoMark className="h-11 w-11 sm:h-14 sm:w-14" />
                             </div>
 
                             {links.slice(2).map((item) => {
