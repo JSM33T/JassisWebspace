@@ -7,6 +7,7 @@ using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
 using JassSpace.Data;
 using JassSpace.Entities;
+using JassSpace.Infra;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,12 +21,16 @@ public sealed class BotController(
     IBotMcpBridgeService botMcpBridgeService,
     IOptions<OpenRouterSettings> openRouterSettings,
     JassSpaceDbContext dbContext,
+    IRateLimiterService rateLimiter,
     ILogger<BotController> logger)
     : BaseApiController
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly HashSet<string> AllowedRoles = ["system", "user", "assistant"];
     private const int MaxVisitorIdLength = 64;
+    private const string AnonymousQuotaPolicy = "bot-chat-anonymous-quota";
+    private const string AuthenticatedQuotaPolicy = "bot-chat-authenticated-quota";
+    private const string GlobalAnonymousQuotaKey = "global-anonymous";
     private readonly string _configuredModel = string.IsNullOrWhiteSpace(openRouterSettings.Value?.Model)
         ? "unknown"
         : openRouterSettings.Value.Model.Trim();
@@ -45,6 +50,12 @@ public sealed class BotController(
         if (validationProblem is not null)
         {
             return validationProblem;
+        }
+
+        var quotaProblem = await EnforceUsageQuotaAsync(request.VisitorId, cancellationToken);
+        if (quotaProblem is not null)
+        {
+            return quotaProblem;
         }
 
         try
@@ -94,6 +105,12 @@ public sealed class BotController(
         if (validationProblem is not null)
         {
             return validationProblem;
+        }
+
+        var quotaProblem = await EnforceUsageQuotaAsync(request.VisitorId, cancellationToken);
+        if (quotaProblem is not null)
+        {
+            return quotaProblem;
         }
 
         Response.StatusCode = StatusCodes.Status200OK;
@@ -375,6 +392,37 @@ public sealed class BotController(
         return IsAuthenticated && Guid.TryParse(UserId, out var parsedUserId)
             ? parsedUserId
             : null;
+    }
+
+    private async Task<IActionResult?> EnforceUsageQuotaAsync(string? requestedVisitorId, CancellationToken cancellationToken)
+    {
+        var resolvedUserId = TryGetAuthenticatedUserId();
+        var resolvedVisitorId = NormalizeVisitorId(requestedVisitorId);
+
+        string policyName;
+        string rateLimitKey;
+        string detail;
+
+        if (resolvedUserId.HasValue)
+        {
+            policyName = AuthenticatedQuotaPolicy;
+            rateLimitKey = resolvedUserId.Value.ToString("N");
+            detail = "Support chat is limited to 500 messages per account.";
+        }
+        else
+        {
+            policyName = AnonymousQuotaPolicy;
+            rateLimitKey = GlobalAnonymousQuotaKey;
+            detail = "Anonymous support chat is limited to 1000 total messages globally. Log in to continue with up to 500 messages per account.";
+        }
+
+        var decision = await rateLimiter.ShouldAllowAsync(policyName, rateLimitKey, cancellationToken);
+        if (decision.IsAllowed)
+        {
+            return null;
+        }
+
+        return TooManyRequestsProblem("Chat usage limit reached", detail, decision);
     }
 
     private static string? NormalizeVisitorId(string? visitorId)
