@@ -1,13 +1,17 @@
-﻿using JassSpace.Contracts;
-using JassSpace.Contracts.Responses;
-using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using JassSpace.Api.Services;
+using JassSpace.Contracts;
+using JassSpace.Contracts.Responses;
+using Microsoft.AspNetCore.Mvc;
 
 namespace JassSpace.Api.Controllers;
 
 [Route("")]
-public sealed class HomeController(ILogger<HomeController> logger, IConfiguration configuration)
+public sealed class HomeController(
+    ILogger<HomeController> logger,
+    IHostEnvironment environment,
+    ISystemStatusProbeService systemStatusProbeService)
     : BaseApiController
 {
     /// <summary>
@@ -18,9 +22,9 @@ public sealed class HomeController(ILogger<HomeController> logger, IConfiguratio
     [ProducesResponseType(typeof(ApiResponse<ServerInfo>), StatusCodes.Status200OK)]
     public IActionResult Index()
     {
-        var proc = Process.GetCurrentProcess();
-        var startUtc = proc.StartTime.ToUniversalTime();
-        var uptime = DateTimeOffset.UtcNow - startUtc;
+        using var process = Process.GetCurrentProcess();
+        var processStartUtc = new DateTimeOffset(process.StartTime.ToUniversalTime(), TimeSpan.Zero);
+        var uptime = DateTimeOffset.UtcNow - processStartUtc;
 
         var info = new ServerInfo(
             Machine: Environment.MachineName,
@@ -29,7 +33,7 @@ public sealed class HomeController(ILogger<HomeController> logger, IConfiguratio
             ProcessArchitecture: RuntimeInformation.ProcessArchitecture.ToString(),
             Framework: RuntimeInformation.FrameworkDescription,
             Uptime: uptime,
-            ProcessStartUtc: startUtc,
+            ProcessStartUtc: processStartUtc,
             RequestId: RequestId,
             CorrelationId: CorrelationId
         );
@@ -47,34 +51,47 @@ public sealed class HomeController(ILogger<HomeController> logger, IConfiguratio
     {
         try
         {
-            //const bool dbIsDown = false;
-
-            // if (dbIsDown)
-            // {
-            //     throw new InvalidOperationException("Database is not reachable");
-            // }
-
-            logger.LogError(null,
-                "Intentional error log 2 {Time} with CorrelationId {CorrelationId}",
-                DateTimeOffset.UtcNow,
-                CorrelationId);
-
-            var testVal = configuration["PyUrl"];
-            var payload = new HealthStatus("Healthy and stuff 2", DateTimeOffset.UtcNow, testVal);
+            var payload = new HealthStatus("Healthy", DateTimeOffset.UtcNow, environment.EnvironmentName);
             return OkEnvelope(payload);
         }
         catch (Exception ex)
         {
-            // Explicit error log
             logger.LogError(ex,
                 "Health check failed at {Time} with CorrelationId {CorrelationId}",
                 DateTimeOffset.UtcNow,
                 CorrelationId);
 
-            // Return ProblemDetails instead of envelope on error
             return Problem(
                 statusCode: StatusCodes.Status503ServiceUnavailable,
                 title: "Service Unavailable",
+                detail: ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Detailed system status used by the bot MCP bridge and operational diagnostics.
+    /// </summary>
+    [HttpGet("health/system-status")]
+    [ResponseCache(NoStore = true, Duration = 0, Location = ResponseCacheLocation.None)]
+    [ProducesResponseType(typeof(ApiResponse<SystemStatusSnapshot>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> SystemStatus(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var snapshot = await systemStatusProbeService.GetSnapshotAsync(cancellationToken);
+            return OkEnvelope(snapshot);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex,
+                "System status check failed at {Time} with CorrelationId {CorrelationId}",
+                DateTimeOffset.UtcNow,
+                CorrelationId);
+
+            return Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "System status unavailable",
                 detail: ex.Message);
         }
     }

@@ -114,6 +114,9 @@ builder.Services.AddScoped<ICacheSubjectResolver, CacheSubjectResolver>();
 builder.Services.AddScoped<IRequestCacheKeyBuilder, RequestCacheKeyBuilder>();
 builder.Services.AddScoped<IHttpResponseCacheStore, HttpResponseCacheStore>();
 builder.Services.AddScoped<ICommentNotificationJob, CommentNotificationJob>();
+builder.Services.AddScoped<ISystemStatusProbeService, SystemStatusProbeService>();
+builder.Services.AddScoped<IBotMcpBridgeService, BotMcpBridgeService>();
+builder.Services.AddScoped<ISiteContentSearchService, SiteContentSearchService>();
 builder.Services.AddHttpClient();
 
 // Email Service Configuration

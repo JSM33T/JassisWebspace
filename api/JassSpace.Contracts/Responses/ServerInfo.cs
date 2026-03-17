@@ -21,6 +21,27 @@ namespace JassSpace.Contracts.Responses
     public sealed record HealthStatus(
         string Status,
         DateTimeOffset Time,
-        string? Test
+        string Environment
         );
+
+    public sealed record SystemDependencyStatus(
+        string Name,
+        string Status,
+        string Detail,
+        DateTimeOffset CheckedAt
+    );
+
+    public sealed record SystemStatusSnapshot(
+        string OverallStatus,
+        DateTimeOffset CheckedAt,
+        string Environment,
+        string Machine,
+        string OS,
+        string OSArchitecture,
+        string ProcessArchitecture,
+        string Framework,
+        TimeSpan Uptime,
+        DateTimeOffset ProcessStartUtc,
+        IReadOnlyList<SystemDependencyStatus> Dependencies
+    );
 }

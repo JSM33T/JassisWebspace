@@ -17,6 +17,7 @@ namespace JassSpace.Api.Controllers;
 [Route("bot")]
 public sealed class BotController(
     IOpenRouterBotService botService,
+    IBotMcpBridgeService botMcpBridgeService,
     IOptions<OpenRouterSettings> openRouterSettings,
     JassSpaceDbContext dbContext,
     ILogger<BotController> logger)
@@ -48,7 +49,10 @@ public sealed class BotController(
         try
         {
             var chat = await UpsertChatAsync(request.ChatId, normalizedMessages!, cancellationToken);
-            var completion = await botService.GetCompletionAsync(normalizedMessages!, cancellationToken);
+            var bridgeResult = await botMcpBridgeService.ResolveAsync(normalizedMessages!, cancellationToken);
+            var completion = bridgeResult.DirectResponse is not null
+                ? CreateDirectCompletionResult(bridgeResult)
+                : await botService.GetCompletionAsync(bridgeResult.Messages, cancellationToken);
             await FinalizeChatAsync(chat, completion, cancellationToken);
             return OkEnvelope(new BotChatResponse(
                 chat.Id,
@@ -99,18 +103,29 @@ public sealed class BotController(
         try
         {
             var chat = await UpsertChatAsync(request.ChatId, normalizedMessages!, cancellationToken);
+            var bridgeResult = await botMcpBridgeService.ResolveAsync(normalizedMessages!, cancellationToken);
+            var streamModel = string.IsNullOrWhiteSpace(bridgeResult.Model) ? _configuredModel : bridgeResult.Model;
             await WriteEventAsync(
                 "start",
-                new BotStreamStartResponse(chat.Id, _configuredModel, DateTimeOffset.UtcNow),
+                new BotStreamStartResponse(chat.Id, streamModel, DateTimeOffset.UtcNow),
                 cancellationToken);
 
-            var completion = await botService.StreamCompletionAsync(
-                normalizedMessages!,
-                async (delta, ct) =>
-                {
-                    await WriteEventAsync("delta", new BotStreamDeltaResponse(delta), ct);
-                },
-                cancellationToken);
+            BotChatCompletionResult completion;
+            if (bridgeResult.DirectResponse is not null)
+            {
+                await WriteEventAsync("delta", new BotStreamDeltaResponse(bridgeResult.DirectResponse), cancellationToken);
+                completion = CreateDirectCompletionResult(bridgeResult);
+            }
+            else
+            {
+                completion = await botService.StreamCompletionAsync(
+                    bridgeResult.Messages,
+                    async (delta, ct) =>
+                    {
+                        await WriteEventAsync("delta", new BotStreamDeltaResponse(delta), ct);
+                    },
+                    cancellationToken);
+            }
 
             await FinalizeChatAsync(chat, completion, cancellationToken);
             await WriteEventAsync(
@@ -192,6 +207,14 @@ public sealed class BotController(
         await Response.WriteAsync($"event: {eventName}\n", cancellationToken);
         await Response.WriteAsync($"data: {JsonSerializer.Serialize(payload, JsonOptions)}\n\n", cancellationToken);
         await Response.Body.FlushAsync(cancellationToken);
+    }
+
+    private static BotChatCompletionResult CreateDirectCompletionResult(BotMcpBridgeResult bridgeResult)
+    {
+        return new BotChatCompletionResult(
+            bridgeResult.DirectResponse ?? string.Empty,
+            string.IsNullOrWhiteSpace(bridgeResult.Model) ? "mcp/direct" : bridgeResult.Model,
+            DateTimeOffset.UtcNow);
     }
 
     private async Task<Chat> UpsertChatAsync(

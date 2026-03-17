@@ -5,6 +5,7 @@ import { Bot, MessageCircleMore, SendHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { BACK_TO_TOP_VISIBILITY_EVENT } from '@/components/back-to-top-progress';
+import { BotChatMarkdown } from '@/components/bot/bot-chat-markdown';
 import botService, { type BotChatMessageRequest } from '@/lib/api/bot.service';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,10 @@ const MAX_CONTEXT_MESSAGES = 10;
 const AUTO_SCROLL_THRESHOLD = 48;
 const CHAT_STORAGE_KEY = 'jassspace:auth-support-chat';
 const CHAT_STORAGE_TTL_MS = 24 * 60 * 60 * 1000;
+const STARTER_PROMPTS = [
+    'Find me a blog about caching',
+    'Find me a gallery of Darjeeling',
+] as const;
 
 function createMessage(role: ChatRole, content: string, includeInConversation = true): ChatMessage {
     return {
@@ -51,7 +56,7 @@ function createMessage(role: ChatRole, content: string, includeInConversation = 
 function createInitialMessage() {
     return createMessage(
         'assistant',
-        'Ask anything here. Replies stream from the backend bot endpoint.',
+        'Try one of the example prompts below, or ask about blogs, galleries, or system status.',
         false
     );
 }
@@ -189,6 +194,11 @@ export function AuthSupportChat() {
         abortControllerRef.current = null;
     };
 
+    const showStarterPrompts =
+        messages.length === 1 &&
+        messages[0]?.role === 'assistant' &&
+        messages[0]?.includeInConversation === false;
+
     const clearChat = () => {
         cancelActiveRequest();
         shouldStickToBottomRef.current = true;
@@ -197,6 +207,10 @@ export function AuthSupportChat() {
         setIsReplying(false);
         setChatId(null);
         setMessages([createInitialMessage()]);
+    };
+
+    const minimizeChat = () => {
+        setIsOpen(false);
     };
 
     const scrollMessagesToBottom = (behavior: ScrollBehavior = 'auto') => {
@@ -315,8 +329,8 @@ export function AuthSupportChat() {
         });
     }, [isOpen, isReplying, messages]);
 
-    const submitMessage = async () => {
-        const nextMessage = draft.trim();
+    const submitMessage = async (messageOverride?: string) => {
+        const nextMessage = (messageOverride ?? draft).trim();
         if (!nextMessage || isReplying) {
             return;
         }
@@ -411,6 +425,10 @@ export function AuthSupportChat() {
         await submitMessage();
     };
 
+    const handleStarterPromptClick = (prompt: string) => {
+        void submitMessage(prompt);
+    };
+
     const handleTextareaKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key !== 'Enter' || event.shiftKey) {
             return;
@@ -426,15 +444,21 @@ export function AuthSupportChat() {
 
     return (
         <>
-            {isOpen && <div className="fixed inset-0 z-[129] bg-transparent" aria-hidden="true" />}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 z-[129] bg-transparent"
+                    aria-hidden="true"
+                    onClick={minimizeChat}
+                />
+            )}
             <div className="pointer-events-none fixed bottom-8 right-6 z-[130]">
             {isOpen ? (
-                <section className="pointer-events-auto animate-in fade-in zoom-in-95 slide-in-from-bottom-2 flex h-[min(70vh,40rem)] w-[min(calc(100vw-2rem),24rem)] flex-col overflow-hidden rounded-[28px] border border-primary/20 bg-background/95 shadow-2xl shadow-black/15 supports-[backdrop-filter]:bg-background/85 supports-[backdrop-filter]:backdrop-blur-xl">
-                    <header className="border-b border-border/70 bg-gradient-to-br from-primary/12 via-background to-background px-4 py-4">
+                <section className="pointer-events-auto animate-in fade-in zoom-in-95 slide-in-from-bottom-2 flex h-[min(70vh,40rem)] w-[min(calc(100vw-2rem),24rem)] flex-col overflow-hidden rounded-[28px] border border-border/60 bg-card text-card-foreground shadow-2xl shadow-black/10 ring-1 ring-foreground/10 supports-[backdrop-filter]:bg-card/95 supports-[backdrop-filter]:backdrop-blur-xl">
+                    <header className="border-b border-border/60 bg-muted/30 px-4 py-4">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-primary/10 text-primary">
                                         <Bot className="size-5" />
                                     </div>
                                     <div className="min-w-0">
@@ -458,9 +482,7 @@ export function AuthSupportChat() {
                                     variant="ghost"
                                     size="icon-sm"
                                     className="shrink-0"
-                                    onClick={() => {
-                                        setIsOpen(false);
-                                    }}
+                                    onClick={minimizeChat}
                                 >
                                     <X className="size-4" />
                                     <span className="sr-only">Minimize chat</span>
@@ -472,8 +494,31 @@ export function AuthSupportChat() {
                     <div
                         ref={messagesContainerRef}
                         onScroll={handleMessagesScroll}
-                        className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_top,_rgba(99,113,143,0.08),_transparent_50%)] px-4 py-4"
+                        className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-muted/20 px-4 py-4"
                     >
+                        {showStarterPrompts && (
+                            <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 p-3 shadow-xs dark:bg-input/20">
+                                <p className="text-xs font-medium text-muted-foreground">Try one of these</p>
+                                <div className="flex flex-wrap gap-2">
+                                {STARTER_PROMPTS.map((prompt) => (
+                                    <Button
+                                        key={prompt}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-auto max-w-full justify-start whitespace-normal rounded-xl border-border/60 bg-background/80 px-3 py-2 text-left text-xs leading-5 hover:bg-accent dark:bg-input/30 dark:hover:bg-input/50"
+                                        onClick={() => {
+                                            handleStarterPromptClick(prompt);
+                                        }}
+                                        disabled={isReplying}
+                                    >
+                                        {prompt}
+                                    </Button>
+                                ))}
+                                </div>
+                            </div>
+                        )}
+
                         {messages
                             .filter((message) => message.content.trim().length > 0)
                             .map((message) => (
@@ -483,20 +528,24 @@ export function AuthSupportChat() {
                             >
                                 <div
                                     className={cn(
-                                        'max-w-[85%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm',
+                                        'max-w-[85%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-xs',
                                         message.role === 'user'
                                             ? 'rounded-br-xl bg-primary text-primary-foreground'
-                                            : 'rounded-bl-xl border border-border/70 bg-background/90 text-foreground'
+                                            : 'rounded-bl-xl border border-border/60 bg-card text-card-foreground'
                                     )}
                                 >
-                                    {message.content}
+                                    {message.role === 'assistant' ? (
+                                        <BotChatMarkdown content={message.content} />
+                                    ) : (
+                                        message.content
+                                    )}
                                 </div>
                             </div>
                         ))}
 
                         {isReplying && (
                             <div className="flex justify-start">
-                                <div className="flex items-center gap-1 rounded-3xl rounded-bl-xl border border-border/70 bg-background/90 px-4 py-3 shadow-sm">
+                                <div className="flex items-center gap-1 rounded-3xl rounded-bl-xl border border-border/60 bg-card px-4 py-3 shadow-xs">
                                     <span className="size-2 animate-pulse rounded-full bg-primary/55" />
                                     <span className="size-2 animate-pulse rounded-full bg-primary/40 [animation-delay:120ms]" />
                                     <span className="size-2 animate-pulse rounded-full bg-primary/25 [animation-delay:240ms]" />
@@ -505,14 +554,14 @@ export function AuthSupportChat() {
                         )}
                     </div>
 
-                    <form onSubmit={handleSubmit} className="border-t border-border/70 bg-background/90 p-4">
-                        <div className="rounded-[22px] border border-border/70 bg-background/95 px-3 py-2.5 shadow-sm">
+                    <form onSubmit={handleSubmit} className="border-t border-border/60 bg-card/95 p-4">
+                        <div className="rounded-[22px] border border-input bg-background px-3 py-2.5 shadow-xs dark:bg-input/20">
                             <Textarea
                                 ref={textareaRef}
                                 value={draft}
                                 onChange={(event) => setDraft(event.target.value)}
                                 onKeyDown={handleTextareaKeyDown}
-                                placeholder="Type a message..."
+                                placeholder="Ask about blogs, galleries, or system status..."
                                 rows={3}
                                 className="min-h-16 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
                                 disabled={isReplying}
@@ -530,7 +579,7 @@ export function AuthSupportChat() {
                 <Button
                     type="button"
                     size="icon-lg"
-                    className="pointer-events-auto relative size-14 rounded-full shadow-2xl shadow-primary/20"
+                    className="pointer-events-auto relative size-14 rounded-full border border-border/60 shadow-2xl shadow-primary/20"
                     onClick={() => {
                         setUnreadCount(0);
                         setIsOpen(true);
