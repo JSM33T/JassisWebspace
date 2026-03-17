@@ -38,10 +38,14 @@ interface ParsedPersistedChatState {
 const MAX_CONTEXT_MESSAGES = 10;
 const AUTO_SCROLL_THRESHOLD = 48;
 const CHAT_STORAGE_KEY = 'jassspace:auth-support-chat';
+const CHAT_VISITOR_STORAGE_KEY = 'jassspace:auth-support-chat:visitor-id';
 const CHAT_STORAGE_TTL_MS = 24 * 60 * 60 * 1000;
 const STARTER_PROMPTS = [
+    'How do I create an account or login?',
     'Find me a blog about caching',
     'Find me a gallery of Darjeeling',
+    'Do we have a comment feature here?',
+    'What is my system status?',
 ] as const;
 
 function createMessage(role: ChatRole, content: string, includeInConversation = true): ChatMessage {
@@ -56,7 +60,7 @@ function createMessage(role: ChatRole, content: string, includeInConversation = 
 function createInitialMessage() {
     return createMessage(
         'assistant',
-        'Try one of the example prompts below, or ask about blogs, galleries, or system status.',
+        'Ask about accounts, content, site features, or system status, or use the prompt rail above.',
         false
     );
 }
@@ -174,6 +178,24 @@ function persistChatState(messages: ChatMessage[], unreadCount: number, chatId: 
     window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
 }
 
+function getOrCreateVisitorId(): string | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    const existingVisitorId = window.localStorage.getItem(CHAT_VISITOR_STORAGE_KEY)?.trim();
+    if (existingVisitorId) {
+        return existingVisitorId;
+    }
+
+    const nextVisitorId = typeof window.crypto?.randomUUID === 'function'
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+
+    window.localStorage.setItem(CHAT_VISITOR_STORAGE_KEY, nextVisitorId);
+    return nextVisitorId;
+}
+
 export function AuthSupportChat() {
     const [isOpen, setIsOpen] = useState(false);
     const [isHiddenByBackToTop, setIsHiddenByBackToTop] = useState(false);
@@ -182,6 +204,7 @@ export function AuthSupportChat() {
     const [isReplying, setIsReplying] = useState(false);
     const [hasHydratedPersistence, setHasHydratedPersistence] = useState(false);
     const [chatId, setChatId] = useState<string | null>(null);
+    const [visitorId, setVisitorId] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>(() => [createInitialMessage()]);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -193,11 +216,6 @@ export function AuthSupportChat() {
         abortControllerRef.current?.abort();
         abortControllerRef.current = null;
     };
-
-    const showStarterPrompts =
-        messages.length === 1 &&
-        messages[0]?.role === 'assistant' &&
-        messages[0]?.includeInConversation === false;
 
     const clearChat = () => {
         cancelActiveRequest();
@@ -244,6 +262,8 @@ export function AuthSupportChat() {
     };
 
     useEffect(() => {
+        setVisitorId(getOrCreateVisitorId());
+
         const persistedState = readPersistedChatState();
         if (persistedState) {
             setChatId(persistedState.chatId);
@@ -335,6 +355,11 @@ export function AuthSupportChat() {
             return;
         }
 
+        const resolvedVisitorId = visitorId ?? getOrCreateVisitorId();
+        if (resolvedVisitorId && resolvedVisitorId !== visitorId) {
+            setVisitorId(resolvedVisitorId);
+        }
+
         const userMessage = createMessage('user', nextMessage);
         const assistantMessage = createMessage('assistant', '');
         const assistantMessageId = assistantMessage.id;
@@ -349,7 +374,7 @@ export function AuthSupportChat() {
 
         try {
             await botService.streamChatCompletion(
-                { chatId, messages: requestMessages },
+                { chatId, visitorId: resolvedVisitorId, messages: requestMessages },
                 {
                     signal: abortController.signal,
                     onStart: ({ chatId: nextChatId }) => {
@@ -491,22 +516,20 @@ export function AuthSupportChat() {
                         </div>
                     </header>
 
-                    <div
-                        ref={messagesContainerRef}
-                        onScroll={handleMessagesScroll}
-                        className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-muted/20 px-4 py-4"
-                    >
-                        {showStarterPrompts && (
-                            <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 p-3 shadow-xs dark:bg-input/20">
-                                <p className="text-xs font-medium text-muted-foreground">Try one of these</p>
-                                <div className="flex flex-wrap gap-2">
+                    <div className="shrink-0 border-b border-border/60 bg-muted/20 px-4 py-3">
+                        <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Examples</p>
+                            <div
+                                aria-label="Suggested prompts"
+                                className="flex flex-nowrap gap-2 overflow-x-auto overflow-y-hidden"
+                            >
                                 {STARTER_PROMPTS.map((prompt) => (
                                     <Button
                                         key={prompt}
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        className="h-auto max-w-full justify-start whitespace-normal rounded-xl border-border/60 bg-background/80 px-3 py-2 text-left text-xs leading-5 hover:bg-accent dark:bg-input/30 dark:hover:bg-input/50"
+                                        className="h-8 shrink-0 rounded-full border-border/60 bg-background/80 px-3 text-xs whitespace-nowrap hover:bg-accent dark:bg-input/30 dark:hover:bg-input/50"
                                         onClick={() => {
                                             handleStarterPromptClick(prompt);
                                         }}
@@ -515,10 +538,15 @@ export function AuthSupportChat() {
                                         {prompt}
                                     </Button>
                                 ))}
-                                </div>
                             </div>
-                        )}
+                        </div>
+                    </div>
 
+                    <div
+                        ref={messagesContainerRef}
+                        onScroll={handleMessagesScroll}
+                        className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-muted/20 px-4 py-4"
+                    >
                         {messages
                             .filter((message) => message.content.trim().length > 0)
                             .map((message) => (
@@ -535,7 +563,7 @@ export function AuthSupportChat() {
                                     )}
                                 >
                                     {message.role === 'assistant' ? (
-                                        <BotChatMarkdown content={message.content} />
+                                        <BotChatMarkdown content={message.content} onInternalLinkClick={minimizeChat} />
                                     ) : (
                                         message.content
                                     )}
@@ -561,7 +589,7 @@ export function AuthSupportChat() {
                                 value={draft}
                                 onChange={(event) => setDraft(event.target.value)}
                                 onKeyDown={handleTextareaKeyDown}
-                                placeholder="Ask about blogs, galleries, or system status..."
+                                placeholder="Ask about accounts, content, features, or system status..."
                                 rows={3}
                                 className="min-h-16 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
                                 disabled={isReplying}

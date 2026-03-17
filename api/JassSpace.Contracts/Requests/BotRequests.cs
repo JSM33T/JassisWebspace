@@ -7,5 +7,6 @@ public sealed record BotChatMessageRequest(
 
 public sealed record CreateBotChatRequest(
     Guid? ChatId,
+    string? VisitorId,
     IReadOnlyList<BotChatMessageRequest> Messages
 );

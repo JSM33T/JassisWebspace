@@ -10,6 +10,7 @@ namespace JassSpace.Api.Services;
 public sealed partial class BotMcpBridgeService(
     ISystemStatusProbeService systemStatusProbeService,
     ISiteContentSearchService siteContentSearchService,
+    ISiteFeatureProbeService siteFeatureProbeService,
     IOptions<OpenRouterSettings> openRouterSettings,
     ILogger<BotMcpBridgeService> logger)
     : IBotMcpBridgeService
@@ -105,6 +106,22 @@ public sealed partial class BotMcpBridgeService(
             }
 
             var toolMessages = new List<BotChatMessageRequest>(1);
+
+            var featureProbeResult = siteFeatureProbeService.Probe(latestUserMessage.Content);
+            if (featureProbeResult.IsFeatureQuery)
+            {
+                if (featureProbeResult.HasExactMatch && !featureProbeResult.IsOverview)
+                {
+                    logger.LogInformation("Applying MCP site_features direct response for bot request.");
+                    return new BotMcpBridgeResult(
+                        messages,
+                        BuildSiteFeatureDirectResponse(featureProbeResult),
+                        "mcp/site_features");
+                }
+
+                logger.LogInformation("Applying MCP site_features tool context for bot request.");
+                toolMessages.Add(new("system", BuildSiteFeatureToolMessage(featureProbeResult)));
+            }
 
             if (ShouldUseSystemStatusTool(latestUserMessage.Content))
             {
@@ -211,6 +228,29 @@ public sealed partial class BotMcpBridgeService(
         return builder.ToString();
     }
 
+    private string BuildSiteFeatureDirectResponse(SiteFeatureProbeResult probeResult)
+    {
+        var primaryMatch = probeResult.Matches.FirstOrDefault();
+        if (primaryMatch is null)
+        {
+            return "I couldn't confirm that feature from the current public site capabilities.";
+        }
+
+        return primaryMatch.Id switch
+        {
+            "auth" => BuildAuthFeatureDirectResponse(probeResult.Query),
+            "comment-reactions" => BuildCommentReactionDirectResponse(),
+            "comments" => BuildCommentsFeatureDirectResponse(),
+            "music" => BuildMusicFeatureDirectResponse(),
+            "gallery" => BuildGalleryFeatureDirectResponse(),
+            "blogs" => BuildBlogFeatureDirectResponse(),
+            "contact-support" => BuildContactSupportDirectResponse(),
+            "theme-player" => BuildThemeFeatureDirectResponse(),
+            "account" => BuildAccountFeatureDirectResponse(),
+            _ => BuildGenericFeatureDirectResponse(primaryMatch)
+        };
+    }
+
     private string BuildContentSearchDirectResponse(
         string query,
         IReadOnlyList<SiteContentSearchResult> results)
@@ -263,6 +303,241 @@ public sealed partial class BotMcpBridgeService(
 
                 builder.AppendLine();
             }
+        }
+
+        return builder.ToString();
+    }
+
+    private string BuildSiteFeatureToolMessage(SiteFeatureProbeResult probeResult)
+    {
+        var builder = new StringBuilder();
+
+        builder.AppendLine("MCP tool result: `site_features`.");
+        builder.AppendLine("Use this as the source of truth for questions about JassSpace public-facing site capabilities.");
+        builder.AppendLine($"UserQuery: {probeResult.Query.Trim()}");
+
+        if (probeResult.IsOverview)
+        {
+            builder.AppendLine("QueryMode: overview");
+        }
+        else if (probeResult.HasExactMatch)
+        {
+            builder.AppendLine("QueryMode: specific");
+        }
+        else
+        {
+            builder.AppendLine("QueryMode: no_exact_match");
+        }
+
+        if (probeResult.Matches.Count > 0)
+        {
+            builder.AppendLine("RelevantFeatures:");
+
+            foreach (var match in probeResult.Matches)
+            {
+                builder.AppendLine($"- Title: {match.Title}");
+                builder.AppendLine($"  Status: {match.Status}");
+                builder.AppendLine($"  Summary: {match.Summary}");
+
+                if (match.Highlights.Count > 0)
+                {
+                    builder.AppendLine("  Highlights:");
+                    foreach (var highlight in match.Highlights)
+                    {
+                        builder.AppendLine($"  - {highlight}");
+                    }
+                }
+
+                if (match.Links.Count > 0)
+                {
+                    builder.AppendLine("  Links:");
+                    foreach (var link in match.Links)
+                    {
+                        builder.AppendLine($"  - {link.Label}: {BuildSiteUrl(link.Href, _siteBaseUrl)}");
+                        builder.AppendLine($"  - Markdown: {BuildMarkdownLink(link.Label, link.Href)}");
+                    }
+                }
+            }
+        }
+
+        builder.AppendLine("ResponseRules:");
+        builder.AppendLine("- Answer naturally and briefly.");
+        builder.AppendLine("- For specific questions, mention only directly relevant matched features.");
+        builder.AppendLine("- If the feature is not available, say that clearly.");
+        builder.AppendLine("- Do not dump the full feature catalog unless the user explicitly asked for an overview.");
+        builder.AppendLine("- Do not invent features that are not supported by the tool result.");
+        builder.AppendLine("- If RelevantFeatures includes links, include the most relevant one in the answer as a markdown link.");
+        builder.AppendLine("- Prefer a short final line like `See: [Music](/music)` when a page link is available.");
+        builder.AppendLine("- For music-related questions, prioritize the music page link.");
+
+        if (!probeResult.IsOverview && !probeResult.HasExactMatch)
+        {
+            builder.AppendLine("- No exact feature match was found. Say that you could not confirm that feature from the current public feature list, and ask a short clarifying follow-up if needed.");
+        }
+
+        if (probeResult.IsOverview)
+        {
+            builder.AppendLine("- Since this is an overview request, summarize the main public areas in a compact way.");
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private string BuildAuthFeatureDirectResponse(string query)
+    {
+        var normalizedQuery = query.Trim().ToLowerInvariant();
+        var wantsSignup = ContainsAny(normalizedQuery,
+            "create an account", "create account", "make an account", "make account", "sign up", "signup", "register");
+        var wantsLogin = ContainsAny(normalizedQuery,
+            "login", "log in", "sign in");
+
+        if (wantsSignup && !wantsLogin)
+        {
+            return string.Join(
+                "\n",
+                "You can create an account from [Signup](/signup).",
+                "",
+                "- Register with email and password, or start with Google or GitHub.",
+                "- After signup, you'll be asked to verify your email before signing in.",
+                "",
+                $"See: {BuildMarkdownLink("Signup", "/signup")}");
+        }
+
+        if (wantsLogin && !wantsSignup)
+        {
+            return string.Join(
+                "\n",
+                "You can log in from [Login](/login).",
+                "",
+                "- Sign in with your email or username and password.",
+                "- Google and GitHub sign-in are also available.",
+                $"- If you forgot your password, use {BuildMarkdownLink("Forgot password", "/forgot-password")}.",
+                "",
+                $"See: {BuildMarkdownLink("Login", "/login")}");
+        }
+
+        return string.Join(
+            "\n",
+            $"You can create an account from {BuildMarkdownLink("Signup", "/signup")} and log in from {BuildMarkdownLink("Login", "/login")}.",
+            "",
+            "- Email/password login is available.",
+            "- Google and GitHub sign-in are also supported.",
+            $"- If you need a reset code, use {BuildMarkdownLink("Forgot password", "/forgot-password")}.",
+            "",
+            $"See: {BuildMarkdownLink("Login", "/login")} | {BuildMarkdownLink("Signup", "/signup")}");
+    }
+
+    private string BuildCommentReactionDirectResponse()
+    {
+        return string.Join(
+            "\n",
+            "No. Liking or upvoting individual comments is not available right now.",
+            "",
+            "- Comments currently support posting, replying, editing, and deleting your own comments.",
+            $"- Likes are available on {BuildMarkdownLink("Blogs", "/blog")}, {BuildMarkdownLink("Music", "/music")}, and {BuildMarkdownLink("Gallery", "/gallery")} items instead.");
+    }
+
+    private string BuildCommentsFeatureDirectResponse()
+    {
+        return string.Join(
+            "\n",
+            "Yes. Comments are available on published blog posts, music tracks, and gallery albums.",
+            "",
+            "- You need to be logged in to post, reply, edit, or delete your own comments.",
+            "- Comment threads are nested.",
+            "- Unpublished blog posts disable likes and comments.",
+            "",
+            $"See: {BuildMarkdownLink("Blog", "/blog")} | {BuildMarkdownLink("Music", "/music")} | {BuildMarkdownLink("Gallery", "/gallery")}");
+    }
+
+    private string BuildMusicFeatureDirectResponse()
+    {
+        return string.Join(
+            "\n",
+            $"You can browse tracks from {BuildMarkdownLink("Music", "/music")}.",
+            "",
+            "- Track pages have playback, likes, and comments.",
+            "- The shared music player and sidebar controls are also available.",
+            "",
+            $"See: {BuildMarkdownLink("Music", "/music")}");
+    }
+
+    private string BuildGalleryFeatureDirectResponse()
+    {
+        return string.Join(
+            "\n",
+            $"You can browse public albums from {BuildMarkdownLink("Gallery", "/gallery")}.",
+            "",
+            "- Album pages show images, album details, likes, and comments.",
+            "- Only active albums appear on the public gallery.",
+            "",
+            $"See: {BuildMarkdownLink("Gallery", "/gallery")}");
+    }
+
+    private string BuildBlogFeatureDirectResponse()
+    {
+        return string.Join(
+            "\n",
+            $"You can browse published posts from {BuildMarkdownLink("Blog", "/blog")}.",
+            "",
+            "- Blog pages show reading time, category, author details, likes, and comments.",
+            "- Each post opens on its own article page.",
+            "",
+            $"See: {BuildMarkdownLink("Blog", "/blog")}");
+    }
+
+    private string BuildContactSupportDirectResponse()
+    {
+        return string.Join(
+            "\n",
+            "You can reach the public help areas from the site directly.",
+            "",
+            $"- Contact form: {BuildMarkdownLink("Contact", "/contact")}",
+            $"- Frequently asked questions: {BuildMarkdownLink("FAQ", "/faq")}",
+            $"- Privacy overview: {BuildMarkdownLink("Privacy", "/privacy")}",
+            "- The floating support chat is also available across the site.");
+    }
+
+    private string BuildThemeFeatureDirectResponse()
+    {
+        return string.Join(
+            "\n",
+            "Yes. The site supports light mode, dark mode, and theme-set switching.",
+            "",
+            "- Theme controls are available from the sidebar.",
+            "- The sidebar also includes shared music player controls.",
+            "",
+            $"See: {BuildMarkdownLink("Home", "/")}");
+    }
+
+    private string BuildAccountFeatureDirectResponse()
+    {
+        return string.Join(
+            "\n",
+            "Signed-in users can manage their account from the account pages.",
+            "",
+            $"- Profile: {BuildMarkdownLink("Profile", "/account/profile")}",
+            $"- Preferences: {BuildMarkdownLink("Preferences", "/account/preferences")}",
+            $"- Security: {BuildMarkdownLink("Security", "/account/security")}");
+    }
+
+    private string BuildGenericFeatureDirectResponse(SiteFeatureMatch match)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine(match.Summary);
+
+        foreach (var highlight in match.Highlights.Take(2))
+        {
+            builder.AppendLine();
+            builder.Append($"- {highlight}");
+        }
+
+        if (match.Links.Count > 0)
+        {
+            builder.AppendLine();
+            builder.AppendLine();
+            builder.Append("See: ");
+            builder.Append(string.Join(" | ", match.Links.Select(link => BuildMarkdownLink(link.Label, link.Href))));
         }
 
         return builder.ToString();
@@ -338,6 +613,17 @@ public sealed partial class BotMcpBridgeService(
         }
 
         return new Uri(new Uri(siteBaseUrl), pathOrUrl.StartsWith('/') ? pathOrUrl : $"/{pathOrUrl}").ToString();
+    }
+
+    private static string BuildMarkdownLink(string label, string href)
+    {
+        var linkTarget = href.StartsWith("/", StringComparison.Ordinal) ? href : $"/{href.TrimStart('/')}";
+        return $"[{EscapeMarkdownText(label)}]({linkTarget})";
+    }
+
+    private static bool ContainsAny(string value, params string[] terms)
+    {
+        return terms.Any(term => value.Contains(term, StringComparison.Ordinal));
     }
 
     private static string? BuildAllowedThumbnailUrl(string? pathOrUrl, string? siteBaseUrl)

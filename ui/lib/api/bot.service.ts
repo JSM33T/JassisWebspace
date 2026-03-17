@@ -10,6 +10,7 @@ export interface BotChatMessageRequest {
 
 export interface CreateBotChatRequest {
     chatId?: string | null;
+    visitorId?: string | null;
     messages: BotChatMessageRequest[];
 }
 

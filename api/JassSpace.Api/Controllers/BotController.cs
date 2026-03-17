@@ -25,6 +25,7 @@ public sealed class BotController(
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly HashSet<string> AllowedRoles = ["system", "user", "assistant"];
+    private const int MaxVisitorIdLength = 64;
     private readonly string _configuredModel = string.IsNullOrWhiteSpace(openRouterSettings.Value?.Model)
         ? "unknown"
         : openRouterSettings.Value.Model.Trim();
@@ -48,7 +49,7 @@ public sealed class BotController(
 
         try
         {
-            var chat = await UpsertChatAsync(request.ChatId, normalizedMessages!, cancellationToken);
+            var chat = await UpsertChatAsync(request.ChatId, request.VisitorId, normalizedMessages!, cancellationToken);
             var bridgeResult = await botMcpBridgeService.ResolveAsync(normalizedMessages!, cancellationToken);
             var completion = bridgeResult.DirectResponse is not null
                 ? CreateDirectCompletionResult(bridgeResult)
@@ -102,7 +103,7 @@ public sealed class BotController(
 
         try
         {
-            var chat = await UpsertChatAsync(request.ChatId, normalizedMessages!, cancellationToken);
+            var chat = await UpsertChatAsync(request.ChatId, request.VisitorId, normalizedMessages!, cancellationToken);
             var bridgeResult = await botMcpBridgeService.ResolveAsync(normalizedMessages!, cancellationToken);
             var streamModel = string.IsNullOrWhiteSpace(bridgeResult.Model) ? _configuredModel : bridgeResult.Model;
             await WriteEventAsync(
@@ -174,6 +175,12 @@ public sealed class BotController(
             return BadRequestProblem("Too many messages", "A maximum of 20 messages is allowed per request.");
         }
 
+        var visitorId = NormalizeVisitorId(request.VisitorId);
+        if (request.VisitorId is not null && visitorId is null)
+        {
+            return BadRequestProblem("Invalid visitor ID", $"Visitor ID must be {MaxVisitorIdLength} characters or less.");
+        }
+
         var normalized = new List<BotChatMessageRequest>(request.Messages.Count);
         foreach (var message in request.Messages)
         {
@@ -219,19 +226,35 @@ public sealed class BotController(
 
     private async Task<Chat> UpsertChatAsync(
         Guid? requestedChatId,
+        string? requestedVisitorId,
         IReadOnlyList<BotChatMessageRequest> normalizedMessages,
         CancellationToken cancellationToken)
     {
-        var chatId = requestedChatId is { } value && value != Guid.Empty
-            ? value
-            : Guid.NewGuid();
+        var resolvedUserId = TryGetAuthenticatedUserId();
+        var resolvedVisitorId = NormalizeVisitorId(requestedVisitorId);
+        Chat? chat = null;
+        var chatId = Guid.NewGuid();
+
+        if (requestedChatId is { } existingChatId && existingChatId != Guid.Empty)
+        {
+            var existingChat = await dbContext.Chats.SingleOrDefaultAsync(c => c.Id == existingChatId, cancellationToken);
+            if (existingChat is not null && CanContinueChat(existingChat, resolvedUserId, resolvedVisitorId))
+            {
+                chat = existingChat;
+                chatId = existingChat.Id;
+                AttachOwner(chat, resolvedUserId, resolvedVisitorId);
+            }
+            else if (existingChat is null)
+            {
+                chatId = existingChatId;
+            }
+        }
 
         var utcNow = DateTimeOffset.UtcNow;
         var incomingMessages = normalizedMessages
             .Select(message => new PersistedChatMessage(message.Role, message.Content))
             .ToList();
 
-        var chat = await dbContext.Chats.SingleOrDefaultAsync(c => c.Id == chatId, cancellationToken);
         var mergedMessages = MergeMessages(chat is null ? [] : ReadStoredMessages(chat), incomingMessages);
 
         if (chat is null)
@@ -239,6 +262,8 @@ public sealed class BotController(
             chat = new Chat
             {
                 Id = chatId,
+                UserId = resolvedUserId,
+                VisitorId = resolvedVisitorId,
                 MessagesJson = SerializeMessages(mergedMessages),
                 CreatedAt = utcNow,
                 UpdatedAt = utcNow
@@ -343,6 +368,55 @@ public sealed class BotController(
     {
         return string.Equals(left.Role, right.Role, StringComparison.Ordinal)
             && string.Equals(left.Content, right.Content, StringComparison.Ordinal);
+    }
+
+    private Guid? TryGetAuthenticatedUserId()
+    {
+        return IsAuthenticated && Guid.TryParse(UserId, out var parsedUserId)
+            ? parsedUserId
+            : null;
+    }
+
+    private static string? NormalizeVisitorId(string? visitorId)
+    {
+        if (string.IsNullOrWhiteSpace(visitorId))
+        {
+            return null;
+        }
+
+        var trimmed = visitorId.Trim();
+        return trimmed.Length <= MaxVisitorIdLength
+            ? trimmed
+            : null;
+    }
+
+    private static bool CanContinueChat(Chat chat, Guid? resolvedUserId, string? resolvedVisitorId)
+    {
+        if (chat.UserId.HasValue)
+        {
+            return resolvedUserId.HasValue && chat.UserId.Value == resolvedUserId.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(chat.VisitorId))
+        {
+            return !string.IsNullOrWhiteSpace(resolvedVisitorId)
+                && string.Equals(chat.VisitorId, resolvedVisitorId, StringComparison.Ordinal);
+        }
+
+        return !resolvedUserId.HasValue && string.IsNullOrWhiteSpace(resolvedVisitorId);
+    }
+
+    private static void AttachOwner(Chat chat, Guid? resolvedUserId, string? resolvedVisitorId)
+    {
+        if (!chat.UserId.HasValue && resolvedUserId.HasValue)
+        {
+            chat.UserId = resolvedUserId.Value;
+        }
+
+        if (string.IsNullOrWhiteSpace(chat.VisitorId) && !string.IsNullOrWhiteSpace(resolvedVisitorId))
+        {
+            chat.VisitorId = resolvedVisitorId;
+        }
     }
 
     private sealed record PersistedChatMessage(string Role, string Content);

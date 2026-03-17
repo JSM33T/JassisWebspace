@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText } from "lucide-react";
+import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, MessageCircleMore } from "lucide-react";
 
 const routes = [
     {
@@ -43,6 +43,12 @@ const routes = [
         color: "text-cyan-500",
     },
     {
+        label: "Chats",
+        icon: MessageCircleMore,
+        href: "/admin/chats",
+        color: "text-indigo-400",
+    },
+    {
         label: "Music",
         icon: Music2,
         href: "/admin/music",
@@ -68,21 +74,27 @@ export function AdminSidebar() {
                     </h1>
                 </Link>
                 <div className="space-y-1">
-                    {routes.map((route) => (
-                        <Link
-                            key={route.href}
-                            href={route.href}
-                            className={cn(
-                                "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                                pathname.startsWith(route.href) ? "text-white bg-white/10" : "text-zinc-400"
-                            )}
-                        >
-                            <div className="flex items-center flex-1">
-                                <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
-                                {route.label}
-                            </div>
-                        </Link>
-                    ))}
+                    {routes.map((route) => {
+                        const isActive = route.href === "/admin"
+                            ? pathname === route.href
+                            : pathname.startsWith(route.href);
+
+                        return (
+                            <Link
+                                key={route.href}
+                                href={route.href}
+                                className={cn(
+                                    "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
+                                    isActive ? "text-white bg-white/10" : "text-zinc-400"
+                                )}
+                            >
+                                <div className="flex items-center flex-1">
+                                    <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
+                                    {route.label}
+                                </div>
+                            </Link>
+                        );
+                    })}
                 </div>
             </div>
         </div>

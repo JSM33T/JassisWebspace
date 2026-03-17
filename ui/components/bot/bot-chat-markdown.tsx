@@ -1,29 +1,48 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
+import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 interface BotChatMarkdownProps {
     content: string;
+    onInternalLinkClick?: () => void;
 }
 
-export function BotChatMarkdown({ content }: BotChatMarkdownProps) {
+const INTERNAL_SITE_ORIGINS = createInternalSiteOrigins();
+
+export function BotChatMarkdown({ content, onInternalLinkClick }: BotChatMarkdownProps) {
     return (
         <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none break-words text-foreground prose-headings:my-2 prose-headings:text-foreground prose-h2:text-sm prose-h2:font-semibold prose-h3:text-sm prose-h3:font-semibold prose-p:my-2 prose-p:text-foreground prose-p:leading-6 prose-ul:my-2 prose-ul:text-foreground prose-ul:pl-5 prose-ol:my-2 prose-ol:text-foreground prose-ol:pl-5 prose-li:my-1 prose-li:text-foreground prose-strong:text-foreground prose-em:text-muted-foreground prose-a:text-primary prose-a:no-underline prose-a:font-medium hover:prose-a:underline prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em] prose-code:text-foreground prose-img:my-2 prose-img:w-full prose-img:rounded-2xl prose-img:border prose-img:border-border/60 prose-img:object-cover">
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                    a: ({ href, children }) => (
-                        <a
-                            href={href}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            className="font-medium text-primary underline-offset-4 hover:underline"
-                        >
-                            {children}
-                        </a>
-                    ),
+                    a: ({ href, children }) => {
+                        const internalHref = resolveInternalHref(href);
+                        if (internalHref) {
+                            return (
+                                <Link
+                                    href={internalHref}
+                                    className="font-medium text-primary underline-offset-4 hover:underline"
+                                    onClick={onInternalLinkClick}
+                                >
+                                    {children}
+                                </Link>
+                            );
+                        }
+
+                        return (
+                            <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                                className="font-medium text-primary underline-offset-4 hover:underline"
+                            >
+                                {children}
+                            </a>
+                        );
+                    },
                     img: ({ src, alt }) => (
                         <img
                             src={src ?? ''}
@@ -47,4 +66,53 @@ export function BotChatMarkdown({ content }: BotChatMarkdownProps) {
             </ReactMarkdown>
         </div>
     );
+}
+
+function resolveInternalHref(href?: string): string | null {
+    if (!href) {
+        return null;
+    }
+
+    if (href.startsWith('/') && !href.startsWith('//')) {
+        return href;
+    }
+
+    if (href.startsWith('#')) {
+        return href;
+    }
+
+    try {
+        const url = new URL(href);
+        return INTERNAL_SITE_ORIGINS.has(url.origin)
+            ? `${url.pathname}${url.search}${url.hash}`
+            : null;
+    } catch {
+        return null;
+    }
+}
+
+function createInternalSiteOrigins(): Set<string> {
+    const origins = new Set<string>();
+    addSiteOrigin(origins, process.env.NEXT_PUBLIC_SITE_URL);
+    addSiteOrigin(origins, 'https://jassi.me');
+    return origins;
+}
+
+function addSiteOrigin(origins: Set<string>, siteUrl?: string) {
+    if (!siteUrl) {
+        return;
+    }
+
+    try {
+        const origin = new URL(siteUrl).origin;
+        origins.add(origin);
+
+        const alternateOrigin = origin.includes('://www.')
+            ? origin.replace('://www.', '://')
+            : origin.replace('://', '://www.');
+
+        origins.add(alternateOrigin);
+    } catch {
+        // Ignore invalid site URLs and fall back to other configured origins.
+    }
 }

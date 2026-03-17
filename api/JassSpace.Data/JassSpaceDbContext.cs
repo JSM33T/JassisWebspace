@@ -647,6 +647,9 @@ public class JassSpaceDbContext : DbContext
 
         entity.HasKey(c => c.Id);
 
+        entity.Property(c => c.VisitorId)
+            .HasMaxLength(64);
+
         entity.Property(c => c.MessagesJson)
             .HasColumnType("jsonb")
             .IsRequired();
@@ -654,7 +657,14 @@ public class JassSpaceDbContext : DbContext
         entity.Property(c => c.Model)
             .HasMaxLength(200);
 
+        entity.HasOne(c => c.User)
+            .WithMany()
+            .HasForeignKey(c => c.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         entity.HasIndex(c => c.CreatedAt);
         entity.HasIndex(c => c.UpdatedAt);
+        entity.HasIndex(c => c.UserId);
+        entity.HasIndex(c => c.VisitorId);
     }
 }
