@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export const BACK_TO_TOP_VISIBILITY_EVENT = "jassspace:back-to-top-visibility";
+
 function getScrollProgress() {
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     const scrollableHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
@@ -25,11 +27,20 @@ export function BackToTopProgress() {
         let burstResetTimeout: ReturnType<typeof setTimeout> | null = null;
         let lastScrollY = window.scrollY || document.documentElement.scrollTop;
         let burstCount = 0;
+        const dispatchVisibility = (visible: boolean) => {
+            window.dispatchEvent(
+                new CustomEvent(BACK_TO_TOP_VISIBILITY_EVENT, {
+                    detail: { visible },
+                })
+            );
+        };
 
         const updateProgress = () => {
             const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+            const nextVisible = currentScrollY > 0 && currentScrollY >= lastScrollY;
             setProgress(getScrollProgress());
-            setIsVisible(currentScrollY > 0 && currentScrollY >= lastScrollY);
+            setIsVisible(nextVisible);
+            dispatchVisibility(nextVisible);
             lastScrollY = currentScrollY;
             burstCount += 1;
 
@@ -55,6 +66,7 @@ export function BackToTopProgress() {
             }, 150);
             hideTimeout = setTimeout(() => {
                 setIsVisible(false);
+                dispatchVisibility(false);
             }, 3000);
         };
 
@@ -74,6 +86,7 @@ export function BackToTopProgress() {
             if (burstResetTimeout) {
                 clearTimeout(burstResetTimeout);
             }
+            dispatchVisibility(false);
         };
     }, []);
 

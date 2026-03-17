@@ -15,6 +15,11 @@ internal static class RateLimitResponseExtensions
 
     internal static void ApplyRateLimitHeaders(HttpResponse response, RateLimitDecision decision)
     {
+        if (response.HasStarted)
+        {
+            return;
+        }
+
         var headers = response.Headers;
         headers[HeaderPolicy] = decision.PolicyName;
         headers[HeaderLimit] = decision.Limit.ToString(CultureInfo.InvariantCulture);

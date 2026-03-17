@@ -135,11 +135,13 @@ builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.Configure<IpGeolocationOptions>(builder.Configuration.GetSection("IpGeolocation"));
 builder.Services.Configure<BootlegStreamingSettings>(builder.Configuration.GetSection("BootlegStreaming"));
+builder.Services.Configure<OpenRouterSettings>(builder.Configuration.GetSection(OpenRouterSettings.SectionName));
 builder.Services.Configure<TurnstileOptions>(builder.Configuration.GetSection(TurnstileOptions.SectionName));
 builder.Services.AddSingleton<IClientIpResolver, ClientIpResolver>();
 builder.Services.AddSingleton<IIpGeolocationService, IpGeolocationService>();
 builder.Services.AddSingleton<IBootlegTokenService, BootlegTokenService>();
 builder.Services.AddScoped<ITurnstileVerificationService, TurnstileVerificationService>();
+builder.Services.AddSingleton<IOpenRouterBotService, MockOpenRouterBotService>();
 
 // Add custom app services (example)
 // builder.Services.AddSingleton<ILoggingService, LoggingService>();

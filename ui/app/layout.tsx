@@ -12,6 +12,7 @@ import { buildMetadata } from "@/lib/seo";
 import { BackToTopProgress } from "@/components/back-to-top-progress";
 import { RouteProgressBar } from "@/components/route-progress-bar";
 import { CursorMeshBackground } from "@/components/cursor-mesh-background";
+import { AuthSupportChat } from "@/components/auth-support-chat";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -73,6 +74,7 @@ export default function RootLayout({
                 </div>
               </div>
               <BackToTopProgress />
+              <AuthSupportChat />
               <Toaster
                 position="bottom-center"
                 expand
