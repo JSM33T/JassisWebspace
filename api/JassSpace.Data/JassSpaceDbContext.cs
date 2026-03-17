@@ -39,6 +39,7 @@ public class JassSpaceDbContext : DbContext
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
     public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<Chat> Chats => Set<Chat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,6 +75,7 @@ public class JassSpaceDbContext : DbContext
         ConfigureCommentEntity(modelBuilder);
         ConfigureLikeEntity(modelBuilder);
         ConfigureContactEntity(modelBuilder);
+        ConfigureChatEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
@@ -637,5 +639,22 @@ public class JassSpaceDbContext : DbContext
 
         entity.HasIndex(c => c.CreatedAt);
         entity.HasIndex(c => c.Email);
+    }
+
+    private void ConfigureChatEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Chat>();
+
+        entity.HasKey(c => c.Id);
+
+        entity.Property(c => c.MessagesJson)
+            .HasColumnType("jsonb")
+            .IsRequired();
+
+        entity.Property(c => c.Model)
+            .HasMaxLength(200);
+
+        entity.HasIndex(c => c.CreatedAt);
+        entity.HasIndex(c => c.UpdatedAt);
     }
 }

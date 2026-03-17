@@ -15,6 +15,7 @@ using JassSpace.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Exceptions;
 
@@ -135,13 +136,36 @@ builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.Configure<IpGeolocationOptions>(builder.Configuration.GetSection("IpGeolocation"));
 builder.Services.Configure<BootlegStreamingSettings>(builder.Configuration.GetSection("BootlegStreaming"));
-builder.Services.Configure<OpenRouterSettings>(builder.Configuration.GetSection(OpenRouterSettings.SectionName));
+builder.Services
+    .AddOptions<OpenRouterSettings>()
+    .Bind(builder.Configuration.GetSection(OpenRouterSettings.SectionName))
+    .Validate(
+        settings => Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out _),
+        "OpenRouter:BaseUrl must be an absolute URI.")
+    .Validate(
+        settings => !string.IsNullOrWhiteSpace(settings.Model),
+        "OpenRouter:Model is required.")
+    .ValidateOnStart();
 builder.Services.Configure<TurnstileOptions>(builder.Configuration.GetSection(TurnstileOptions.SectionName));
 builder.Services.AddSingleton<IClientIpResolver, ClientIpResolver>();
 builder.Services.AddSingleton<IIpGeolocationService, IpGeolocationService>();
 builder.Services.AddSingleton<IBootlegTokenService, BootlegTokenService>();
 builder.Services.AddScoped<ITurnstileVerificationService, TurnstileVerificationService>();
-builder.Services.AddSingleton<IOpenRouterBotService, MockOpenRouterBotService>();
+builder.Services.AddHttpClient<IOpenRouterBotService, OpenRouterBotService>((serviceProvider, client) =>
+{
+    var settings = serviceProvider.GetRequiredService<IOptions<OpenRouterSettings>>().Value;
+    var baseUrl = string.IsNullOrWhiteSpace(settings.BaseUrl)
+        ? "https://openrouter.ai/api/v1/"
+        : settings.BaseUrl.Trim();
+
+    if (!baseUrl.EndsWith('/'))
+    {
+        baseUrl = $"{baseUrl}/";
+    }
+
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(120);
+});
 
 // Add custom app services (example)
 // builder.Services.AddSingleton<ILoggingService, LoggingService>();

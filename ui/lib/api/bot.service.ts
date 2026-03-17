@@ -9,16 +9,19 @@ export interface BotChatMessageRequest {
 }
 
 export interface CreateBotChatRequest {
+    chatId?: string | null;
     messages: BotChatMessageRequest[];
 }
 
 export interface BotChatResponse {
+    chatId: string;
     message: string;
     model: string;
     createdAt: string;
 }
 
 export interface BotStreamStartResponse {
+    chatId: string;
     model: string;
     startedAt: string;
 }
@@ -28,6 +31,7 @@ export interface BotStreamDeltaResponse {
 }
 
 export interface BotStreamCompleteResponse {
+    chatId: string;
     message: string;
     model: string;
     completedAt: string;

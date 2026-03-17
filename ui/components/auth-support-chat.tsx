@@ -19,10 +19,19 @@ interface ChatMessage {
 }
 
 interface PersistedChatState {
-    version: 1;
+    version: 2;
     savedAt: number;
     unreadCount: number;
+    chatId: string | null;
     messages: ChatMessage[];
+}
+
+interface ParsedPersistedChatState {
+    version?: number;
+    savedAt?: number;
+    unreadCount?: number;
+    chatId?: unknown;
+    messages?: unknown;
 }
 
 const MAX_CONTEXT_MESSAGES = 10;
@@ -113,8 +122,8 @@ function readPersistedChatState(): PersistedChatState | null {
             return null;
         }
 
-        const parsed = JSON.parse(raw) as Partial<PersistedChatState>;
-        if (parsed.version !== 1 || typeof parsed.savedAt !== 'number') {
+        const parsed = JSON.parse(raw) as ParsedPersistedChatState;
+        if ((parsed.version !== 1 && parsed.version !== 2) || typeof parsed.savedAt !== 'number') {
             window.localStorage.removeItem(CHAT_STORAGE_KEY);
             return null;
         }
@@ -126,12 +135,15 @@ function readPersistedChatState(): PersistedChatState | null {
 
         const messages = sanitizePersistedMessages(parsed.messages);
         return {
-            version: 1,
+            version: 2,
             savedAt: parsed.savedAt,
             unreadCount:
                 typeof parsed.unreadCount === 'number' && parsed.unreadCount > 0
                     ? Math.floor(parsed.unreadCount)
                     : 0,
+            chatId: typeof parsed.chatId === 'string' && parsed.chatId.trim().length > 0
+                ? parsed.chatId
+                : null,
             messages: messages.length > 0 ? messages : [createInitialMessage()],
         };
     } catch {
@@ -140,16 +152,17 @@ function readPersistedChatState(): PersistedChatState | null {
     }
 }
 
-function persistChatState(messages: ChatMessage[], unreadCount: number) {
+function persistChatState(messages: ChatMessage[], unreadCount: number, chatId: string | null) {
     if (typeof window === 'undefined') {
         return;
     }
 
     const persistedMessages = messages.filter((message) => message.content.trim().length > 0);
     const payload: PersistedChatState = {
-        version: 1,
+        version: 2,
         savedAt: Date.now(),
         unreadCount: Math.max(0, unreadCount),
+        chatId,
         messages: persistedMessages.length > 0 ? persistedMessages : [createInitialMessage()],
     };
 
@@ -163,6 +176,7 @@ export function AuthSupportChat() {
     const [draft, setDraft] = useState('');
     const [isReplying, setIsReplying] = useState(false);
     const [hasHydratedPersistence, setHasHydratedPersistence] = useState(false);
+    const [chatId, setChatId] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>(() => [createInitialMessage()]);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -181,6 +195,7 @@ export function AuthSupportChat() {
         setDraft('');
         setUnreadCount(0);
         setIsReplying(false);
+        setChatId(null);
         setMessages([createInitialMessage()]);
     };
 
@@ -217,6 +232,7 @@ export function AuthSupportChat() {
     useEffect(() => {
         const persistedState = readPersistedChatState();
         if (persistedState) {
+            setChatId(persistedState.chatId);
             setMessages(persistedState.messages);
             setUnreadCount(persistedState.unreadCount);
         }
@@ -229,8 +245,8 @@ export function AuthSupportChat() {
             return;
         }
 
-        persistChatState(messages, unreadCount);
-    }, [hasHydratedPersistence, messages, unreadCount]);
+        persistChatState(messages, unreadCount, chatId);
+    }, [chatId, hasHydratedPersistence, messages, unreadCount]);
 
     useEffect(() => {
         isOpenRef.current = isOpen;
@@ -319,9 +335,12 @@ export function AuthSupportChat() {
 
         try {
             await botService.streamChatCompletion(
-                { messages: requestMessages },
+                { chatId, messages: requestMessages },
                 {
                     signal: abortController.signal,
+                    onStart: ({ chatId: nextChatId }) => {
+                        setChatId(nextChatId);
+                    },
                     onDelta: ({ delta }) => {
                         setMessages((current) =>
                             current.map((message) =>
@@ -331,7 +350,8 @@ export function AuthSupportChat() {
                             )
                         );
                     },
-                    onComplete: ({ message }) => {
+                    onComplete: ({ chatId: nextChatId, message }) => {
+                        setChatId(nextChatId);
                         setMessages((current) =>
                             current.map((currentMessage) =>
                                 currentMessage.id === assistantMessageId

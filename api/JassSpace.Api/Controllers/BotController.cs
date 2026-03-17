@@ -5,8 +5,11 @@ using JassSpace.Api.Services;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
+using JassSpace.Data;
+using JassSpace.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace JassSpace.Api.Controllers;
@@ -15,6 +18,7 @@ namespace JassSpace.Api.Controllers;
 public sealed class BotController(
     IOpenRouterBotService botService,
     IOptions<OpenRouterSettings> openRouterSettings,
+    JassSpaceDbContext dbContext,
     ILogger<BotController> logger)
     : BaseApiController
 {
@@ -43,8 +47,11 @@ public sealed class BotController(
 
         try
         {
+            var chat = await UpsertChatAsync(request.ChatId, normalizedMessages!, cancellationToken);
             var completion = await botService.GetCompletionAsync(normalizedMessages!, cancellationToken);
+            await FinalizeChatAsync(chat, completion, cancellationToken);
             return OkEnvelope(new BotChatResponse(
+                chat.Id,
                 completion.Message,
                 completion.Model,
                 completion.CreatedAt));
@@ -91,9 +98,10 @@ public sealed class BotController(
 
         try
         {
+            var chat = await UpsertChatAsync(request.ChatId, normalizedMessages!, cancellationToken);
             await WriteEventAsync(
                 "start",
-                new BotStreamStartResponse(_configuredModel, DateTimeOffset.UtcNow),
+                new BotStreamStartResponse(chat.Id, _configuredModel, DateTimeOffset.UtcNow),
                 cancellationToken);
 
             var completion = await botService.StreamCompletionAsync(
@@ -104,9 +112,11 @@ public sealed class BotController(
                 },
                 cancellationToken);
 
+            await FinalizeChatAsync(chat, completion, cancellationToken);
             await WriteEventAsync(
                 "complete",
                 new BotStreamCompleteResponse(
+                    chat.Id,
                     completion.Message,
                     completion.Model,
                     completion.CreatedAt),
@@ -183,4 +193,134 @@ public sealed class BotController(
         await Response.WriteAsync($"data: {JsonSerializer.Serialize(payload, JsonOptions)}\n\n", cancellationToken);
         await Response.Body.FlushAsync(cancellationToken);
     }
+
+    private async Task<Chat> UpsertChatAsync(
+        Guid? requestedChatId,
+        IReadOnlyList<BotChatMessageRequest> normalizedMessages,
+        CancellationToken cancellationToken)
+    {
+        var chatId = requestedChatId is { } value && value != Guid.Empty
+            ? value
+            : Guid.NewGuid();
+
+        var utcNow = DateTimeOffset.UtcNow;
+        var incomingMessages = normalizedMessages
+            .Select(message => new PersistedChatMessage(message.Role, message.Content))
+            .ToList();
+
+        var chat = await dbContext.Chats.SingleOrDefaultAsync(c => c.Id == chatId, cancellationToken);
+        var mergedMessages = MergeMessages(chat is null ? [] : ReadStoredMessages(chat), incomingMessages);
+
+        if (chat is null)
+        {
+            chat = new Chat
+            {
+                Id = chatId,
+                MessagesJson = SerializeMessages(mergedMessages),
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow
+            };
+
+            dbContext.Chats.Add(chat);
+        }
+        else
+        {
+            chat.MessagesJson = SerializeMessages(mergedMessages);
+            chat.UpdatedAt = utcNow;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return chat;
+    }
+
+    private async Task FinalizeChatAsync(
+        Chat chat,
+        BotChatCompletionResult completion,
+        CancellationToken cancellationToken)
+    {
+        var storedMessages = ReadStoredMessages(chat);
+        var assistantMessage = new PersistedChatMessage("assistant", completion.Message);
+
+        if (storedMessages.Count == 0 || !MessageEquals(storedMessages[^1], assistantMessage))
+        {
+            storedMessages.Add(assistantMessage);
+        }
+
+        chat.MessagesJson = SerializeMessages(storedMessages);
+        chat.Model = completion.Model;
+        chat.UpdatedAt = completion.CreatedAt;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private List<PersistedChatMessage> ReadStoredMessages(Chat chat)
+    {
+        try
+        {
+            var storedMessages = JsonSerializer.Deserialize<List<PersistedChatMessage>>(chat.MessagesJson, JsonOptions);
+            return storedMessages ?? [];
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Failed to parse stored chat transcript for chat {ChatId}.", chat.Id);
+            return [];
+        }
+    }
+
+    private static string SerializeMessages(IReadOnlyList<PersistedChatMessage> messages)
+    {
+        return JsonSerializer.Serialize(messages, JsonOptions);
+    }
+
+    private static List<PersistedChatMessage> MergeMessages(
+        IReadOnlyList<PersistedChatMessage> existingMessages,
+        IReadOnlyList<PersistedChatMessage> incomingMessages)
+    {
+        if (existingMessages.Count == 0)
+        {
+            return incomingMessages.ToList();
+        }
+
+        if (incomingMessages.Count == 0)
+        {
+            return existingMessages.ToList();
+        }
+
+        var maxOverlap = Math.Min(existingMessages.Count, incomingMessages.Count);
+        for (var overlap = maxOverlap; overlap > 0; overlap--)
+        {
+            var matches = true;
+            var existingStart = existingMessages.Count - overlap;
+
+            for (var index = 0; index < overlap; index++)
+            {
+                if (MessageEquals(existingMessages[existingStart + index], incomingMessages[index]))
+                {
+                    continue;
+                }
+
+                matches = false;
+                break;
+            }
+
+            if (!matches)
+            {
+                continue;
+            }
+
+            var mergedMessages = existingMessages.ToList();
+            mergedMessages.AddRange(incomingMessages.Skip(overlap));
+            return mergedMessages;
+        }
+
+        return incomingMessages.ToList();
+    }
+
+    private static bool MessageEquals(PersistedChatMessage left, PersistedChatMessage right)
+    {
+        return string.Equals(left.Role, right.Role, StringComparison.Ordinal)
+            && string.Equals(left.Content, right.Content, StringComparison.Ordinal);
+    }
+
+    private sealed record PersistedChatMessage(string Role, string Content);
 }

@@ -149,7 +149,7 @@ public sealed class OpenRouterBotService : IOpenRouterBotService
         bool stream)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiKey.Trim());
 
         if (!string.IsNullOrWhiteSpace(_settings.SiteUrl))
         {
@@ -163,7 +163,7 @@ public sealed class OpenRouterBotService : IOpenRouterBotService
 
         var payload = new Dictionary<string, object?>
         {
-            ["model"] = _settings.Model,
+            ["model"] = _settings.Model.Trim(),
             ["messages"] = BuildMessages(messages),
             ["stream"] = stream
         };
@@ -400,10 +400,17 @@ public sealed class OpenRouterBotService : IOpenRouterBotService
 
     private void EnsureConfigured()
     {
-        if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey) || IsPlaceholderApiKey(_settings.ApiKey))
         {
             throw new OpenRouterBotException("OpenRouter API key is not configured.", StatusCodes.Status503ServiceUnavailable);
         }
+    }
+
+    private static bool IsPlaceholderApiKey(string apiKey)
+    {
+        var trimmedApiKey = apiKey.Trim();
+        return trimmedApiKey.StartsWith("YOUR_", StringComparison.OrdinalIgnoreCase)
+            || trimmedApiKey.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase);
     }
 }
 
