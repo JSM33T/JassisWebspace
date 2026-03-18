@@ -1,7 +1,6 @@
 export * from './types';
 export * from './client';
 export * from './auth.service';
-export * from './bot.service';
 export * from './gallery.service';
 export * from './admin-gallery.service';
 export * from './admin-content.service';

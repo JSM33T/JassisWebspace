@@ -114,10 +114,6 @@ builder.Services.AddScoped<ICacheSubjectResolver, CacheSubjectResolver>();
 builder.Services.AddScoped<IRequestCacheKeyBuilder, RequestCacheKeyBuilder>();
 builder.Services.AddScoped<IHttpResponseCacheStore, HttpResponseCacheStore>();
 builder.Services.AddScoped<ICommentNotificationJob, CommentNotificationJob>();
-builder.Services.AddScoped<ISystemStatusProbeService, SystemStatusProbeService>();
-builder.Services.AddScoped<IBotMcpBridgeService, BotMcpBridgeService>();
-builder.Services.AddScoped<ISiteContentSearchService, SiteContentSearchService>();
-builder.Services.AddScoped<ISiteFeatureProbeService, SiteFeatureProbeService>();
 builder.Services.AddHttpClient();
 
 // Email Service Configuration
@@ -155,21 +151,6 @@ builder.Services.AddSingleton<IClientIpResolver, ClientIpResolver>();
 builder.Services.AddSingleton<IIpGeolocationService, IpGeolocationService>();
 builder.Services.AddSingleton<IBootlegTokenService, BootlegTokenService>();
 builder.Services.AddScoped<ITurnstileVerificationService, TurnstileVerificationService>();
-builder.Services.AddHttpClient<IOpenRouterBotService, OpenRouterBotService>((serviceProvider, client) =>
-{
-    var settings = serviceProvider.GetRequiredService<IOptions<OpenRouterSettings>>().Value;
-    var baseUrl = string.IsNullOrWhiteSpace(settings.BaseUrl)
-        ? "https://openrouter.ai/api/v1/"
-        : settings.BaseUrl.Trim();
-
-    if (!baseUrl.EndsWith('/'))
-    {
-        baseUrl = $"{baseUrl}/";
-    }
-
-    client.BaseAddress = new Uri(baseUrl);
-    client.Timeout = TimeSpan.FromSeconds(120);
-});
 
 // Add custom app services (example)
 // builder.Services.AddSingleton<ILoggingService, LoggingService>();

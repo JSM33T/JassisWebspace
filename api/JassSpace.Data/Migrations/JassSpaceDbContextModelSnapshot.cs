@@ -360,46 +360,6 @@ namespace JassSpace.Data.Migrations
                     b.ToTable("BootlegAssets");
                 });
 
-            modelBuilder.Entity("JassSpace.Entities.Chat", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("MessagesJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Model")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("VisitorId")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("UpdatedAt");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("VisitorId");
-
-                    b.ToTable("Chats");
-                });
-
             modelBuilder.Entity("JassSpace.Entities.Comment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1175,16 +1135,6 @@ namespace JassSpace.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Blog");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("JassSpace.Entities.Chat", b =>
-                {
-                    b.HasOne("JassSpace.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("User");
                 });

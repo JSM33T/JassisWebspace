@@ -10,8 +10,7 @@ namespace JassSpace.Api.Controllers;
 [Route("")]
 public sealed class HomeController(
     ILogger<HomeController> logger,
-    IHostEnvironment environment,
-    ISystemStatusProbeService systemStatusProbeService)
+    IHostEnvironment environment)
     : BaseApiController
 {
     /// <summary>
@@ -64,34 +63,6 @@ public sealed class HomeController(
             return Problem(
                 statusCode: StatusCodes.Status503ServiceUnavailable,
                 title: "Service Unavailable",
-                detail: ex.Message);
-        }
-    }
-
-    /// <summary>
-    /// Detailed system status used by the bot MCP bridge and operational diagnostics.
-    /// </summary>
-    [HttpGet("health/system-status")]
-    [ResponseCache(NoStore = true, Duration = 0, Location = ResponseCacheLocation.None)]
-    [ProducesResponseType(typeof(ApiResponse<SystemStatusSnapshot>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
-    public async Task<IActionResult> SystemStatus(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var snapshot = await systemStatusProbeService.GetSnapshotAsync(cancellationToken);
-            return OkEnvelope(snapshot);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex,
-                "System status check failed at {Time} with CorrelationId {CorrelationId}",
-                DateTimeOffset.UtcNow,
-                CorrelationId);
-
-            return Problem(
-                statusCode: StatusCodes.Status503ServiceUnavailable,
-                title: "System status unavailable",
                 detail: ex.Message);
         }
     }
