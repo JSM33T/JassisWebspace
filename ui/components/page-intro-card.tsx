@@ -12,6 +12,7 @@ type PageIntroCardProps = {
     topContent?: React.ReactNode;
     backHref?: string;
     backLabel?: string;
+    stickToTop?: boolean;
     className?: string;
     descriptionClassName?: string;
     children?: React.ReactNode;
@@ -25,6 +26,7 @@ export function PageIntroCard({
     topContent,
     backHref = '/',
     backLabel = 'Back',
+    stickToTop = false,
     className,
     descriptionClassName,
     children,
@@ -32,7 +34,10 @@ export function PageIntroCard({
     return (
         <div
             className={cn(
-                'relative overflow-hidden rounded-[2rem] border border-border/60 bg-card/55 px-6 py-6 shadow-xl shadow-black/5 backdrop-blur-xl sm:px-8 sm:py-8 md:px-10 md:py-10',
+                'relative overflow-hidden border border-border/60 bg-card/55 px-6 py-6 shadow-xl shadow-black/5 backdrop-blur-xl sm:px-8 sm:py-8 md:px-10 md:py-10',
+                stickToTop
+                    ? 'sticky top-0 z-20 rounded-b-[2rem] border-t-0'
+                    : 'rounded-[2rem]',
                 className,
             )}
         >

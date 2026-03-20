@@ -37,6 +37,7 @@ public sealed class SeoController(
                 .Where(b => b.Slug == slug && b.IsPublished)
                 .Select(b => new
                 {
+                    b.Id,
                     b.Title,
                     b.Slug,
                     b.Excerpt,
@@ -51,6 +52,15 @@ public sealed class SeoController(
                 return NotFoundProblem("Blog not found", $"No published blog found with slug '{slug}'.");
             }
 
+            var authorNames = await dbContext.BlogAuthors
+                .AsNoTracking()
+                .Where(ba => ba.BlogId == blog.Id)
+                .OrderBy(ba => ba.Order)
+                .Select(ba => ba.User.DisplayName ?? ba.User.Username)
+                .ToListAsync(cancellationToken);
+
+            var authorLabel = BuildAuthorLabel(authorNames);
+
             var tags = new List<string> { "blog", "article", "JassSpace" };
             if (!string.IsNullOrWhiteSpace(blog.CategoryName))
             {
@@ -62,8 +72,11 @@ public sealed class SeoController(
                 .ToList();
 
             var response = new BlogSeoResponse(
-                blog.Title,
-                BuildDescription(blog.Excerpt, blog.Content, "Read this JassSpace blog article."),
+                AppendAuthorSuffix(blog.Title, authorLabel),
+                AppendAuthorSuffix(
+                    BuildDescription(blog.Excerpt, blog.Content, "Read this JassSpace blog article."),
+                    authorLabel,
+                    MaxDescriptionLength),
                 BuildCanonicalUrl("blog", blog.Slug),
                 NormalizeBlogMediaUrl(blog.FeaturedImage),
                 tags,
@@ -231,6 +244,59 @@ public sealed class SeoController(
         }
 
         return $"{normalized[..(MaxDescriptionLength - 3)].Trim()}...";
+    }
+
+    private static string? BuildAuthorLabel(IEnumerable<string?> authorNames)
+    {
+        var names = authorNames
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => Regex.Replace(name!.Trim(), @"\s+", " "))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return names.Count == 0 ? null : string.Join(", ", names);
+    }
+
+    private static string AppendAuthorSuffix(string value, string? authorLabel, int? maxLength = null)
+    {
+        if (string.IsNullOrWhiteSpace(authorLabel))
+        {
+            return value;
+        }
+
+        var suffix = $" | {authorLabel.Trim()}";
+        if (!maxLength.HasValue || value.Length + suffix.Length <= maxLength.Value)
+        {
+            return $"{value}{suffix}";
+        }
+
+        var allowedValueLength = maxLength.Value - suffix.Length;
+        if (allowedValueLength <= 0)
+        {
+            return TruncateText(authorLabel.Trim(), maxLength.Value);
+        }
+
+        return $"{TruncateText(value, allowedValueLength)}{suffix}";
+    }
+
+    private static string TruncateText(string value, int maxLength)
+    {
+        if (maxLength <= 0)
+        {
+            return string.Empty;
+        }
+
+        if (value.Length <= maxLength)
+        {
+            return value;
+        }
+
+        if (maxLength <= 3)
+        {
+            return value[..maxLength];
+        }
+
+        return $"{value[..(maxLength - 3)].Trim()}...";
     }
 
     private static string? NormalizeBlogMediaUrl(string? mediaUrl)
