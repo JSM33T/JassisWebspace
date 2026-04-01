@@ -156,6 +156,7 @@ builder.Services.AddScoped<ITurnstileVerificationService, TurnstileVerificationS
 // builder.Services.AddSingleton<ILoggingService, LoggingService>();
 
 var app = builder.Build();
+var applyMigrationsOnStartup = builder.Configuration.GetValue("ApplyMigrationsOnStartup", true);
 
 // --- 3. Configure middleware pipeline ---
 if (app.Environment.IsDevelopment())
@@ -227,6 +228,10 @@ app.MapControllers();
 try
 {
     Log.Information("Starting JassSpace.Api...");
+    if (applyMigrationsOnStartup)
+    {
+        await ApplyDatabaseMigrationsAsync(app);
+    }
     await ValidateStartupDependenciesAsync(app);
     await app.RunAsync();
 }
@@ -283,4 +288,28 @@ static async Task ValidateStartupDependenciesAsync(WebApplication app)
 
     logger.LogInformation("Redis connectivity check passed.");
     logger.LogInformation("All startup dependency checks passed.");
+}
+
+static async Task ApplyDatabaseMigrationsAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var serviceProvider = scope.ServiceProvider;
+    var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup.Migrations");
+    var dbContext = serviceProvider.GetRequiredService<JassSpaceDbContext>();
+
+    var pendingMigrations = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
+    if (pendingMigrations.Count == 0)
+    {
+        logger.LogInformation("No pending database migrations found.");
+        return;
+    }
+
+    logger.LogInformation(
+        "Applying {Count} pending database migration(s): {Migrations}",
+        pendingMigrations.Count,
+        string.Join(", ", pendingMigrations));
+
+    await dbContext.Database.MigrateAsync();
+
+    logger.LogInformation("Database migrations applied successfully.");
 }

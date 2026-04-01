@@ -7,9 +7,12 @@ services:
       - "5001:8080"
     env_file:
       - .env
+    environment:
+      - ApplyMigrationsOnStartup=true
     volumes:
       - /home/jassi/deployments/JassSpace/.logs/dotnet:/app/logs/dotnet
       - /home/jassi/deployments/JassSpace/.cache:/app/cache
+    restart: unless-stopped
 
   nextjs:
     build:
