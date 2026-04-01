@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, type Variants } from 'framer-motion';
 import {
@@ -17,6 +18,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
+import { uiPropertiesService } from '@/lib/api/ui-properties.service';
 
 const skillGroups = [
     {
@@ -109,6 +112,34 @@ const itemVariants: Variants = {
 export default function PortfolioPage() {
     const searchParams = useSearchParams();
     const hidePurpose = searchParams.get('ref') === 'resume';
+    const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+    const [isResumeLoading, setIsResumeLoading] = useState(true);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadResumeUrl = async () => {
+            try {
+                const property = await uiPropertiesService.getProperty('RESUME_URL');
+                if (isMounted) {
+                    setResumeUrl(property.value);
+                }
+            } catch (error) {
+                console.error('Failed to load resume URL', error);
+            } finally {
+                if (isMounted) {
+                    setIsResumeLoading(false);
+                }
+            }
+        };
+
+        loadResumeUrl();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     return (
         <motion.div
             className="relative min-h-screen overflow-hidden bg-background/50"
@@ -148,17 +179,34 @@ export default function PortfolioPage() {
                                     <Button asChild size="sm" variant="outline" className="rounded-full px-6 h-10">
                                         <Link href="/projects">View projects</Link>
                                     </Button>
-                                    <Button asChild size="sm" variant="outline" className="rounded-full px-6 h-10">
-                                        <Link
-                                            href="https://files.jassi.me/api/public/dl/SlToj6ig?inline=true"
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="flex items-center gap-2"
+                                    {resumeUrl ? (
+                                        <Button asChild size="sm" variant="outline" className="rounded-full px-6 h-10">
+                                            <Link
+                                                href={resumeUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="flex items-center gap-2"
+                                            >
+                                                Resume
+                                                <Download className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="rounded-full px-6 h-10 opacity-70"
+                                            disabled
+                                            aria-busy={isResumeLoading}
                                         >
-                                            Resume
-                                            <Download className="h-4 w-4" />
-                                        </Link>
-                                    </Button>
+                                            {isResumeLoading ? (
+                                                <Spinner className="mr-2 h-4 w-4" />
+                                            ) : (
+                                                <Download className="mr-2 h-4 w-4" />
+                                            )}
+                                            {isResumeLoading ? 'Loading resume...' : 'Resume unavailable'}
+                                        </Button>
+                                    )}
                                 </div>
                             </CardHeader>
                         </Card>

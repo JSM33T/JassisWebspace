@@ -6,6 +6,8 @@ export * from './admin-gallery.service';
 export * from './admin-content.service';
 export * from './admin-dashboard.service';
 export * from './admin-chat.service';
+export * from './admin-ui-properties.service';
 export * from './music.service';
 export * from './admin-music.service';
+export * from './ui-properties.service';
 export { default } from './auth.service';

@@ -15,6 +15,7 @@ import {
     MessageCircle,
     MessageCircleMore,
     Settings,
+    SlidersHorizontal,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -217,6 +218,24 @@ export default function AdminPage() {
                             </p>
                             <div className="flex items-center text-sm text-emerald-400 transition-transform group-hover:translate-x-1">
                                 Go to Music <ArrowRight className="ml-2 h-4 w-4" />
+                            </div>
+                        </CardContent>
+                    </Link>
+                </Card>
+
+                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
+                    <Link href="/admin/properties">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Properties</CardTitle>
+                            <SlidersHorizontal className="h-4 w-4 text-amber-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">Manage UI Variables</div>
+                            <p className="mb-4 mt-1 text-xs text-muted-foreground">
+                                Seeded and custom backend-driven UI properties for links and other display values.
+                            </p>
+                            <div className="flex items-center text-sm text-amber-500 transition-transform group-hover:translate-x-1">
+                                Open Properties <ArrowRight className="ml-2 h-4 w-4" />
                             </div>
                         </CardContent>
                     </Link>

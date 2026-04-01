@@ -39,6 +39,7 @@ public class JassSpaceDbContext : DbContext
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
     public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<UiProperties> UiProperties => Set<UiProperties>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,9 +75,11 @@ public class JassSpaceDbContext : DbContext
         ConfigureCommentEntity(modelBuilder);
         ConfigureLikeEntity(modelBuilder);
         ConfigureContactEntity(modelBuilder);
+        ConfigureUiPropertiesEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
+        SeedUiProperties(modelBuilder);
     }
 // ... (existing configuration methods)
 
@@ -593,6 +596,21 @@ public class JassSpaceDbContext : DbContext
             new AppConfig { Id = new Guid("88888888-8888-8888-8888-888888888888"), Key = "PasswordMinLength", Value = "8", UpdatedAt = baseDate }
         );
     }
+
+    private void SeedUiProperties(ModelBuilder modelBuilder)
+    {
+        var baseDate = new DateTimeOffset(2025, 9, 20, 0, 0, 0, TimeSpan.Zero);
+
+        modelBuilder.Entity<UiProperties>().HasData(
+            new UiProperties
+            {
+                Id = new Guid("99999999-9999-9999-9999-999999999999"),
+                Key = "RESUME_URL",
+                Value = "https://example.com/resume.pdf",
+                UpdatedAt = baseDate
+            }
+        );
+    }
     private void ConfigureLikeEntity(ModelBuilder modelBuilder)
     {
         var entity = modelBuilder.Entity<Like>();
@@ -637,5 +655,24 @@ public class JassSpaceDbContext : DbContext
 
         entity.HasIndex(c => c.CreatedAt);
         entity.HasIndex(c => c.Email);
+    }
+
+    private void ConfigureUiPropertiesEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<UiProperties>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Key)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        entity.Property(e => e.Value)
+            .IsRequired();
+
+        entity.HasIndex(e => e.Key)
+            .IsUnique();
+
+        entity.HasIndex(e => e.UpdatedAt);
     }
 }

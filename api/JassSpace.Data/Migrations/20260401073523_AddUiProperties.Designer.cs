@@ -4,6 +4,7 @@ using System.Net;
 using JassSpace.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JassSpace.Data.Migrations
 {
     [DbContext(typeof(JassSpaceDbContext))]
-    partial class JassSpaceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401073523_AddUiProperties")]
+    partial class AddUiProperties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1038,15 +1041,6 @@ namespace JassSpace.Data.Migrations
                     b.HasIndex("UpdatedAt");
 
                     b.ToTable("UiProperties");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("99999999-9999-9999-9999-999999999999"),
-                            Key = "RESUME_URL",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2025, 9, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Value = "https://example.com/resume.pdf"
-                        });
                 });
 
             modelBuilder.Entity("JassSpace.Entities.User", b =>

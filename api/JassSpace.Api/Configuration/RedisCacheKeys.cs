@@ -7,4 +7,5 @@ public static class RedisCacheKeys
     public const string BlogSeo = "blogseo";
     public const string GallerySeo = "galleryseo";
     public const string MusicSeo = "musicseo";
+    public const string UiProperties = "uiproperties";
 }

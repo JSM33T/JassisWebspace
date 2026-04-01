@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, MessageCircleMore } from "lucide-react";
+import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, MessageCircleMore, SlidersHorizontal } from "lucide-react";
 
 const routes = [
     {
@@ -53,6 +53,12 @@ const routes = [
         icon: Music2,
         href: "/admin/music",
         color: "text-emerald-400",
+    },
+    {
+        label: "Properties",
+        icon: SlidersHorizontal,
+        href: "/admin/properties",
+        color: "text-amber-400",
     },
     {
         label: "Settings",

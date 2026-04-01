@@ -385,12 +385,14 @@ export default function ContactPage() {
                             <p className="text-base text-muted-foreground max-w-xl">
                                 Share your idea, project scope, or service request and we&apos;ll reply with clear next steps.
                             </p>
-                            <Button variant="ghost" asChild className="rounded-full px-6 w-fit">
-                                <Link href="/">
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back
-                                </Link>
-                            </Button>
+                            <div className="flex flex-wrap gap-3">
+                                <Button variant="ghost" asChild className="rounded-full px-6 w-fit">
+                                    <Link href="/">
+                                        <ArrowLeft className="mr-2 h-4 w-4" />
+                                        Back
+                                    </Link>
+                                </Button>
+                            </div>
                         </div>
 
                         <Card className="w-full lg:ml-auto lg:max-w-xl rounded-3xl border bg-card/50 backdrop-blur-sm shadow-xl p-6 md:p-8 relative overflow-hidden group">
