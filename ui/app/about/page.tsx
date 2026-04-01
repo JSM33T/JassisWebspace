@@ -150,7 +150,7 @@ export default function PortfolioPage() {
                                     </Button>
                                     <Button asChild size="sm" variant="outline" className="rounded-full px-6 h-10">
                                         <Link
-                                            href="https://files.jassi.me/api/public/dl/gEzIoX5K?inline=true"
+                                            href="https://files.jassi.me/api/public/dl/SlToj6ig?inline=true"
                                             target="_blank"
                                             rel="noreferrer"
                                             className="flex items-center gap-2"
