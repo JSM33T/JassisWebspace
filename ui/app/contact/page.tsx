@@ -26,7 +26,19 @@ declare global {
         onContactTurnstileExpired?: () => void;
         onContactTurnstileError?: () => void;
         turnstile?: {
-            reset: (widget?: string | HTMLElement) => void;
+            render: (
+                container: string | HTMLElement,
+                options: {
+                    sitekey: string;
+                    theme?: 'light' | 'dark' | 'auto';
+                    callback?: string;
+                    'expired-callback'?: string;
+                    'error-callback'?: string;
+                    action?: string;
+                }
+            ) => string;
+            reset: (widgetId?: string) => void;
+            remove?: (widgetId: string) => void;
         };
     }
 }
@@ -65,8 +77,11 @@ export default function ContactPage() {
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [turnstileEnabled, setTurnstileEnabled] = useState(false);
     const [turnstileSiteKey, setTurnstileSiteKey] = useState('');
+    const [turnstileScriptReady, setTurnstileScriptReady] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
     const [turnstileError, setTurnstileError] = useState<string | null>(null);
+    const turnstileContainerRef = useRef<HTMLDivElement>(null);
+    const turnstileWidgetIdRef = useRef<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -94,6 +109,12 @@ export default function ContactPage() {
             delete window.onContactTurnstileExpired;
             delete window.onContactTurnstileError;
         };
+    }, []);
+
+    useEffect(() => {
+        if (window.turnstile) {
+            setTurnstileScriptReady(true);
+        }
     }, []);
 
     useEffect(() => {
@@ -145,6 +166,37 @@ export default function ContactPage() {
             isMounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (!turnstileEnabled || !turnstileSiteKey || !turnstileScriptReady) {
+            return;
+        }
+
+        if (!turnstileContainerRef.current || !window.turnstile) {
+            return;
+        }
+
+        setTurnstileToken(null);
+        turnstileContainerRef.current.innerHTML = '';
+
+        const widgetId = window.turnstile.render(turnstileContainerRef.current, {
+            sitekey: turnstileSiteKey,
+            theme: 'auto',
+            callback: 'onContactTurnstileSuccess',
+            'expired-callback': 'onContactTurnstileExpired',
+            'error-callback': 'onContactTurnstileError',
+            action: 'contact_form',
+        });
+
+        turnstileWidgetIdRef.current = widgetId;
+
+        return () => {
+            if (turnstileWidgetIdRef.current && window.turnstile?.remove) {
+                window.turnstile.remove(turnstileWidgetIdRef.current);
+            }
+            turnstileWidgetIdRef.current = null;
+        };
+    }, [turnstileEnabled, turnstileSiteKey, turnstileScriptReady]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
@@ -199,7 +251,7 @@ export default function ContactPage() {
 
             if (turnstileEnabled) {
                 setTurnstileToken(null);
-                window.turnstile?.reset();
+                window.turnstile?.reset(turnstileWidgetIdRef.current ?? undefined);
             }
 
             throw new Error(errorMessage);
@@ -427,15 +479,7 @@ export default function ContactPage() {
                                     <div className="space-y-2.5">
                                         <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Verification</label>
                                         <div className="flex justify-center rounded-2xl border border-border/60 bg-background/70 p-3 shadow-sm">
-                                            <div
-                                                className="cf-turnstile"
-                                                data-sitekey={turnstileSiteKey}
-                                                data-theme="auto"
-                                                data-callback="onContactTurnstileSuccess"
-                                                data-expired-callback="onContactTurnstileExpired"
-                                                data-error-callback="onContactTurnstileError"
-                                                data-action="contact_form"
-                                            />
+                                            <div ref={turnstileContainerRef} />
                                         </div>
                                     </div>
                                 )}
@@ -481,6 +525,7 @@ export default function ContactPage() {
                     src="https://challenges.cloudflare.com/turnstile/v0/api.js"
                     async
                     defer
+                    onLoad={() => setTurnstileScriptReady(true)}
                 />
             )}
         </motion.div>
