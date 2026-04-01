@@ -32,7 +32,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon, Mail } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { buildLoginHref } from '@/lib/auth-redirect';
 import { AudioSidebarVisualizer } from '@/components/audio-sidebar-visualizer';
 import { AnimatePresence, motion } from 'framer-motion';
+import { NAVBAR_EXPANDED_EVENT, NAVBAR_EXPANDED_STORAGE_KEY } from '@/lib/navbar-layout';
 
 const SIDEBAR_OPEN_EVENT = 'app-sidebar:set-open';
 
@@ -69,6 +70,9 @@ export function Navbar() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [isNavbarHidden, setIsNavbarHidden] = useState(false);
+    const [isRailExpanded, setIsRailExpanded] = useState(false);
+    const [showRailScrollUpHint, setShowRailScrollUpHint] = useState(false);
+    const [showRailScrollDownHint, setShowRailScrollDownHint] = useState(false);
 
     const handleLogout = async () => {
         setShowLogoutDialog(false);
@@ -81,6 +85,7 @@ export function Navbar() {
     const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
     const navRef = useRef<HTMLDivElement>(null);
     const railRef = useRef<HTMLDivElement>(null);
+    const railScrollAreaRef = useRef<HTMLDivElement>(null);
     const [railHoverStyle, setRailHoverStyle] = useState({
         top: 0,
         left: 0,
@@ -144,7 +149,7 @@ export function Navbar() {
             href: '/contact',
             label: 'Contact',
             description: 'Get in touch with our team',
-            icon: Briefcase,
+            icon: Mail,
         },
         {
             href: '/privacy',
@@ -203,6 +208,45 @@ export function Navbar() {
                     : normalizedRole
                         ? normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1)
                         : 'User';
+
+    useEffect(() => {
+        const savedState = window.localStorage.getItem(NAVBAR_EXPANDED_STORAGE_KEY);
+        if (savedState === 'true') {
+            setIsRailExpanded(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        window.localStorage.setItem(NAVBAR_EXPANDED_STORAGE_KEY, String(isRailExpanded));
+        window.dispatchEvent(new CustomEvent<boolean>(NAVBAR_EXPANDED_EVENT, { detail: isRailExpanded }));
+    }, [isRailExpanded]);
+
+    useEffect(() => {
+        const scrollArea = railScrollAreaRef.current;
+        if (!scrollArea) {
+            setShowRailScrollUpHint(false);
+            setShowRailScrollDownHint(false);
+            return;
+        }
+
+        const updateScrollHints = () => {
+            const { scrollTop, clientHeight, scrollHeight } = scrollArea;
+            const maxScrollTop = scrollHeight - clientHeight;
+            const hasOverflow = maxScrollTop > 4;
+
+            setShowRailScrollUpHint(hasOverflow && scrollTop > 8);
+            setShowRailScrollDownHint(hasOverflow && scrollTop < maxScrollTop - 8);
+        };
+
+        updateScrollHints();
+        scrollArea.addEventListener('scroll', updateScrollHints, { passive: true });
+        window.addEventListener('resize', updateScrollHints);
+
+        return () => {
+            scrollArea.removeEventListener('scroll', updateScrollHints);
+            window.removeEventListener('resize', updateScrollHints);
+        };
+    }, [isRailExpanded, sidebarOpen, pathname]);
 
     useEffect(() => {
         const topThreshold = 24;
@@ -303,10 +347,22 @@ export function Navbar() {
     };
 
     const desktopRailSections = [
-        [{ href: '/blog', label: 'Blogs', icon: FileText }],
-        studioMenuItems,
-        workMenuItems,
-        aboutMenuItems.filter((item) => item.href === '/about' || item.href === '/contact'),
+        {
+            title: null,
+            items: [{ href: '/blog', label: 'Blogs', icon: FileText }],
+        },
+        {
+            title: 'Media',
+            items: studioMenuItems,
+        },
+        {
+            title: 'Official',
+            items: workMenuItems,
+        },
+        {
+            title: 'About',
+            items: aboutMenuItems.filter((item) => item.href === '/about' || item.href === '/contact'),
+        },
     ];
 
     const supportMenuItems = aboutMenuItems.filter(
@@ -334,7 +390,7 @@ export function Navbar() {
     ];
 
     const railItemClassName =
-        'group relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
+        'group relative flex h-11 cursor-pointer items-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
     const railIconClassName = 'h-[18px] w-[18px]';
     const railHomeIconClassName = 'h-[28px] w-[28px]';
@@ -350,7 +406,10 @@ export function Navbar() {
                     <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-primary/20 via-primary/8 to-primary/16 blur-2xl" />
                     <div
                         ref={railRef}
-                        className="relative flex h-full w-20 flex-col items-center justify-between rounded-[2rem] border border-border/60 bg-background/85 px-3 py-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75"
+                        className={cn(
+                            'relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-[2rem] border border-border/60 bg-background/85 px-3 py-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75',
+                            isRailExpanded ? 'w-64 items-stretch' : 'w-20 items-center'
+                        )}
                         onMouseLeave={clearRailHoverStyle}
                         onBlurCapture={(event) => {
                             const nextTarget = event.relatedTarget;
@@ -371,69 +430,153 @@ export function Navbar() {
                             }}
                             transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.45 }}
                         />
-                        <div className="flex flex-col items-center gap-3">
+                        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3 overflow-hidden">
                             <Link
                                 href="/"
-                                className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/18 to-background/80 text-primary transition-all duration-200 hover:-translate-y-0.5"
+                                className={cn(
+                                    'group relative flex h-12 items-center rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/18 to-background/80 text-primary transition-all duration-200 hover:-translate-y-0.5',
+                                    isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-12 justify-center'
+                                )}
                                 aria-label="Home"
                                 title="Home"
                                 onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
                                 onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                             >
                                 <LogoMark className={railHomeIconClassName} />
-                                <span className={railBubbleClassName}>Home</span>
+                                {isRailExpanded ? (
+                                    <span className="truncate text-sm font-semibold text-foreground">Home</span>
+                                ) : (
+                                    <span className={railBubbleClassName}>Home</span>
+                                )}
                             </Link>
 
-                            <div className="h-px w-10 bg-gradient-to-r from-transparent via-border to-transparent" />
-
-                            {desktopRailSections.map((section, sectionIndex) => (
-                                <div key={`rail-section-${sectionIndex}`} className="flex flex-col items-center gap-2">
-                                    {section.map((item) => {
-                                        const Icon = item.icon;
-                                        const isActive = isActivePath(item.href);
-
-                                        return (
-                                            <Link
-                                                key={item.href}
-                                                href={item.href}
-                                                aria-current={isActive ? 'page' : undefined}
-                                                aria-label={item.label}
-                                                title={item.label}
-                                                className={cn(
-                                                    railItemClassName,
-                                                    isActive && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
-                                                )}
-                                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
-                                            >
-                                                <Icon className={railIconClassName} />
-                                                {isActive ? (
-                                                    <span className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
-                                                ) : null}
-                                                <span className={railBubbleClassName}>{item.label}</span>
-                                            </Link>
-                                        );
-                                    })}
-                                    {sectionIndex < desktopRailSections.length - 1 ? (
-                                        <div className="mt-1 h-px w-8 bg-gradient-to-r from-transparent via-border/80 to-transparent" />
+                            <button
+                                type="button"
+                                className={cn(
+                                    railItemClassName,
+                                    isRailExpanded ? 'w-full justify-between px-3' : 'w-11 justify-center'
+                                )}
+                                onClick={() => setIsRailExpanded((prev) => !prev)}
+                                aria-label={isRailExpanded ? 'Collapse navigation' : 'Expand navigation'}
+                                title={isRailExpanded ? 'Collapse navigation' : 'Expand navigation'}
+                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
+                            >
+                                <span className={cn('flex items-center', isRailExpanded ? 'gap-3' : 'justify-center')}>
+                                    {isRailExpanded ? (
+                                        <ChevronLeft className={railIconClassName} />
+                                    ) : (
+                                        <ChevronRight className={railIconClassName} />
+                                    )}
+                                    {isRailExpanded ? (
+                                        <span className="truncate text-sm font-medium text-foreground">Collapse menu</span>
                                     ) : null}
+                                </span>
+                                {!isRailExpanded ? <span className={railBubbleClassName}>Expand menu</span> : null}
+                            </button>
+
+                            <div className={cn('bg-gradient-to-r from-transparent via-border to-transparent', isRailExpanded ? 'h-px w-full' : 'h-px w-10')} />
+
+                            <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+                                {showRailScrollUpHint ? (
+                                    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
+                                        <div className="mt-1 flex items-center gap-1 rounded-full border border-border/70 bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-sm backdrop-blur-sm">
+                                            <ChevronUp className="h-3 w-3" />
+                                            <span>Scroll</span>
+                                        </div>
+                                    </div>
+                                ) : null}
+                                {showRailScrollDownHint ? (
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center">
+                                        <div className="mb-1 flex items-center gap-1 rounded-full border border-border/70 bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-sm backdrop-blur-sm">
+                                            <span>Scroll</span>
+                                            <ChevronDown className="h-3 w-3" />
+                                        </div>
+                                    </div>
+                                ) : null}
+                                <div
+                                    ref={railScrollAreaRef}
+                                    className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain pr-1"
+                                >
+                                <div className="flex w-full flex-col gap-3 pb-2">
+                                    {desktopRailSections.map((section, sectionIndex) => (
+                                        <div
+                                            key={`rail-section-${sectionIndex}`}
+                                            className={cn('flex flex-col gap-2', isRailExpanded ? 'w-full items-stretch' : 'items-center')}
+                                        >
+                                            {isRailExpanded && section.title ? (
+                                                <div className="px-3 pt-1">
+                                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                        {section.title}
+                                                    </p>
+                                                </div>
+                                            ) : null}
+                                            {section.items.map((item) => {
+                                                const Icon = item.icon;
+                                                const isActive = isActivePath(item.href);
+
+                                                return (
+                                                    <Link
+                                                        key={item.href}
+                                                        href={item.href}
+                                                        aria-current={isActive ? 'page' : undefined}
+                                                        aria-label={item.label}
+                                                        title={item.label}
+                                                        className={cn(
+                                                            railItemClassName,
+                                                            isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center',
+                                                            isActive && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
+                                                        )}
+                                                        onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                                        onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
+                                                    >
+                                                        <Icon className={railIconClassName} />
+                                                        {isActive ? (
+                                                            <span className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
+                                                        ) : null}
+                                                        {isRailExpanded ? (
+                                                            <span className="truncate text-sm font-medium text-foreground">{item.label}</span>
+                                                        ) : (
+                                                            <span className={railBubbleClassName}>{item.label}</span>
+                                                        )}
+                                                    </Link>
+                                                );
+                                            })}
+                                            {sectionIndex < desktopRailSections.length - 1 ? (
+                                                <div
+                                                    className={cn(
+                                                        'mt-1 h-px bg-gradient-to-r from-transparent via-border/80 to-transparent',
+                                                        isRailExpanded ? 'w-full' : 'w-8'
+                                                    )}
+                                                />
+                                            ) : null}
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            </div>
+                            </div>
                         </div>
 
-                        <div className="flex flex-col items-center gap-3">
+                        <div className="flex w-full flex-col items-center gap-3">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button
                                         type="button"
-                                        className={railItemClassName}
+                                        className={cn(
+                                            railItemClassName,
+                                            isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center'
+                                        )}
                                         aria-label="More links"
                                         title="More links"
                                         onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
                                         onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                                     >
                                         <Menu className={railIconClassName} />
-                                        <span className={railBubbleClassName}>More</span>
+                                        {isRailExpanded ? (
+                                            <span className="truncate text-sm font-medium text-foreground">More</span>
+                                        ) : (
+                                            <span className={railBubbleClassName}>More</span>
+                                        )}
                                     </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className={navDropdownContentClassName} side="right" align="end" sideOffset={16}>
@@ -466,6 +609,7 @@ export function Navbar() {
                                 type="button"
                                 className={cn(
                                     railItemClassName,
+                                    isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center',
                                     sidebarOpen && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
                                 )}
                                 onClick={() => handleSidebarOpenChange(true)}
@@ -475,7 +619,11 @@ export function Navbar() {
                                 onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                             >
                                 <PanelRight className={railIconClassName} />
-                                <span className={railBubbleClassName}>Player and theme</span>
+                                {isRailExpanded ? (
+                                    <span className="truncate text-sm font-medium text-foreground">Player and theme</span>
+                                ) : (
+                                    <span className={railBubbleClassName}>Player and theme</span>
+                                )}
                             </button>
 
                             {isAuthenticated ? (
@@ -483,20 +631,32 @@ export function Navbar() {
                                     <DropdownMenuTrigger asChild>
                                         <button
                                             type="button"
-                                            className={cn(railItemClassName, 'overflow-hidden p-0')}
+                                            className={cn(
+                                                railItemClassName,
+                                                isRailExpanded ? 'w-full justify-start gap-3 overflow-hidden px-0' : 'w-11 justify-center overflow-hidden p-0'
+                                            )}
                                             aria-label="Account"
                                             title="Account"
                                             onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
                                             onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                                         >
-                                            <Avatar className="h-full w-full rounded-2xl border border-border/60">
+                                            <Avatar
+                                                className={cn(
+                                                    'rounded-2xl border border-border/60',
+                                                    isRailExpanded ? 'h-11 w-11 shrink-0' : 'h-full w-full'
+                                                )}
+                                            >
                                                 <AvatarImage
                                                     src={user?.avatarUrl || '/placeholder-avatar.jpg'}
                                                     alt="User Avatar"
                                                 />
                                                 <AvatarFallback className="rounded-2xl text-xs">{userHelpers.getInitials(user)}</AvatarFallback>
                                             </Avatar>
-                                            <span className={railBubbleClassName}>Account</span>
+                                            {isRailExpanded ? (
+                                                <span className="truncate pr-3 text-sm font-medium text-foreground">Account</span>
+                                            ) : (
+                                                <span className={railBubbleClassName}>Account</span>
+                                            )}
                                         </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent className="w-56" side="right" align="end" sideOffset={16} forceMount>

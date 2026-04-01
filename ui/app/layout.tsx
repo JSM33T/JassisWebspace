@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "./override.css";
-import { Navbar } from "@/components/navbar";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/contexts/UserContext";
 import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
@@ -10,8 +9,7 @@ import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import { buildMetadata } from "@/lib/seo";
 import { BackToTopProgress } from "@/components/back-to-top-progress";
-import { RouteProgressBar } from "@/components/route-progress-bar";
-import { CursorMeshBackground } from "@/components/cursor-mesh-background";
+import { AppShell } from "@/components/app-shell";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -62,16 +60,7 @@ export default function RootLayout({
         >
           <AudioPlayerProvider>
             <UserProvider>
-              <div className="relative isolate min-h-screen">
-                <CursorMeshBackground />
-                <div className="relative z-10">
-                  <RouteProgressBar />
-                  <Navbar />
-                  <div className="min-h-screen pb-24 lg:pb-0 lg:pl-28">
-                    {children}
-                  </div>
-                </div>
-              </div>
+              <AppShell>{children}</AppShell>
               <BackToTopProgress />
               <Toaster
                 position="bottom-center"
