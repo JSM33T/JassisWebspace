@@ -145,7 +145,7 @@ export default function BlogHomePage() {
                         badge="Blogs"
                         badgeIcon={BookOpen}
                         title="Blog"
-                        description="Explore our latest articles, tutorials, and insights."
+                        description="Explore my latest articles, tutorials, and insights."
                         stickToTop
                     />
 

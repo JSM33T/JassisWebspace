@@ -106,7 +106,7 @@ export default function ProjectsPage() {
                         badge="Portfolio"
                         badgeIcon={FolderCode}
                         title="Projects"
-                        description="A showcase of our innovative projects and technical solutions."
+                        description="A showcase of my innovative projects and technical solutions."
                     />
 
                     <div className="mt-6 grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">

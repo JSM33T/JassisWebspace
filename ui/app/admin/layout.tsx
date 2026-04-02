@@ -46,7 +46,7 @@ export default function AdminLayout({
 
     return (
         <div className="h-full relative">
-            <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80] bg-gray-900">
+            <div className="z-[80] hidden h-full border-r border-sidebar-border bg-sidebar md:fixed md:inset-y-0 md:flex md:w-72 md:flex-col">
                 <AdminSidebar />
             </div>
             <main className="md:pl-72">

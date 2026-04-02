@@ -148,7 +148,7 @@ export default function ServicesPage() {
                         badge="Our Solutions"
                         badgeIcon={Briefcase}
                         title="Services"
-                        description="Explore our technical expertise and professional offerings."
+                        description="Explore my technical expertise and professional offerings."
                     />
 
                     <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

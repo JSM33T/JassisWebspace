@@ -251,7 +251,7 @@ export default function PortfolioPage() {
                                     </CardTitle>
                                     <CardDescription className="space-y-2 text-sm leading-relaxed md:text-base">
                                         <p>
-                                            This webspace is my personal Web Archie—a curated archive of the
+                                            This webspace is my personal Web Archive—a curated archive of the
                                             projects, gallery moments, writings, and artifacts that keep me
                                             inspired while building. Everything I make and collect lives here
                                             in one intentional context instead of scattering across platforms.

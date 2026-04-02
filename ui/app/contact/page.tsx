@@ -383,7 +383,7 @@ export default function ContactPage() {
                                 Let&apos;s build something impactful.
                             </h1>
                             <p className="text-base text-muted-foreground max-w-xl">
-                                Share your idea, project scope, or service request and we&apos;ll reply with clear next steps.
+                                Share your idea, project scope, or service request and I&apos;ll reply with clear next steps.
                             </p>
                             <div className="flex flex-wrap gap-3">
                                 <Button variant="ghost" asChild className="rounded-full px-6 w-fit">
@@ -403,7 +403,7 @@ export default function ContactPage() {
                         <CardHeader className="px-0 pt-0 pb-6">
                             <CardTitle className="text-2xl font-semibold tracking-tight">Send a Message</CardTitle>
                             <CardDescription className="text-base pt-2">
-                                Fill out the form below and we&apos;ll respond via email.
+                                Fill out the form below and I&apos;ll respond via email.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="px-0">

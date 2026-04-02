@@ -319,7 +319,7 @@ export default function HomePage() {
                                             Recent Blog Picks
                                         </h2>
                                         <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-                                            Two latest articles, shown as feature visuals.
+                                            A visual showcase of my latest articles.
                                         </p>
                                     </div>
                                     <Button asChild variant="secondary" className="rounded-full px-6">

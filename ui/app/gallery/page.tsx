@@ -64,7 +64,7 @@ export default function GalleryPage() {
                         badge="Creative Showcase"
                         badgeIcon={ImageIcon}
                         title="Gallery"
-                        description="Explore our curated collection of albums and creative works."
+                        description="Explore my curated collection of albums and creative works."
                     />
 
                     <section className="mt-6">

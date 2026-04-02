@@ -3,68 +3,53 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, MessageCircleMore, SlidersHorizontal } from "lucide-react";
+import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, SlidersHorizontal } from "lucide-react";
 
 const routes = [
     {
         label: "Dashboard",
         icon: LayoutDashboard,
         href: "/admin",
-        color: "text-sky-500",
     },
     {
         label: "Gallery",
         icon: Image,
         href: "/admin/gallery",
-        color: "text-pink-700",
     },
     {
         label: "Users",
         icon: Users,
         href: "/admin/users",
-        color: "text-orange-700",
     },
     {
         label: "Blogs",
         icon: BookOpen,
         href: "/admin/blogs",
-        color: "text-emerald-500",
     },
     {
         label: "Content",
         icon: FileText,
         href: "/admin/content",
-        color: "text-sky-500",
     },
     {
         label: "Messages",
         icon: Mail,
         href: "/admin/messages",
-        color: "text-cyan-500",
-    },
-    {
-        label: "Chats",
-        icon: MessageCircleMore,
-        href: "/admin/chats",
-        color: "text-indigo-400",
     },
     {
         label: "Music",
         icon: Music2,
         href: "/admin/music",
-        color: "text-emerald-400",
     },
     {
         label: "Properties",
         icon: SlidersHorizontal,
         href: "/admin/properties",
-        color: "text-amber-400",
     },
     {
         label: "Settings",
         icon: Settings,
         href: "/admin/settings",
-        color: "text-gray-500",
     },
 ];
 
@@ -72,10 +57,10 @@ export function AdminSidebar() {
     const pathname = usePathname();
 
     return (
-        <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
-            <div className="px-3 py-2 flex-1">
-                <Link href="/admin" className="flex items-center pl-3 mb-14">
-                    <h1 className="text-2xl font-bold">
+        <div className="flex h-full flex-col space-y-4 py-4 text-sidebar-foreground">
+            <div className="flex-1 px-3 py-2">
+                <Link href="/admin" className="mb-14 flex items-center pl-3">
+                    <h1 className="text-2xl font-bold text-foreground">
                         JassSpace Admin
                     </h1>
                 </Link>
@@ -90,12 +75,21 @@ export function AdminSidebar() {
                                 key={route.href}
                                 href={route.href}
                                 className={cn(
-                                    "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
-                                    isActive ? "text-white bg-white/10" : "text-zinc-400"
+                                    "group flex w-full cursor-pointer justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                                    isActive
+                                        ? "bg-accent text-accent-foreground"
+                                        : "text-muted-foreground"
                                 )}
                             >
-                                <div className="flex items-center flex-1">
-                                    <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
+                                <div className="flex flex-1 items-center">
+                                    <route.icon
+                                        className={cn(
+                                            "mr-3 h-5 w-5 transition-colors",
+                                            isActive
+                                                ? "text-accent-foreground"
+                                                : "text-accent group-hover:text-accent-foreground"
+                                        )}
+                                    />
                                     {route.label}
                                 </div>
                             </Link>
