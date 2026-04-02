@@ -9,6 +9,9 @@ services:
       - .env
     environment:
       - ApplyMigrationsOnStartup=true
+      - ConnectionStrings__Redis=${DOCKER_REDIS_CONNECTION:-host.docker.internal:6379,abortConnect=false}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - /home/jassi/deployments/JassSpace/.logs/dotnet:/app/logs/dotnet
       - /home/jassi/deployments/JassSpace/.cache:/app/cache
