@@ -38,6 +38,7 @@ public sealed class MusicController(
 
             var query = dbContext.Tracks
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Include(t => t.Authors)
                     .ThenInclude(a => a.User)
                 .Include(t => t.Links)
@@ -108,6 +109,7 @@ public sealed class MusicController(
         {
             var track = await dbContext.Tracks
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Include(t => t.Authors)
                     .ThenInclude(a => a.User)
                 .Include(t => t.Links)

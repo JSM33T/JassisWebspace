@@ -90,6 +90,7 @@ public sealed class AdminMusicController(
 
         var query = dbContext.Tracks
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(t => t.Authors)
                 .ThenInclude(a => a.User)
             .Include(t => t.Links)
@@ -437,6 +438,7 @@ public sealed class AdminMusicController(
     public async Task<IActionResult> UpdateTrack(Guid id, [FromBody] UpdateTrackRequest request, CancellationToken cancellationToken = default)
     {
         var track = await dbContext.Tracks
+            .AsSplitQuery()
             .Include(t => t.Authors)
             .Include(t => t.Links)
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
@@ -755,6 +757,7 @@ public sealed class AdminMusicController(
     {
         return await dbContext.Tracks
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(t => t.Authors)
                 .ThenInclude(a => a.User)
             .Include(t => t.Links)

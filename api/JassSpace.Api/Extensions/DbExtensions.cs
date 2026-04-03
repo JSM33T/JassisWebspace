@@ -67,6 +67,7 @@ namespace JassSpace.Api.Extensions
                 {
                     // Put migrations where your DbContext assembly is (JassSpace.Data)
                     npgsqlOptions.MigrationsAssembly("JassSpace.Data");
+                    npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                     npgsqlOptions.EnableRetryOnFailure(
                         maxRetryCount: 3,
                         maxRetryDelay: TimeSpan.FromSeconds(5),

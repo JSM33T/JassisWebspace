@@ -366,6 +366,7 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
             await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
             var user = await _db.Users
+                .AsSplitQuery()
                 .Include(u => u.Sessions).ThenInclude(s => s.RefreshTokens)
                 .Include(u => u.RefreshTokens)
                 .Include(u => u.ExternalLogins)
