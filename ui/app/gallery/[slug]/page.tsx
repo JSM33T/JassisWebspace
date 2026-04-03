@@ -16,6 +16,7 @@ import { CommentSection } from '@/components/comments/CommentSection';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { LikeButton } from '@/components/likes/LikeButton';
 import { PageIntroCard } from '@/components/page-intro-card';
+import { toGalleryThumbUrl } from '@/lib/gallery-media';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -149,7 +150,7 @@ export default function AlbumDetailPage() {
 
     const slides = album.images.map(image => ({
         src: image.url,
-        thumbnail: toThumbUrl(image.url),
+        thumbnail: toGalleryThumbUrl(image.url),
         title: image.title,
         description: image.description
     }));
@@ -265,7 +266,7 @@ export default function AlbumDetailPage() {
                                 >
                                     <div className="relative w-full">
                                         <GalleryThumb
-                                            src={toThumbUrl(image.url)}
+                                            src={toGalleryThumbUrl(image.url)}
                                             alt={image.title || 'Album image'}
                                             width={800}
                                             height={600}
@@ -348,17 +349,4 @@ export default function AlbumDetailPage() {
             )}
         </div>
     );
-}
-
-function toThumbUrl(url: string): string {
-    // Prefer the dedicated endpoint to avoid caches/CDNs that ignore query strings.
-    const marker = '/media/';
-    const idx = url.indexOf(marker);
-    if (idx === -1) return url;
-
-    const prefix = url.slice(0, idx);
-    const rest = url.slice(idx + marker.length);
-    const blobName = rest.split('?')[0];
-
-    return `${prefix}${marker}thumb/${blobName}`;
 }

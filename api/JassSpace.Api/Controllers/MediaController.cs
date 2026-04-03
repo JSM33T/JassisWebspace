@@ -8,6 +8,7 @@ using JassSpace.Infra.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 
 namespace JassSpace.Api.Controllers;
 
@@ -24,6 +25,7 @@ public sealed class MediaController(
     private const string GalleryBlobPrefix = "gallery/";
     private const string BlogBlobPrefix = "blog/";
     private const string ProfilesBlobPrefix = "profiles/";
+    private static readonly TimeSpan ImmutableMediaMaxAge = TimeSpan.FromDays(365);
     private readonly string _containerName = blobSettings?.Value?.ContainerName ?? string.Empty;
 
     /// <summary>
@@ -251,7 +253,8 @@ public sealed class MediaController(
             cachedImage,
             notFoundTitle: "Image not found",
             notFoundDetail: $"No cached file available for blob name '{blobName}'.",
-            errorTitle: "Failed to read image");
+            errorTitle: "Failed to read image",
+            cachePolicy: BuildPublicMediaCachePolicy(resolvedBlobName ?? blobName, cachedImage.FilePath));
     }
 
     /// <summary>
@@ -405,7 +408,8 @@ public sealed class MediaController(
         CachedImageResult cachedImage,
         string notFoundTitle,
         string notFoundDetail,
-        string errorTitle)
+        string errorTitle,
+        PublicMediaCachePolicy? cachePolicy = null)
     {
         try
         {
@@ -417,6 +421,17 @@ public sealed class MediaController(
                 FileShare.Read,
                 4096,
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+            if (cachePolicy is not null)
+            {
+                Response.Headers.CacheControl = cachePolicy.CacheControl;
+                return File(
+                    stream,
+                    contentType,
+                    lastModified: cachePolicy.LastModified,
+                    entityTag: cachePolicy.EntityTag,
+                    enableRangeProcessing: true);
+            }
 
             return File(stream, contentType);
         }
@@ -433,6 +448,28 @@ public sealed class MediaController(
                 errorTitle,
                 "An unexpected error occurred while reading the cached image.");
         }
+    }
+
+    private PublicMediaCachePolicy BuildPublicMediaCachePolicy(string cacheIdentifier, string filePath)
+    {
+        var fileInfo = new FileInfo(filePath);
+        var lastModified = new DateTimeOffset(fileInfo.LastWriteTimeUtc, TimeSpan.Zero);
+        var versionFingerprint = $"{lastModified.ToUnixTimeSeconds():x}-{fileInfo.Length:x}";
+        var entityTag = EntityTagHeaderValue.Parse($"\"{versionFingerprint}\"");
+        var hasVersionParam = Request.Query.TryGetValue("v", out var version) &&
+            version.Any(value => !string.IsNullOrWhiteSpace(value));
+
+        var cacheControl = IsMutableGalleryCover(cacheIdentifier) && !hasVersionParam
+            ? "public, max-age=0, must-revalidate"
+            : $"public, max-age={(int)ImmutableMediaMaxAge.TotalSeconds}, immutable";
+
+        return new PublicMediaCachePolicy(cacheControl, lastModified, entityTag);
+    }
+
+    private static bool IsMutableGalleryCover(string cacheIdentifier)
+    {
+        var normalized = cacheIdentifier.Trim().TrimStart('/').Replace('\\', '/');
+        return normalized.Contains("gallery/covers/", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizeContentType(string? contentType, string filePath)
@@ -457,4 +494,9 @@ public sealed class MediaController(
             _ => "image/jpeg"
         };
     }
+
+    private sealed record PublicMediaCachePolicy(
+        string CacheControl,
+        DateTimeOffset LastModified,
+        EntityTagHeaderValue EntityTag);
 }

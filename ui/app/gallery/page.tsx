@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
 import { Album } from '@/lib/api/gallery.types';
+import { getVersionedGalleryCoverUrl } from '@/lib/gallery-media';
 import { ApiError } from '@/lib/api/types';
 
 export default function GalleryPage() {
@@ -122,7 +123,7 @@ export default function GalleryPage() {
                                     <Link href={`/gallery/${album.slug}`} className="group block h-full">
                                         <article className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-card/55 backdrop-blur-sm transition-all duration-300 hover:bg-card/75 hover:shadow-xl">
                                             <GalleryThumb
-                                                src={album.cover}
+                                                src={getVersionedGalleryCoverUrl(album)}
                                                 alt={album.name}
                                                 fill
                                                 sizes="(max-width: 767px) 100vw, 50vw"

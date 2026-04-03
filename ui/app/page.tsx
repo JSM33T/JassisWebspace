@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type BlogListItem } from "@/lib/api/blog.types";
 import { type Album } from "@/lib/api/gallery.types";
+import { getVersionedGalleryCoverUrl } from "@/lib/gallery-media";
 import { type HomeContentPayload } from "@/lib/home-content.types";
 
 const containerVariants: Variants = {
@@ -263,6 +264,7 @@ export default function HomePage() {
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-4 md:grid-rows-2">
                                         {recentGalleries.map((album, index) => {
                                             const isFeature = index === 0;
+                                            const coverUrl = getVersionedGalleryCoverUrl(album);
                                             return (
                                                 <Link
                                                     key={album.id}
@@ -273,9 +275,9 @@ export default function HomePage() {
                                                     ].join(" ")}
                                                 >
                                                     <div className={isFeature ? "relative aspect-[16/11] md:h-full md:aspect-auto" : "relative aspect-[4/3]"}>
-                                                        {album.cover ? (
+                                                        {coverUrl ? (
                                                             <NextImage
-                                                                src={album.cover}
+                                                                src={coverUrl}
                                                                 alt={album.name}
                                                                 fill
                                                                 sizes={isFeature ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 100vw, 25vw"}
