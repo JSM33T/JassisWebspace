@@ -59,6 +59,11 @@ export default function BlogHomePage() {
     } | null>(null);
 
     const hasActiveFilters = Boolean(search || selectedCategorySlug || selectedAuthor);
+    const selectedCategory = selectedCategorySlug
+        ? categories.find((category) => category.slug === selectedCategorySlug)
+        : undefined;
+    const isCategoryFilterPending = Boolean(selectedCategorySlug) && categories.length === 0;
+    const isCategoryFilterInvalid = Boolean(selectedCategorySlug) && categories.length > 0 && !selectedCategory;
 
     useEffect(() => {
         blogService.getCategories().then(setCategories).catch(console.error);
@@ -77,18 +82,25 @@ export default function BlogHomePage() {
     }, [page, router, search, selectedAuthor, selectedCategorySlug]);
 
     const loadBlogs = useCallback(async () => {
+        if (isCategoryFilterPending) {
+            return;
+        }
+
+        if (isCategoryFilterInvalid) {
+            setBlogs([]);
+            setError(null);
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
 
-            const categoryId = selectedCategorySlug
-                ? categories.find((c) => c.slug === selectedCategorySlug)?.id
-                : undefined;
-
             const data = await blogService.getBlogs({
                 search: search || undefined,
                 authorUsername: selectedAuthor,
-                categoryId,
+                categoryId: selectedCategory?.id,
                 page,
                 pageSize,
             });
@@ -103,13 +115,22 @@ export default function BlogHomePage() {
         } finally {
             setLoading(false);
         }
-    }, [categories, page, search, selectedAuthor, selectedCategorySlug]);
+    }, [
+        isCategoryFilterInvalid,
+        isCategoryFilterPending,
+        page,
+        search,
+        selectedAuthor,
+        selectedCategory?.id,
+    ]);
 
     useEffect(() => {
-        if (!categories.length) return;
         updateUrlParams();
-        loadBlogs();
-    }, [categories.length, loadBlogs, updateUrlParams]);
+    }, [updateUrlParams]);
+
+    useEffect(() => {
+        void loadBlogs();
+    }, [loadBlogs]);
 
     const clearFilters = () => {
         setSearch('');
