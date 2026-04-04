@@ -27,11 +27,69 @@ function getRefreshToken(): string | null {
     return localStorage.getItem('refreshToken');
 }
 
-function createHeaders(config: RequestConfig): Headers {
+function clearStoredAuthState(): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('jassspace_user');
+}
+
+function decodeBase64Url(value: string): string | null {
+    try {
+        const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+        return atob(padded);
+    } catch {
+        return null;
+    }
+}
+
+function getTokenExpiry(token: string): number | null {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+        return null;
+    }
+
+    const payload = decodeBase64Url(parts[1]);
+    if (!payload) {
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(payload) as { exp?: number };
+        return typeof parsed.exp === 'number' ? parsed.exp * 1000 : null;
+    } catch {
+        return null;
+    }
+}
+
+function isTokenExpired(token: string, bufferMs: number = 30_000): boolean {
+    const expiry = getTokenExpiry(token);
+    if (!expiry) {
+        return false;
+    }
+
+    return Date.now() >= expiry - bufferMs;
+}
+
+function isAuthEndpoint(endpoint: string): boolean {
+    return (
+        endpoint === '/auth/login' ||
+        endpoint === '/auth/register' ||
+        endpoint === '/auth/verify-email' ||
+        endpoint === '/auth/resend-verification' ||
+        endpoint === '/auth/forgot-password' ||
+        endpoint === '/auth/reset-password' ||
+        endpoint === '/auth/refresh'
+    );
+}
+
+function createHeaders(config: RequestConfig, token?: string | null): Headers {
     const headers = new Headers(config.headers);
 
-    // Use token from config or get from localStorage
-    const token = config.token || getToken();
     if (token) {
         headers.set('Authorization', `Bearer ${token}`);
     }
@@ -216,11 +274,7 @@ async function performTokenRefresh(): Promise<string | null> {
         if (!response.ok) {
             console.log('❌ Token refresh failed with status:', response.status);
             // Clear tokens on refresh failure
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('jassspace_user');
-            }
+            clearStoredAuthState();
             // Trigger logout event
             window.dispatchEvent(new CustomEvent('auth:logout'));
             return null;
@@ -247,11 +301,7 @@ async function performTokenRefresh(): Promise<string | null> {
     } catch (error) {
         console.error('❌ Token refresh error:', error);
         // Clear tokens on error
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('jassspace_user');
-        }
+        clearStoredAuthState();
         // Trigger logout event
         window.dispatchEvent(new CustomEvent('auth:logout'));
         return null;
@@ -271,8 +321,24 @@ async function request<T>(endpoint: string, config: RequestConfig = {}, isRetry:
     const baseUrl = mergedConfig.baseUrl!.replace(/\/$/, '');
     const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const url = `${baseUrl}${path}`;
+    const isAuthEntryPoint = isAuthEndpoint(endpoint);
 
-    const headers = createHeaders(mergedConfig);
+    let resolvedToken = mergedConfig.token ?? getToken();
+
+    if (!isRetry && !isAuthEntryPoint && resolvedToken && isTokenExpired(resolvedToken)) {
+        console.log('Stored access token is expired, attempting refresh before request');
+        resolvedToken = await refreshAccessToken();
+
+        if (!resolvedToken && typeof window !== 'undefined') {
+            localStorage.removeItem('accessToken');
+        }
+    }
+
+    if (resolvedToken && isTokenExpired(resolvedToken)) {
+        resolvedToken = null;
+    }
+
+    const headers = createHeaders(mergedConfig, resolvedToken);
 
     // If body is FormData, ensure no Content-Type header exists (browser will set it with boundary)
     if (mergedConfig.body instanceof FormData && headers.has('Content-Type')) {
@@ -286,15 +352,6 @@ async function request<T>(endpoint: string, config: RequestConfig = {}, isRetry:
         });
 
         // Handle 401 Unauthorized with token refresh on protected endpoints only.
-        const isAuthEntryPoint =
-            endpoint === '/auth/login' ||
-            endpoint === '/auth/register' ||
-            endpoint === '/auth/verify-email' ||
-            endpoint === '/auth/resend-verification' ||
-            endpoint === '/auth/forgot-password' ||
-            endpoint === '/auth/reset-password' ||
-            endpoint === '/auth/refresh';
-
         if (!response.ok && response.status === 401 && !isRetry && !isAuthEntryPoint) {
             console.log('Attempting token refresh after 401 response...');
 
