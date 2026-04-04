@@ -5,20 +5,18 @@ using JassSpace.Api.Configuration;
 using JassSpace.Api.Jobs;
 using JassSpace.Api.Extensions;
 using JassSpace.Contracts;
+using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
-using JassSpace.Data;
-using JassSpace.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace JassSpace.Api.Controllers;
 
 [Route("comments")]
 public sealed class CommentController(
-    JassSpaceDbContext dbContext,
+    ICommentService commentService,
     IBackgroundJobClient backgroundJobClient,
     IOptions<HangfireSettings> hangfireSettings,
     ILogger<CommentController> logger)
@@ -37,26 +35,7 @@ public sealed class CommentController(
     {
         try
         {
-            var comments = await dbContext.Comments
-                .AsNoTracking()
-                .Where(c => c.ContentId == contentId && !c.IsDeleted)
-                .Include(c => c.User)
-                .OrderBy(c => c.CreatedAt)
-                .Select(c => new CommentResponse(
-                    c.Id,
-                    c.ContentId,
-                    c.ParentCommentId,
-                    c.Text,
-                    c.UserId,
-                    c.User.Username,
-                    c.User.DisplayName,
-                    c.User.AvatarUrl,
-                    c.Replies.Count(r => !r.IsDeleted), // Count only non-deleted replies
-                    c.CreatedAt,
-                    c.UpdatedAt
-                ))
-                .ToListAsync(cancellationToken);
-
+            var comments = await commentService.GetCommentsAsync(contentId, cancellationToken);
             return OkEnvelope(comments);
         }
         catch (Exception ex)
@@ -81,90 +60,41 @@ public sealed class CommentController(
         [FromBody] CreateCommentRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Text))
-        {
-            return BadRequestProblem("Invalid comment", "Comment text cannot be empty.");
-        }
-
         try
         {
-            // Verify content exists
-            var contentExists = await dbContext.Contents
-                .AnyAsync(c => c.Id == request.ContentId, cancellationToken);
-            
-            if (!contentExists)
-            {
-                return NotFoundProblem("Content not found", $"No content found with ID '{request.ContentId}'.");
-            }
-
-            // Verify parent comment if provided
-            if (request.ParentCommentId.HasValue)
-            {
-                var parentComment = await dbContext.Comments
-                    .AsNoTracking()
-                    .Where(c => c.Id == request.ParentCommentId.Value && !c.IsDeleted)
-                    .Select(c => new { c.Id, c.ContentId })
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                if (parentComment is null)
-                {
-                    return NotFoundProblem("Parent comment not found", "The specified parent comment does not exist or has been deleted.");
-                }
-
-                if (parentComment.ContentId != request.ContentId)
-                {
-                    return BadRequestProblem("Invalid parent comment", "Parent comment must belong to the same content.");
-                }
-            }
-
             if (UserId is null) return Unauthorized();
             var userId = Guid.Parse(UserId);
-            var now = DateTimeOffset.UtcNow;
+            var result = await commentService.CreateCommentAsync(userId, request, cancellationToken);
 
-            var comment = new Comment
+            switch (result.Status)
             {
-                Id = Guid.NewGuid(),
-                ContentId = request.ContentId,
-                ParentCommentId = request.ParentCommentId,
-                UserId = userId,
-                Text = request.Text,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
+                case CommentCreateStatus.Success:
+                    var createdComment = result.Response!;
+                    var queueName = string.IsNullOrWhiteSpace(hangfireSettings.Value.QueueName) ? "emails" : hangfireSettings.Value.QueueName;
+                    backgroundJobClient.Create(
+                        Job.FromExpression<ICommentNotificationJob>(job => job.EnqueueForCommentAsync(createdComment.Id)),
+                        new EnqueuedState(queueName));
 
-            dbContext.Comments.Add(comment);
-            await dbContext.SaveChangesAsync(cancellationToken);
+                    logger.LogInformation(
+                        "Queued comment notification orchestration for comment {CommentId} on queue {QueueName}.",
+                        createdComment.Id,
+                        queueName);
 
-            var queueName = string.IsNullOrWhiteSpace(hangfireSettings.Value.QueueName) ? "emails" : hangfireSettings.Value.QueueName;
-            backgroundJobClient.Create(
-                Job.FromExpression<ICommentNotificationJob>(job => job.EnqueueForCommentAsync(comment.Id)),
-                new EnqueuedState(queueName));
-
-            logger.LogInformation(
-                "Queued comment notification orchestration for comment {CommentId} on queue {QueueName}.",
-                comment.Id,
-                queueName);
-
-            // Fetch user details for response
-            var user = await dbContext.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-
-            var response = new CommentResponse(
-                comment.Id,
-                comment.ContentId,
-                comment.ParentCommentId,
-                comment.Text,
-                comment.UserId,
-                user?.Username ?? "Unknown",
-                user?.DisplayName,
-                user?.AvatarUrl,
-                0, // No replies yet
-                comment.CreatedAt,
-                comment.UpdatedAt
-            );
-
-            return Created($"/comments/{comment.Id}", new ApiResponse<CommentResponse>(response));
+                    return Created($"/comments/{createdComment.Id}", new ApiResponse<CommentResponse>(createdComment));
+                case CommentCreateStatus.InvalidText:
+                    return BadRequestProblem("Invalid comment", result.ErrorMessage);
+                case CommentCreateStatus.InvalidParentComment:
+                    return BadRequestProblem("Invalid parent comment", result.ErrorMessage);
+                case CommentCreateStatus.ContentNotFound:
+                    return NotFoundProblem("Content not found", result.ErrorMessage);
+                case CommentCreateStatus.ParentCommentNotFound:
+                    return NotFoundProblem("Parent comment not found", result.ErrorMessage);
+                default:
+                    return Problem(
+                        StatusCodes.Status500InternalServerError,
+                        "Failed to create comment",
+                        "An unexpected error occurred while creating the comment.");
+            }
         }
         catch (Exception ex)
         {
@@ -189,55 +119,23 @@ public sealed class CommentController(
         [FromBody] UpdateCommentRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Text))
-        {
-            return BadRequestProblem("Invalid comment", "Comment text cannot be empty.");
-        }
-
-        var comment = await dbContext.Comments
-            .Include(c => c.User)
-            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-
-        if (comment is null || comment.IsDeleted)
-        {
-            return NotFoundProblem("Comment not found", $"No comment found with ID '{id}'.");
-        }
-
-            if (UserId is null) return Unauthorized();
-            var userId = Guid.Parse(UserId);
-        
-        // Check authorization (only author can update)
-        // Note: Admins might want to moderate? For now, strictly author.
-        if (comment.UserId != userId)
-        {
-            return ForbiddenProblem("You are not authorized to edit this comment.");
-        }
+        if (UserId is null) return Unauthorized();
+        var userId = Guid.Parse(UserId);
 
         try
         {
-            comment.Text = request.Text;
-            comment.UpdatedAt = DateTimeOffset.UtcNow;
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            var replyCount = await dbContext.Comments
-                .CountAsync(c => c.ParentCommentId == id && !c.IsDeleted, cancellationToken);
-
-            var response = new CommentResponse(
-                comment.Id,
-                comment.ContentId,
-                comment.ParentCommentId,
-                comment.Text,
-                comment.UserId,
-                comment.User.Username,
-                comment.User.DisplayName,
-                comment.User.AvatarUrl,
-                replyCount,
-                comment.CreatedAt,
-                comment.UpdatedAt
-            );
-
-            return OkEnvelope(response);
+            var result = await commentService.UpdateCommentAsync(id, userId, request, cancellationToken);
+            return result.Status switch
+            {
+                CommentUpdateStatus.Success => OkEnvelope(result.Response!),
+                CommentUpdateStatus.InvalidText => BadRequestProblem("Invalid comment", result.ErrorMessage),
+                CommentUpdateStatus.CommentNotFound => NotFoundProblem("Comment not found", result.ErrorMessage),
+                CommentUpdateStatus.Forbidden => ForbiddenProblem(result.ErrorMessage ?? "You are not authorized to edit this comment."),
+                _ => Problem(
+                    StatusCodes.Status500InternalServerError,
+                    "Failed to update comment",
+                    "An unexpected error occurred while updating the comment.")
+            };
         }
         catch (Exception ex)
         {
@@ -259,62 +157,23 @@ public sealed class CommentController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteComment(Guid id, CancellationToken cancellationToken = default)
     {
-        var comment = await dbContext.Comments
-            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-
-        if (comment is null || comment.IsDeleted)
-        {
-            return NotFoundProblem("Comment not found", $"No comment found with ID '{id}'.");
-        }
-
         if (UserId is null) return Unauthorized();
         var userId = Guid.Parse(UserId);
-        
-        // Determine if user is admin/mod
         var isModOrAdmin = User.IsInRole("admin") || User.IsInRole("mod");
-
-        if (comment.UserId != userId && !isModOrAdmin)
-        {
-            return ForbiddenProblem("You are not authorized to delete this comment.");
-        }
 
         try
         {
-            // Fetch all comments for this content to find descendants efficiently in-memory
-            var allComments = await dbContext.Comments
-                .Where(c => c.ContentId == comment.ContentId && !c.IsDeleted)
-                .Select(c => new { c.Id, c.ParentCommentId }) // Select only needed fields
-                .ToListAsync(cancellationToken);
-
-            var commentsToDelete = new HashSet<Guid>();
-            var stack = new Stack<Guid>();
-            
-            stack.Push(id);
-            commentsToDelete.Add(id);
-
-            while (stack.Count > 0)
+            var result = await commentService.DeleteCommentAsync(id, userId, isModOrAdmin, cancellationToken);
+            return result.Status switch
             {
-                var currentId = stack.Pop();
-                var children = allComments.Where(c => c.ParentCommentId == currentId).ToList();
-                
-                foreach (var child in children)
-                {
-                    if (!commentsToDelete.Contains(child.Id))
-                    {
-                        commentsToDelete.Add(child.Id);
-                        stack.Push(child.Id);
-                    }
-                }
-            }
-
-            logger.LogInformation("Hard deleting comment {CommentId} and {Count} descendants", id, commentsToDelete.Count - 1);
-
-            // Batch delete all identified comments
-            await dbContext.Comments
-                .Where(c => commentsToDelete.Contains(c.Id))
-                .ExecuteDeleteAsync(cancellationToken);
-
-            return NoContent();
+                CommentDeleteStatus.Success => NoContent(),
+                CommentDeleteStatus.CommentNotFound => NotFoundProblem("Comment not found", result.ErrorMessage),
+                CommentDeleteStatus.Forbidden => ForbiddenProblem(result.ErrorMessage ?? "You are not authorized to delete this comment."),
+                _ => Problem(
+                    StatusCodes.Status500InternalServerError,
+                    "Failed to delete comment",
+                    "An unexpected error occurred while deleting the comment.")
+            };
         }
         catch (Exception ex)
         {

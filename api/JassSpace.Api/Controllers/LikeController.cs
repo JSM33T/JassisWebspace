@@ -1,17 +1,15 @@
 using JassSpace.Api.Extensions;
 using JassSpace.Contracts;
+using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Responses;
-using JassSpace.Data;
-using JassSpace.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace JassSpace.Api.Controllers;
 
 [Route("likes")]
 public sealed class LikeController(
-    JassSpaceDbContext dbContext,
+    ILikeService likeService,
     ILogger<LikeController> logger)
     : BaseApiController
 {
@@ -24,52 +22,21 @@ public sealed class LikeController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ToggleLike(Guid contentId, CancellationToken cancellationToken = default)
     {
-        // Verify content exists
-        var contentExists = await dbContext.Contents
-            .AnyAsync(c => c.Id == contentId, cancellationToken);
-
-        if (!contentExists)
-        {
-            return NotFoundProblem("Content not found", $"No content found with ID '{contentId}'.");
-        }
-
         if (UserId is null) return Unauthorized();
         var userId = Guid.Parse(UserId);
 
         try
         {
-            var existingLike = await dbContext.Likes
-                .FirstOrDefaultAsync(l => l.ContentId == contentId && l.UserId == userId, cancellationToken);
-
-            if (existingLike != null)
+            var result = await likeService.ToggleLikeAsync(contentId, userId, cancellationToken);
+            return result.Status switch
             {
-                // Unlike
-                dbContext.Likes.Remove(existingLike);
-                await dbContext.SaveChangesAsync(cancellationToken);
-
-                var likeCount = await dbContext.Likes
-                    .CountAsync(l => l.ContentId == contentId, cancellationToken);
-
-                return OkEnvelope(new LikeStatusResponse(contentId, likeCount, false));
-            }
-            else
-            {
-                // Like
-                var like = new Like
-                {
-                    ContentId = contentId,
-                    UserId = userId,
-                    CreatedAt = DateTimeOffset.UtcNow
-                };
-
-                dbContext.Likes.Add(like);
-                await dbContext.SaveChangesAsync(cancellationToken);
-
-                var likeCount = await dbContext.Likes
-                    .CountAsync(l => l.ContentId == contentId, cancellationToken);
-
-                return OkEnvelope(new LikeStatusResponse(contentId, likeCount, true));
-            }
+                LikeStatusQueryStatus.Success => OkEnvelope(result.Response!),
+                LikeStatusQueryStatus.ContentNotFound => NotFoundProblem("Content not found", result.ErrorMessage),
+                _ => Problem(
+                    StatusCodes.Status500InternalServerError,
+                    "Failed to update like status",
+                    "An unexpected error occurred.")
+            };
         }
         catch (Exception ex)
         {
@@ -92,25 +59,17 @@ public sealed class LikeController(
     {
         try
         {
-            var contentExists = await dbContext.Contents
-                .AnyAsync(c => c.Id == contentId, cancellationToken);
-
-            if (!contentExists)
+            Guid? userId = Guid.TryParse(UserId, out var parsedUserId) ? parsedUserId : null;
+            var result = await likeService.GetLikeStatusAsync(contentId, userId, cancellationToken);
+            return result.Status switch
             {
-                return NotFoundProblem("Content not found", $"No content found with ID '{contentId}'.");
-            }
-
-            var likeCount = await dbContext.Likes
-                .CountAsync(l => l.ContentId == contentId, cancellationToken);
-
-            var isLiked = false;
-            if (Guid.TryParse(UserId, out var userId))
-            {
-                isLiked = await dbContext.Likes
-                    .AnyAsync(l => l.ContentId == contentId && l.UserId == userId, cancellationToken);
-            }
-
-            return OkEnvelope(new LikeStatusResponse(contentId, likeCount, isLiked));
+                LikeStatusQueryStatus.Success => OkEnvelope(result.Response!),
+                LikeStatusQueryStatus.ContentNotFound => NotFoundProblem("Content not found", result.ErrorMessage),
+                _ => Problem(
+                    StatusCodes.Status500InternalServerError,
+                    "Failed to retrieve like status",
+                    "An unexpected error occurred.")
+            };
         }
         catch (Exception ex)
         {
@@ -132,8 +91,7 @@ public sealed class LikeController(
     {
         try
         {
-            var count = await dbContext.Likes
-                .CountAsync(l => l.ContentId == contentId, cancellationToken);
+            var count = await likeService.GetLikeCountAsync(contentId, cancellationToken);
 
             return OkEnvelope(count);
         }
