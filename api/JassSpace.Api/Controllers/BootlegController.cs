@@ -1,11 +1,8 @@
 using JassSpace.Api.Configuration;
 using JassSpace.Api.Services;
 using JassSpace.Contracts;
+using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Responses;
-using JassSpace.Data;
-using JassSpace.Entities;
-using JassSpace.Infra;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -14,8 +11,7 @@ namespace JassSpace.Api.Controllers;
 
 [Route("bootleg")]
 public sealed class BootlegController(
-    JassSpaceDbContext dbContext,
-    IAzureBlobStorageService blobStorageService,
+    IBootlegService bootlegService,
     IBootlegTokenService tokenService,
     IOptions<BootlegStreamingSettings> settings,
     ILogger<BootlegController> logger)
@@ -43,45 +39,23 @@ public sealed class BootlegController(
             return BadRequestProblem("Invalid file type", "Only audio files are accepted.");
         }
 
-        var normalizedFolder = NormalizeFolder(folder);
-
-        var extension = Path.GetExtension(file.FileName);
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            extension = ".bin";
-        }
-
-        var blobName = $"bootleg/audio/{normalizedFolder}/{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-
         try
         {
-            await using var stream = file.OpenReadStream();
-            var upload = await blobStorageService.UploadImageAsync(
-                stream,
-                file.FileName,
-                file.ContentType,
-                blobName,
-                cancellationToken);
-
             Guid? uploadedBy = null;
             if (Guid.TryParse(UserId, out var userGuid))
             {
                 uploadedBy = userGuid;
             }
 
-            var asset = new BootlegAsset
-            {
-                Id = Guid.NewGuid(),
-                Folder = normalizedFolder,
-                BlobName = upload.BlobName,
-                OriginalFileName = file.FileName,
-                ContentType = file.ContentType,
-                SizeBytes = file.Length,
-                UploadedByUserId = uploadedBy,
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-            dbContext.BootlegAssets.Add(asset);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await using var stream = file.OpenReadStream();
+            var upload = await bootlegService.UploadAudioAsync(
+                stream,
+                file.FileName,
+                file.ContentType,
+                file.Length,
+                folder,
+                uploadedBy,
+                cancellationToken);
 
             var ttl = TimeSpan.FromMinutes(Math.Max(1, _settings.TokenTtlMinutes));
             var token = tokenService.CreateToken(upload.BlobName, ttl);
@@ -89,11 +63,11 @@ public sealed class BootlegController(
             var streamUrl = $"{Request.Scheme}://{Request.Host}/bootleg/stream/{upload.BlobName}?token={Uri.EscapeDataString(token)}";
 
             return OkEnvelope(new BootlegUploadResponse(
-                asset.Id,
-                asset.Folder,
-                asset.OriginalFileName,
+                upload.AssetId,
+                upload.Folder,
+                upload.FileName,
                 upload.BlobName,
-                asset.SizeBytes,
+                upload.SizeBytes,
                 streamUrl,
                 token,
                 expiresAt));
@@ -118,43 +92,18 @@ public sealed class BootlegController(
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
-
-        var query = dbContext.BootlegAssets.AsNoTracking().AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(folder) && !string.Equals(folder, "all", StringComparison.OrdinalIgnoreCase))
-        {
-            query = query.Where(a => a.Folder == folder);
-        }
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var term = search.Trim().ToLowerInvariant();
-            query = query.Where(a =>
-                a.OriginalFileName.ToLower().Contains(term) ||
-                a.BlobName.ToLower().Contains(term) ||
-                a.Folder.ToLower().Contains(term));
-        }
-
-        var total = await query.CountAsync(cancellationToken);
-
-        var assets = await query
-            .OrderByDescending(a => a.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
+        var result = await bootlegService.GetAssetsAsync(folder, search, page, pageSize, cancellationToken);
 
         var ttl = TimeSpan.FromMinutes(Math.Max(1, _settings.TokenTtlMinutes));
         var expiresAt = DateTimeOffset.UtcNow.Add(ttl);
-        var items = assets.Select(a =>
+        var items = result.Items.Select(a =>
         {
             var token = tokenService.CreateToken(a.BlobName, ttl);
             var streamUrl = $"{Request.Scheme}://{Request.Host}/bootleg/stream/{a.BlobName}?token={Uri.EscapeDataString(token)}";
             return new BootlegAssetResponse(
                 a.Id,
                 a.Folder,
-                a.OriginalFileName,
+                a.FileName,
                 a.BlobName,
                 a.ContentType,
                 a.SizeBytes,
@@ -163,7 +112,7 @@ public sealed class BootlegController(
                 expiresAt);
         }).ToList();
 
-        return PagedOk(items, page, pageSize, total);
+        return PagedOk(items, result.Page, result.PageSize, result.Total);
     }
 
     [HttpGet("assets/folders")]
@@ -171,13 +120,7 @@ public sealed class BootlegController(
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyCollection<string>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFolders(CancellationToken cancellationToken = default)
     {
-        var folders = await dbContext.BootlegAssets
-            .AsNoTracking()
-            .Select(a => a.Folder)
-            .Distinct()
-            .OrderBy(f => f)
-            .ToListAsync(cancellationToken);
-
+        var folders = await bootlegService.GetFoldersAsync(cancellationToken);
         return OkEnvelope(folders);
     }
 
@@ -187,19 +130,16 @@ public sealed class BootlegController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GenerateLink(Guid id, CancellationToken cancellationToken = default)
     {
-        var asset = await dbContext.BootlegAssets
-            .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
-
-        if (asset is null)
+        var result = await bootlegService.GenerateLinkAsync(id, cancellationToken);
+        if (result.Status == BootlegLinkStatus.AssetNotFound)
         {
-            return NotFoundProblem("Asset not found", $"No asset found with ID '{id}'.");
+            return NotFoundProblem("Asset not found", result.ErrorMessage);
         }
 
         var ttl = TimeSpan.FromMinutes(Math.Max(1, _settings.TokenTtlMinutes));
-        var token = tokenService.CreateToken(asset.BlobName, ttl);
+        var token = tokenService.CreateToken(result.BlobName!, ttl);
         var expiresAt = DateTimeOffset.UtcNow.Add(ttl);
-        var streamUrl = $"{Request.Scheme}://{Request.Host}/bootleg/stream/{asset.BlobName}?token={Uri.EscapeDataString(token)}";
+        var streamUrl = $"{Request.Scheme}://{Request.Host}/bootleg/stream/{result.BlobName}?token={Uri.EscapeDataString(token)}";
         return OkEnvelope(new BootlegLinkResponse(streamUrl, token, expiresAt));
     }
 
@@ -209,17 +149,12 @@ public sealed class BootlegController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAsset(Guid id, CancellationToken cancellationToken = default)
     {
-        var asset = await dbContext.BootlegAssets
-            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
-
-        if (asset is null)
+        var result = await bootlegService.DeleteAssetAsync(id, cancellationToken);
+        if (result.Status == BootlegDeleteStatus.AssetNotFound)
         {
-            return NotFoundProblem("Asset not found", $"No asset found with ID '{id}'.");
+            return NotFoundProblem("Asset not found", result.ErrorMessage);
         }
 
-        await blobStorageService.DeleteBlobAsync(asset.BlobName, cancellationToken);
-        dbContext.BootlegAssets.Remove(asset);
-        await dbContext.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 
@@ -254,16 +189,16 @@ public sealed class BootlegController(
                 "This stream only supports chunked playback requests.");
         }
 
-        var cachedFile = await blobStorageService.GetImageAsync(blobName, cancellationToken);
-        if (cachedFile is null)
+        var streamResult = await bootlegService.GetStreamFileAsync(blobName, cancellationToken);
+        if (streamResult.Status == BootlegStreamStatus.AudioNotFound)
         {
-            return NotFoundProblem("Audio not found", $"No audio found for blob '{blobName}'.");
+            return NotFoundProblem("Audio not found", streamResult.ErrorMessage);
         }
 
         try
         {
             var stream = new FileStream(
-                cachedFile.FilePath,
+                streamResult.FilePath!,
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.Read,
@@ -272,7 +207,7 @@ public sealed class BootlegController(
 
             Response.Headers["Cache-Control"] = "no-store";
             Response.Headers["Accept-Ranges"] = "bytes";
-            return File(stream, NormalizeAudioContentType(cachedFile.ContentType, cachedFile.FilePath), enableRangeProcessing: true);
+            return File(stream, streamResult.ContentType!, enableRangeProcessing: true);
         }
         catch (Exception ex)
         {
@@ -284,47 +219,4 @@ public sealed class BootlegController(
         }
     }
 
-    private static string NormalizeAudioContentType(string? contentType, string filePath)
-    {
-        if (!string.IsNullOrWhiteSpace(contentType) &&
-            contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase))
-        {
-            return contentType;
-        }
-
-        return Path.GetExtension(filePath).ToLowerInvariant() switch
-        {
-            ".mp3" => "audio/mpeg",
-            ".m4a" => "audio/mp4",
-            ".aac" => "audio/aac",
-            ".wav" => "audio/wav",
-            ".ogg" => "audio/ogg",
-            ".webm" => "audio/webm",
-            ".flac" => "audio/flac",
-            _ => "application/octet-stream"
-        };
-    }
-
-    private static string NormalizeFolder(string? folder)
-    {
-        var input = string.IsNullOrWhiteSpace(folder) ? "default" : folder.Trim().ToLowerInvariant();
-        var normalized = input.Replace('\\', '/');
-        while (normalized.StartsWith('/'))
-        {
-            normalized = normalized[1..];
-        }
-
-        var segments = normalized
-            .Split('/', StringSplitOptions.RemoveEmptyEntries)
-            .Select(s =>
-            {
-                var cleaned = new string(s.Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_').ToArray());
-                return string.IsNullOrWhiteSpace(cleaned) ? null : cleaned;
-            })
-            .Where(s => s is not null)
-            .Select(s => s!)
-            .ToList();
-
-        return segments.Count == 0 ? "default" : string.Join('/', segments);
-    }
 }

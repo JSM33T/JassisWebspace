@@ -10,6 +10,7 @@
     <ProjectReference Include="..\JassSpace.Contracts\JassSpace.Contracts.csproj" />
     <ProjectReference Include="..\JassSpace.Repositories\JassSpace.Repositories.csproj" />
     <ProjectReference Include="..\JassSpace.Data\JassSpace.Data.csproj" />
+    <ProjectReference Include="..\JassSpace.Infra\JassSpace.Infra.csproj" />
   </ItemGroup>
 
   <ItemGroup>

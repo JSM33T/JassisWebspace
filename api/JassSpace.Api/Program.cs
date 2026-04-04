@@ -137,6 +137,7 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
+builder.Services.AddScoped<IBootlegService, BootlegService>();
 builder.Services.Configure<IpGeolocationOptions>(builder.Configuration.GetSection("IpGeolocation"));
 builder.Services.Configure<BootlegStreamingSettings>(builder.Configuration.GetSection("BootlegStreaming"));
 builder.Services
