@@ -1,11 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { PageIntroCard } from '@/components/page-intro-card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import {
     ArrowUpRight,
@@ -22,6 +29,7 @@ export default function GalleryPage() {
     const [albums, setAlbums] = useState<Album[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'title'>('newest');
 
     useEffect(() => {
         loadAlbums();
@@ -52,6 +60,20 @@ export default function GalleryPage() {
             day: 'numeric',
         });
 
+    const visibleAlbums = useMemo(() => {
+        const sorted = [...albums];
+
+        if (sortOrder === 'title') {
+            return sorted.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        return sorted.sort((a, b) => {
+            const left = new Date(a.createdAt).getTime();
+            const right = new Date(b.createdAt).getTime();
+            return sortOrder === 'oldest' ? left - right : right - left;
+        });
+    }, [albums, sortOrder]);
+
     return (
         <div className="flex min-h-screen flex-col bg-background/50">
             <div className="fixed inset-0 z-[-1] pointer-events-none">
@@ -66,7 +88,25 @@ export default function GalleryPage() {
                         badgeIcon={ImageIcon}
                         title="Gallery"
                         description="Explore my curated collection of albums and creative works."
-                    />
+                    >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-sm text-muted-foreground">
+                                Sort albums by recency or title to scan the collection faster.
+                            </p>
+                            <div className="w-full sm:w-[200px]">
+                                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as typeof sortOrder)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sort albums" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">Newest first</SelectItem>
+                                        <SelectItem value="oldest">Oldest first</SelectItem>
+                                        <SelectItem value="title">Title A-Z</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </PageIntroCard>
 
                     <section className="mt-6">
                     {loading && (
@@ -112,7 +152,7 @@ export default function GalleryPage() {
 
                     {!loading && !error && albums.length > 0 && (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {albums.map((album, index) => (
+                            {visibleAlbums.map((album, index) => (
                                 <motion.div
                                     key={album.id}
                                     initial={{ opacity: 0, y: 14 }}

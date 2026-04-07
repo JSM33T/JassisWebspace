@@ -1,20 +1,18 @@
 using JassSpace.Contracts;
+using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
 using JassSpace.Api.Configuration;
 using JassSpace.Api.Services;
-using JassSpace.Data;
-using JassSpace.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Net.Mail;
 
 namespace JassSpace.Api.Controllers;
 
 [Route("contact")]
 public sealed class ContactController(
-    JassSpaceDbContext dbContext,
+    IContactService contactService,
     ITurnstileVerificationService turnstileVerificationService,
     IOptions<TurnstileOptions> turnstileOptions,
     ILogger<ContactController> logger)
@@ -38,31 +36,6 @@ public sealed class ContactController(
         [FromBody] CreateContactRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequestProblem("Invalid name", "Name is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Email))
-        {
-            return BadRequestProblem("Invalid email", "Email is required.");
-        }
-
-        if (!MailAddress.TryCreate(request.Email, out _))
-        {
-            return BadRequestProblem("Invalid email", "Email format is invalid.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Purpose))
-        {
-            return BadRequestProblem("Invalid purpose", "Purpose is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Message))
-        {
-            return BadRequestProblem("Invalid message", "Message is required.");
-        }
-
         var turnstileResult = await turnstileVerificationService.VerifyAsync(
             request.TurnstileToken,
             HttpContext.Connection.RemoteIpAddress?.ToString(),
@@ -81,26 +54,29 @@ public sealed class ContactController(
 
         try
         {
-            var now = DateTimeOffset.UtcNow;
-            var contact = new Contact
+            var result = await contactService.CreateContactAsync(request, cancellationToken);
+
+            switch (result.Status)
             {
-                Id = Guid.NewGuid(),
-                Name = request.Name.Trim(),
-                Email = request.Email.Trim(),
-                Purpose = request.Purpose.Trim(),
-                Message = request.Message.Trim(),
-                RefUrl = string.IsNullOrWhiteSpace(request.RefUrl) ? null : request.RefUrl.Trim(),
-                CreatedAt = now
-            };
-
-            dbContext.Contacts.Add(contact);
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Stored contact submission {ContactId} from {Email}", contact.Id, contact.Email);
-
-            return Created(
-                $"/contact/{contact.Id}",
-                new ApiResponse<ContactResponse>(new ContactResponse(contact.Id, contact.CreatedAt)));
+                case ContactCreateStatus.Success:
+                    logger.LogInformation("Stored contact submission {ContactId} from {Email}", result.Response!.Id, request.Email);
+                    return Created(
+                        $"/contact/{result.Response.Id}",
+                        new ApiResponse<ContactResponse>(result.Response));
+                case ContactCreateStatus.InvalidName:
+                    return BadRequestProblem("Invalid name", result.ErrorMessage);
+                case ContactCreateStatus.InvalidEmail:
+                    return BadRequestProblem("Invalid email", result.ErrorMessage);
+                case ContactCreateStatus.InvalidPurpose:
+                    return BadRequestProblem("Invalid purpose", result.ErrorMessage);
+                case ContactCreateStatus.InvalidMessage:
+                    return BadRequestProblem("Invalid message", result.ErrorMessage);
+                default:
+                    return Problem(
+                        StatusCodes.Status500InternalServerError,
+                        "Failed to save contact request",
+                        "An unexpected error occurred while saving your contact request.");
+            }
         }
         catch (Exception ex)
         {

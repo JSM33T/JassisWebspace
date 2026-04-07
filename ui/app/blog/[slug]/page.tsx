@@ -167,6 +167,7 @@ export default function BlogViewPage() {
                                 )}
                             </div>
                         }
+                        showBackButton
                         backHref="/blog"
                         backLabel="Back to Blog"
                         className="px-6 py-7 sm:px-10 sm:py-9 md:px-12 md:py-11"

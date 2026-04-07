@@ -1,4 +1,4 @@
-namespace JassSpace.Api.Services;
+namespace JassSpace.Contracts.Interfaces;
 
 public interface IBootlegTokenService
 {

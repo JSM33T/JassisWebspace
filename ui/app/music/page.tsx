@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PageIntroCard } from '@/components/page-intro-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { Disc3, Music, Play } from 'lucide-react';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
 import { musicService } from '@/lib/api/music.service';
@@ -23,8 +23,9 @@ const getCategoryRank = (category: string) => {
 };
 
 export default function MusicPage() {
-    const router = useRouter();
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [sortOrder, setSortOrder] = useState<'category' | 'newest' | 'title'>('category');
+    const [playableOnly, setPlayableOnly] = useState(false);
     const [tracks, setTracks] = useState<MusicTrack[]>([]);
     const [loading, setLoading] = useState(true);
     const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
@@ -49,15 +50,31 @@ export default function MusicPage() {
 
     const filteredTracks = useMemo(
         () => {
-            if (selectedCategory === 'all') {
-                return [...tracks].sort(
-                    (a, b) => getCategoryRank(a.category) - getCategoryRank(b.category)
-                );
-            }
+            const baseTracks = selectedCategory === 'all'
+                ? [...tracks]
+                : tracks.filter((track) => track.category === selectedCategory);
+            const refinedTracks = playableOnly
+                ? baseTracks.filter((track) => track.hasPlayableSource)
+                : baseTracks;
 
-            return tracks.filter((track) => track.category === selectedCategory);
+            return refinedTracks.sort((a, b) => {
+                if (sortOrder === 'title') {
+                    return a.title.localeCompare(b.title);
+                }
+
+                if (sortOrder === 'newest') {
+                    return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+                }
+
+                const rankDiff = getCategoryRank(a.category) - getCategoryRank(b.category);
+                if (rankDiff !== 0) {
+                    return rankDiff;
+                }
+
+                return a.title.localeCompare(b.title);
+            });
         },
-        [selectedCategory, tracks]
+        [playableOnly, selectedCategory, sortOrder, tracks]
     );
 
     useEffect(() => {
@@ -146,7 +163,43 @@ export default function MusicPage() {
                         badgeIcon={Music}
                         title="Music"
                         description="Explore all published tracks from the catalog."
-                    />
+                    >
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <p className="text-sm text-muted-foreground">
+                                Refine the list by category, sort order, or playable status.
+                            </p>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-2">
+                                    <Switch
+                                        checked={playableOnly}
+                                        onCheckedChange={setPlayableOnly}
+                                        aria-label="Show playable tracks only"
+                                    />
+                                    <span className="text-sm text-foreground">Playable only</span>
+                                </div>
+                                <div className="flex gap-2 rounded-full border border-border/60 bg-background/60 p-1">
+                                    {(
+                                        [
+                                            { value: 'category', label: 'Category' },
+                                            { value: 'newest', label: 'Newest' },
+                                            { value: 'title', label: 'Title' },
+                                        ] as const
+                                    ).map((option) => (
+                                        <Button
+                                            key={option.value}
+                                            type="button"
+                                            size="sm"
+                                            variant={sortOrder === option.value ? 'default' : 'ghost'}
+                                            className="h-8 rounded-full px-4"
+                                            onClick={() => setSortOrder(option.value)}
+                                        >
+                                            {option.label}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </PageIntroCard>
 
                     <div className="mt-6 mb-6 flex max-w-6xl flex-wrap gap-2">
                         {categories.map((category) => {
@@ -193,15 +246,6 @@ export default function MusicPage() {
                                             ? 'bg-card/50 hover:bg-card/80 hover:shadow-lg'
                                             : 'bg-card/30 opacity-60 saturate-50'
                                     }`}
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => router.push(`/music/${track.slug}`)}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter' || event.key === ' ') {
-                                            event.preventDefault();
-                                            router.push(`/music/${track.slug}`);
-                                        }
-                                    }}
                                 >
                                     <div className="px-4 py-0 flex items-center gap-3">
                                         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-primary/30 bg-muted sm:h-32 sm:w-32">
@@ -235,14 +279,8 @@ export default function MusicPage() {
                                                     type="button"
                                                     size="sm"
                                                     className="h-8 cursor-pointer rounded-full px-4"
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
+                                                    onClick={() => {
                                                         void handlePlay(track);
-                                                    }}
-                                                    onKeyDown={(event) => {
-                                                        if (event.key === 'Enter' || event.key === ' ') {
-                                                            event.stopPropagation();
-                                                        }
                                                     }}
                                                     disabled={!track.hasPlayableSource || playingTrackId === track.id}
                                                 >

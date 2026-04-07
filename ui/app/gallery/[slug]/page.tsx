@@ -207,6 +207,7 @@ export default function AlbumDetailPage() {
                         badgeIcon={ImageIcon}
                         title={album.name}
                         description={album.description}
+                        showBackButton
                         backHref="/gallery"
                         backLabel="Back to Gallery"
                     >

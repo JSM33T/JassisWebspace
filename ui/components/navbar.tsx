@@ -68,6 +68,7 @@ export function Navbar() {
     const searchParams = useSearchParams();
     const [menuOpen, setMenuOpen] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [isNavbarHidden, setIsNavbarHidden] = useState(false);
     const [isRailExpanded, setIsRailExpanded] = useState(false);
@@ -99,10 +100,15 @@ export function Navbar() {
 
     const navigationLinks = [
         { href: '/', label: 'Home', id: 'home' },
-        { href: '/blog', label: 'Blogs', id: 'blogs' },
     ];
 
     const studioMenuItems = [
+        {
+            href: '/blog',
+            label: 'Blog',
+            description: 'Read our latest posts and updates',
+            icon: FileText,
+        },
         {
             href: '/gallery',
             label: 'Gallery',
@@ -141,7 +147,7 @@ export function Navbar() {
     const aboutMenuItems = [
         {
             href: '/about',
-            label: 'Me',
+            label: 'About',
             description: 'Learn about JassSpace and our mission',
             icon: UserCircle,
         },
@@ -348,15 +354,11 @@ export function Navbar() {
 
     const desktopRailSections = [
         {
-            title: null,
-            items: [{ href: '/blog', label: 'Blogs', icon: FileText }],
-        },
-        {
             title: 'Media',
             items: studioMenuItems,
         },
         {
-            title: 'Official',
+            title: 'Work',
             items: workMenuItems,
         },
         {
@@ -371,9 +373,9 @@ export function Navbar() {
 
     const mobileDockItems = [
         { href: '/', label: 'Home', icon: LogoMark },
-        { href: '/blog', label: 'Blogs', icon: FileText },
-        { href: '/music', label: 'Music', icon: Music },
+        { href: '/blog', label: 'Blog', icon: FileText },
         { href: '/gallery', label: 'Gallery', icon: Image },
+        { href: '/music', label: 'Music', icon: Music },
     ];
 
     const mobileMenuSections = [
@@ -381,12 +383,11 @@ export function Navbar() {
             title: 'Explore',
             items: [
                 { href: '/', label: 'Home', icon: LogoMark },
-                { href: '/blog', label: 'Blogs', icon: FileText },
                 ...studioMenuItems,
             ],
         },
         { title: 'Work', items: workMenuItems },
-        { title: 'Info', items: aboutMenuItems },
+        { title: 'About', items: aboutMenuItems },
     ];
 
     const railItemClassName =
@@ -457,6 +458,7 @@ export function Navbar() {
                                     isRailExpanded ? 'w-full justify-between px-3' : 'w-11 justify-center'
                                 )}
                                 onClick={() => setIsRailExpanded((prev) => !prev)}
+                                aria-expanded={isRailExpanded}
                                 aria-label={isRailExpanded ? 'Collapse navigation' : 'Expand navigation'}
                                 title={isRailExpanded ? 'Collapse navigation' : 'Expand navigation'}
                                 onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
@@ -500,80 +502,97 @@ export function Navbar() {
                                 >
                                 <div className="flex w-full flex-col gap-3 pb-2">
                                     {desktopRailSections.map((section, sectionIndex) => (
-                                        <div
+                                        <ul
                                             key={`rail-section-${sectionIndex}`}
+                                            role="group"
+                                            aria-label={section.title ?? 'Primary'}
                                             className={cn('flex flex-col gap-2', isRailExpanded ? 'w-full items-stretch' : 'items-center')}
                                         >
                                             {isRailExpanded && section.title ? (
-                                                <div className="px-3 pt-1">
+                                                <li className="px-3 pt-1">
                                                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                                                         {section.title}
                                                     </p>
-                                                </div>
+                                                </li>
                                             ) : null}
                                             {section.items.map((item) => {
                                                 const Icon = item.icon;
                                                 const isActive = isActivePath(item.href);
 
                                                 return (
-                                                    <Link
-                                                        key={item.href}
-                                                        href={item.href}
-                                                        aria-current={isActive ? 'page' : undefined}
-                                                        aria-label={item.label}
-                                                        title={item.label}
-                                                        className={cn(
-                                                            railItemClassName,
-                                                            isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center',
-                                                            isActive && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
-                                                        )}
-                                                        onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                                        onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
-                                                    >
-                                                        <Icon className={railIconClassName} />
-                                                        {isActive ? (
-                                                            <span className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
-                                                        ) : null}
-                                                        {isRailExpanded ? (
-                                                            <span className="truncate text-sm font-medium text-foreground">{item.label}</span>
-                                                        ) : (
-                                                            <span className={railBubbleClassName}>{item.label}</span>
-                                                        )}
-                                                    </Link>
+                                                    <li key={item.href} className={cn(isRailExpanded ? 'w-full' : 'contents')}>
+                                                        <Link
+                                                            href={item.href}
+                                                            aria-current={isActive ? 'page' : undefined}
+                                                            aria-label={item.label}
+                                                            title={item.label}
+                                                            className={cn(
+                                                                railItemClassName,
+                                                                isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center',
+                                                                isActive && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
+                                                            )}
+                                                            onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                                            onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
+                                                        >
+                                                            <Icon className={railIconClassName} />
+                                                            {isActive ? (
+                                                                <span className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
+                                                            ) : null}
+                                                            {isRailExpanded ? (
+                                                                <span className="truncate text-sm font-medium text-foreground">{item.label}</span>
+                                                            ) : (
+                                                                <span className={railBubbleClassName}>{item.label}</span>
+                                                            )}
+                                                        </Link>
+                                                    </li>
                                                 );
                                             })}
                                             {sectionIndex < desktopRailSections.length - 1 ? (
-                                                <div
+                                                <li
                                                     className={cn(
                                                         'mt-1 h-px bg-gradient-to-r from-transparent via-border/80 to-transparent',
                                                         isRailExpanded ? 'w-full' : 'w-8'
                                                     )}
                                                 />
                                             ) : null}
-                                        </div>
+                                        </ul>
                                     ))}
                                 </div>
                             </div>
                             </div>
                         </div>
 
-                        <div className="flex w-full flex-col items-center gap-3">
-                            <DropdownMenu>
+                        <div className="flex w-full flex-col items-center gap-2 border-t border-border/70 pt-3">
+                            {isRailExpanded ? (
+                                <div className="w-full px-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                        Utilities
+                                    </p>
+                                </div>
+                            ) : null}
+                            <DropdownMenu open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
                                 <DropdownMenuTrigger asChild>
                                     <button
                                         type="button"
                                         className={cn(
                                             railItemClassName,
-                                            isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center'
+                                            isRailExpanded ? 'w-full justify-between border-border/60 bg-background/55 px-3' : 'w-11 justify-center border-border/60 bg-background/55'
                                         )}
+                                        aria-haspopup="menu"
+                                        aria-expanded={moreMenuOpen}
                                         aria-label="More links"
                                         title="More links"
                                         onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
                                         onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                                     >
-                                        <Menu className={railIconClassName} />
+                                        <span className={cn('flex items-center', isRailExpanded ? 'gap-3' : 'justify-center')}>
+                                            <Menu className={railIconClassName} />
+                                            {isRailExpanded ? (
+                                                <span className="truncate text-sm font-medium text-foreground">More</span>
+                                            ) : null}
+                                        </span>
                                         {isRailExpanded ? (
-                                            <span className="truncate text-sm font-medium text-foreground">More</span>
+                                            <ChevronRight className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', moreMenuOpen && 'rotate-90 text-foreground')} />
                                         ) : (
                                             <span className={railBubbleClassName}>More</span>
                                         )}
@@ -604,27 +623,6 @@ export function Navbar() {
                                     })}
                                 </DropdownMenuContent>
                             </DropdownMenu>
-
-                            <button
-                                type="button"
-                                className={cn(
-                                    railItemClassName,
-                                    isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center',
-                                    sidebarOpen && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
-                                )}
-                                onClick={() => handleSidebarOpenChange(true)}
-                                aria-label="Open controls"
-                                title="Open controls"
-                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
-                            >
-                                <PanelRight className={railIconClassName} />
-                                {isRailExpanded ? (
-                                    <span className="truncate text-sm font-medium text-foreground">Player and theme</span>
-                                ) : (
-                                    <span className={railBubbleClassName}>Player and theme</span>
-                                )}
-                            </button>
 
                             {isAuthenticated ? (
                                 <DropdownMenu>
@@ -711,11 +709,44 @@ export function Navbar() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             ) : (
-                                <Link href={loginHref} className={railItemClassName} aria-label="Login" title="Login">
+                                <Link
+                                    href={loginHref}
+                                    className={cn(
+                                        railItemClassName,
+                                        isRailExpanded ? 'w-full justify-start gap-3 border-border/60 bg-background/55 px-3' : 'w-11 justify-center border-border/60 bg-background/55'
+                                    )}
+                                    aria-label="Login"
+                                    title="Login"
+                                >
                                     <User className="h-4 w-4" />
-                                    <span className={railBubbleClassName}>Login</span>
+                                    {isRailExpanded ? (
+                                        <span className="truncate text-sm font-medium text-foreground">Login</span>
+                                    ) : (
+                                        <span className={railBubbleClassName}>Login</span>
+                                    )}
                                 </Link>
                             )}
+
+                            <button
+                                type="button"
+                                className={cn(
+                                    railItemClassName,
+                                    isRailExpanded ? 'w-full justify-start gap-3 border-border/60 bg-background/55 px-3' : 'w-11 justify-center border-border/60 bg-background/55',
+                                    sidebarOpen && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
+                                )}
+                                onClick={() => handleSidebarOpenChange(true)}
+                                aria-label="Player and theme"
+                                title="Player and theme"
+                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
+                            >
+                                <Settings className={railIconClassName} />
+                                {isRailExpanded ? (
+                                    <span className="truncate text-sm font-medium text-foreground">Player and theme</span>
+                                ) : (
+                                    <span className={railBubbleClassName}>Player and theme</span>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1021,7 +1052,7 @@ export function Navbar() {
                                                 setHoveredLink('resources');
                                             }}
                                         >
-                                            Studio <ChevronDown className="ml-1 inline h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                            Media <ChevronDown className="ml-1 inline h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                         </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent
@@ -1258,7 +1289,7 @@ export function Navbar() {
                                                     ))}
                                                 </div>
 
-                                                <div className="space-y-2 border-l border-border/60 pl-3">
+                                                <ul role="group" aria-label="Work" className="space-y-2 border-l border-border/60 pl-3">
                                                     <p className={cn(
                                                         "pb-1 text-xs font-semibold uppercase tracking-wider",
                                                         isSectionActive(workMenuItems) ? "text-primary" : "text-muted-foreground"
@@ -1269,52 +1300,56 @@ export function Navbar() {
                                                         const Icon = item.icon;
                                                         const isActive = isActivePath(item.href);
                                                         return (
-                                                            <SheetClose key={item.href} asChild>
-                                                                <Link
-                                                                    href={item.href}
-                                                                    className={cn(
-                                                                        "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
-                                                                        "hover:bg-muted",
-                                                                        isActive && "bg-accent text-foreground"
-                                                                    )}
-                                                                >
-                                                                    <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
-                                                                    {item.label}
-                                                                </Link>
-                                                            </SheetClose>
+                                                            <li key={item.href}>
+                                                                <SheetClose asChild>
+                                                                    <Link
+                                                                        href={item.href}
+                                                                        className={cn(
+                                                                            "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
+                                                                            "hover:bg-muted",
+                                                                            isActive && "bg-accent text-foreground"
+                                                                        )}
+                                                                    >
+                                                                        <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
+                                                                        {item.label}
+                                                                    </Link>
+                                                                </SheetClose>
+                                                            </li>
                                                         );
                                                     })}
-                                                </div>
+                                                </ul>
 
-                                                <div className="space-y-2 border-l border-border/60 pl-3">
+                                                <ul role="group" aria-label="Media" className="space-y-2 border-l border-border/60 pl-3">
                                                     <p className={cn(
                                                         "pb-1 text-xs font-semibold uppercase tracking-wider",
                                                         isSectionActive(studioMenuItems) ? "text-primary" : "text-muted-foreground"
                                                     )}>
-                                                        Studio
+                                                        Media
                                                     </p>
                                                     {studioMenuItems.map((item) => {
                                                         const Icon = item.icon;
                                                         const isActive = isActivePath(item.href);
                                                         return (
-                                                            <SheetClose key={item.href} asChild>
-                                                                <Link
-                                                                    href={item.href}
-                                                                    className={cn(
-                                                                        "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
-                                                                        "hover:bg-muted",
-                                                                        isActive && "bg-accent text-foreground"
-                                                                    )}
-                                                                >
-                                                                    <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
-                                                                    {item.label}
-                                                                </Link>
-                                                            </SheetClose>
+                                                            <li key={item.href}>
+                                                                <SheetClose asChild>
+                                                                    <Link
+                                                                        href={item.href}
+                                                                        className={cn(
+                                                                            "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
+                                                                            "hover:bg-muted",
+                                                                            isActive && "bg-accent text-foreground"
+                                                                        )}
+                                                                    >
+                                                                        <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
+                                                                        {item.label}
+                                                                    </Link>
+                                                                </SheetClose>
+                                                            </li>
                                                         );
                                                     })}
-                                                </div>
+                                                </ul>
 
-                                                <div className="space-y-2 border-l border-border/60 pl-3">
+                                                <ul role="group" aria-label="About" className="space-y-2 border-l border-border/60 pl-3">
                                                     <p className={cn(
                                                         "pb-1 text-xs font-semibold uppercase tracking-wider",
                                                         isSectionActive(aboutMenuItems) ? "text-primary" : "text-muted-foreground"
@@ -1325,22 +1360,24 @@ export function Navbar() {
                                                         const Icon = item.icon;
                                                         const isActive = isActivePath(item.href);
                                                         return (
-                                                            <SheetClose key={item.href} asChild>
-                                                                <Link
-                                                                    href={item.href}
-                                                                    className={cn(
-                                                                        "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
-                                                                        "hover:bg-muted",
-                                                                        isActive && "bg-accent text-foreground"
-                                                                    )}
-                                                                >
-                                                                    <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
-                                                                    {item.label}
-                                                                </Link>
-                                                            </SheetClose>
+                                                            <li key={item.href}>
+                                                                <SheetClose asChild>
+                                                                    <Link
+                                                                        href={item.href}
+                                                                        className={cn(
+                                                                            "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
+                                                                            "hover:bg-muted",
+                                                                            isActive && "bg-accent text-foreground"
+                                                                        )}
+                                                                    >
+                                                                        <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
+                                                                        {item.label}
+                                                                    </Link>
+                                                                </SheetClose>
+                                                            </li>
                                                         );
                                                     })}
-                                                </div>
+                                                </ul>
                                             </div>
 
                                             {isAuthenticated ? (

@@ -42,6 +42,7 @@ export default function BlogHomePage() {
     const [error, setError] = useState<string | null>(null);
 
     const [search, setSearch] = useState(searchParams.get('search') || '');
+    const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
     const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | undefined>(
         searchParams.get('category') || undefined
     );
@@ -69,9 +70,19 @@ export default function BlogHomePage() {
         blogService.getCategories().then(setCategories).catch(console.error);
     }, []);
 
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 300);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [search]);
+
     const updateUrlParams = useCallback(() => {
         const params = new URLSearchParams();
-        if (search) params.set('search', search);
+        if (debouncedSearch) params.set('search', debouncedSearch);
         if (selectedCategorySlug) params.set('category', selectedCategorySlug);
         if (selectedAuthor) params.set('author', selectedAuthor);
         if (page > 1) params.set('page', String(page));
@@ -79,7 +90,7 @@ export default function BlogHomePage() {
         router.replace(params.toString() ? `?${params}` : '/blog', {
             scroll: false,
         });
-    }, [page, router, search, selectedAuthor, selectedCategorySlug]);
+    }, [debouncedSearch, page, router, selectedAuthor, selectedCategorySlug]);
 
     const loadBlogs = useCallback(async () => {
         if (isCategoryFilterPending) {
@@ -98,7 +109,7 @@ export default function BlogHomePage() {
             setError(null);
 
             const data = await blogService.getBlogs({
-                search: search || undefined,
+                search: debouncedSearch || undefined,
                 authorUsername: selectedAuthor,
                 categoryId: selectedCategory?.id,
                 page,
@@ -118,8 +129,8 @@ export default function BlogHomePage() {
     }, [
         isCategoryFilterInvalid,
         isCategoryFilterPending,
+        debouncedSearch,
         page,
-        search,
         selectedAuthor,
         selectedCategory?.id,
     ]);
@@ -167,7 +178,6 @@ export default function BlogHomePage() {
                         badgeIcon={BookOpen}
                         title="Blog"
                         description="Explore my latest articles, tutorials, and insights."
-                        stickToTop
                     />
 
                     <section className="mt-6 rounded-[1.5rem] border border-border/60 bg-card/45 p-4 backdrop-blur-lg md:p-5">
@@ -182,7 +192,10 @@ export default function BlogHomePage() {
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setPage(1);
+                                }}
                                 placeholder="Search blogs..."
                                 className="pl-10"
                             />

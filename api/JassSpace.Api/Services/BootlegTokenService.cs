@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using JassSpace.Api.Configuration;
+using JassSpace.Contracts.Interfaces;
 using Microsoft.Extensions.Options;
 
 namespace JassSpace.Api.Services;

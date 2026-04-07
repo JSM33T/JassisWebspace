@@ -4,6 +4,7 @@ using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using JassSpace.Api.Configuration;
+using JassSpace.Contracts.Interfaces;
 using JassSpace.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;

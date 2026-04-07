@@ -11,10 +11,11 @@ import { LogoMark } from "@/components/logo-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import blogService from "@/lib/api/blog.service";
 import { type BlogListItem } from "@/lib/api/blog.types";
+import galleryService from "@/lib/api/gallery.service";
 import { type Album } from "@/lib/api/gallery.types";
 import { getVersionedGalleryCoverUrl } from "@/lib/gallery-media";
-import { type HomeContentPayload } from "@/lib/home-content.types";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -55,37 +56,50 @@ export default function HomePage() {
     const [blogError, setBlogError] = useState<string | null>(null);
 
     useEffect(() => {
-        loadHomeContent();
+        void loadRecentGalleries();
+        void loadRecentBlogs();
     }, []);
 
-    const loadHomeContent = async () => {
+    const loadRecentGalleries = async () => {
         try {
             setGalleryLoading(true);
             setGalleryError(null);
-            setBlogLoading(true);
-            setBlogError(null);
-
-            const response = await fetch("/api/home-content", {
-                method: "GET",
-                cache: "no-store",
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to load home content.");
-            }
-
-            const payload = (await response.json()) as HomeContentPayload;
-            setRecentGalleries(payload.galleries);
-            setRecentBlogs(payload.blogs);
+            const albums = await galleryService.getAllAlbums();
+            const sortedAlbums = [...albums]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, 5);
+            setRecentGalleries(sortedAlbums);
         } catch (error) {
             const message = error instanceof Error
                 ? error.message
-                : "Unable to load home content right now.";
+                : "Unable to load galleries right now.";
             setGalleryError(message);
-            setBlogError(message);
-            console.error("Failed to load home content:", error);
+            console.error("Failed to load recent galleries:", error);
         } finally {
             setGalleryLoading(false);
+        }
+    };
+
+    const loadRecentBlogs = async () => {
+        try {
+            setBlogLoading(true);
+            setBlogError(null);
+            const blogs = await blogService.getBlogs({ page: 1, pageSize: 4 });
+            const sortedBlogs = [...blogs]
+                .sort((a, b) => {
+                    const left = new Date(a.publishedAt ?? a.createdAt).getTime();
+                    const right = new Date(b.publishedAt ?? b.createdAt).getTime();
+                    return right - left;
+                })
+                .slice(0, 4);
+            setRecentBlogs(sortedBlogs);
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.message
+                : "Unable to load blog posts right now.";
+            setBlogError(message);
+            console.error("Failed to load recent blogs:", error);
+        } finally {
             setBlogLoading(false);
         }
     };
@@ -108,17 +122,20 @@ export default function HomePage() {
                         className="relative mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col items-center justify-center pb-8 pt-24 text-center md:pb-10 md:pt-28"
                         variants={itemVariants}
                     >
-                        <motion.div variants={itemVariants} className="mb-10 flex items-center justify-center gap-3 sm:gap-5">
+                        <motion.div variants={itemVariants} className="mb-10 flex items-start justify-center gap-3 sm:gap-5">
                             {links.slice(0, 2).map((item) => {
                                 const Icon = item.icon;
                                 return (
                                     <Link
                                         key={`icon-left-${item.href}`}
                                         href={item.href}
-                                        className="flex h-12 w-12 items-center justify-center rounded-full border bg-card/70 text-muted-foreground transition-all hover:-translate-y-0.5 hover:text-foreground sm:h-14 sm:w-14"
+                                        className="flex w-16 flex-col items-center gap-2 text-muted-foreground transition-all hover:-translate-y-0.5 hover:text-foreground sm:w-20"
                                         aria-label={item.label}
                                     >
-                                        <Icon className="h-5 w-5" />
+                                        <span className="flex h-12 w-12 items-center justify-center rounded-full border bg-card/70 sm:h-14 sm:w-14">
+                                            <Icon className="h-5 w-5" />
+                                        </span>
+                                        <span className="text-xs font-medium tracking-wide text-foreground/90">{item.label}</span>
                                     </Link>
                                 );
                             })}
@@ -133,10 +150,13 @@ export default function HomePage() {
                                     <Link
                                         key={`icon-right-${item.href}`}
                                         href={item.href}
-                                        className="flex h-12 w-12 items-center justify-center rounded-full border bg-card/70 text-muted-foreground transition-all hover:-translate-y-0.5 hover:text-foreground sm:h-14 sm:w-14"
+                                        className="flex w-16 flex-col items-center gap-2 text-muted-foreground transition-all hover:-translate-y-0.5 hover:text-foreground sm:w-20"
                                         aria-label={item.label}
                                     >
-                                        <Icon className="h-5 w-5" />
+                                        <span className="flex h-12 w-12 items-center justify-center rounded-full border bg-card/70 sm:h-14 sm:w-14">
+                                            <Icon className="h-5 w-5" />
+                                        </span>
+                                        <span className="text-xs font-medium tracking-wide text-foreground/90">{item.label}</span>
                                     </Link>
                                 );
                             })}
@@ -248,7 +268,7 @@ export default function HomePage() {
                                 {!galleryLoading && galleryError && (
                                     <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
                                         <p className="text-sm text-muted-foreground">{galleryError}</p>
-                                        <Button onClick={loadHomeContent} variant="outline" className="mt-4 rounded-full">
+                                        <Button onClick={() => void loadRecentGalleries()} variant="outline" className="mt-4 rounded-full">
                                             Retry
                                         </Button>
                                     </div>
@@ -346,7 +366,7 @@ export default function HomePage() {
                                 {!blogLoading && blogError && (
                                     <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
                                         <p className="text-sm text-muted-foreground">{blogError}</p>
-                                        <Button onClick={loadHomeContent} variant="outline" className="mt-4 rounded-full">
+                                        <Button onClick={() => void loadRecentBlogs()} variant="outline" className="mt-4 rounded-full">
                                             Retry
                                         </Button>
                                     </div>

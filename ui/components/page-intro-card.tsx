@@ -10,6 +10,7 @@ type PageIntroCardProps = {
     title: React.ReactNode;
     description?: React.ReactNode;
     topContent?: React.ReactNode;
+    showBackButton?: boolean;
     backHref?: string;
     backLabel?: string;
     stickToTop?: boolean;
@@ -24,6 +25,7 @@ export function PageIntroCard({
     title,
     description,
     topContent,
+    showBackButton = false,
     backHref = '/',
     backLabel = 'Back',
     stickToTop = false,
@@ -61,16 +63,18 @@ export function PageIntroCard({
                             <span>{badge}</span>
                         </Badge>
                     ) : null}
-                    <Button
-                        variant="ghost"
-                        asChild
-                        className="h-11 rounded-full border border-border/60 bg-background/60 px-5 backdrop-blur-sm hover:bg-background/90"
-                    >
-                        <Link href={backHref}>
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            {backLabel}
-                        </Link>
-                    </Button>
+                    {showBackButton ? (
+                        <Button
+                            variant="ghost"
+                            asChild
+                            className="h-11 rounded-full border border-border/60 bg-background/60 px-5 backdrop-blur-sm hover:bg-background/90"
+                        >
+                            <Link href={backHref}>
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                {backLabel}
+                            </Link>
+                        </Button>
+                    ) : null}
                 </div>
 
                 {topContent ? <div className="mt-6">{topContent}</div> : null}

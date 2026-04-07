@@ -1,7 +1,7 @@
 using JassSpace.Entities;
 using System.Security.Claims;
 
-namespace JassSpace.Api.Services;
+namespace JassSpace.Contracts.Interfaces;
 
 public interface IJwtService
 {
