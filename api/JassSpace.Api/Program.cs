@@ -184,8 +184,8 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging(opts =>
 {
     opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
-    opts.GetLevel = (httpContext, _, exception) => GetRequestCompletionLogLevel(httpContext, exception);
-    opts.EnrichDiagnosticContext = EnrichRequestCompletion;
+    opts.GetLevel = (httpContext, _, exception) => RequestCompletionLogging.GetLogLevel(httpContext, exception);
+    opts.EnrichDiagnosticContext = RequestCompletionLogging.EnrichDiagnosticContext;
 });
 
 // Enable CORS
@@ -250,46 +250,6 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
-}
-
-static LogEventLevel GetRequestCompletionLogLevel(HttpContext httpContext, Exception? exception)
-{
-    if (RequestLoggingContext.IsHealthRequest(httpContext))
-    {
-        return LogEventLevel.Debug;
-    }
-
-    if (exception is not null || httpContext.Response.StatusCode >= StatusCodes.Status500InternalServerError)
-    {
-        return LogEventLevel.Error;
-    }
-
-    return LogEventLevel.Information;
-}
-
-static void EnrichRequestCompletion(IDiagnosticContext diagnosticContext, HttpContext httpContext)
-{
-    var correlationId = RequestLoggingContext.GetOrCreateCorrelationId(httpContext);
-
-    diagnosticContext.Set(RequestLoggingContext.CorrelationIdPropertyName, correlationId);
-    diagnosticContext.Set(RequestLoggingContext.RequestIdPropertyName, correlationId);
-    diagnosticContext.Set(RequestLoggingContext.RequestHostPropertyName, httpContext.Request.Host.Value);
-    diagnosticContext.Set(RequestLoggingContext.RequestSchemePropertyName, httpContext.Request.Scheme);
-    diagnosticContext.Set(RequestLoggingContext.ClientIpPropertyName, httpContext.Connection.RemoteIpAddress?.ToString());
-
-    var userId = RequestLoggingContext.TryGetUserId(httpContext.User);
-    if (!string.IsNullOrWhiteSpace(userId))
-    {
-        diagnosticContext.Set(RequestLoggingContext.UserIdPropertyName, userId);
-    }
-
-    var sessionId = RequestLoggingContext.TryGetSessionId(httpContext.User);
-    if (!string.IsNullOrWhiteSpace(sessionId))
-    {
-        diagnosticContext.Set(RequestLoggingContext.SessionIdPropertyName, sessionId);
-    }
-
-    diagnosticContext.Set("RequestPath", RequestLoggingContext.GetRequestPath(httpContext));
 }
 
 static async Task ValidateStartupDependenciesAsync(WebApplication app)
