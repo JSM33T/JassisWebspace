@@ -4,6 +4,7 @@ using JassSpace.Repositories;
 using JassSpace.Api.Configuration;
 using JassSpace.Api.Extensions; // Custom CORS
 using JassSpace.Api.Jobs;
+using JassSpace.Api.Logging;
 using JassSpace.Api.Middleware; // CorrelationIdMiddleware
 using JassSpace.Api.Security;
 using JassSpace.Api.Services;
@@ -17,16 +18,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Serilog;
+using Serilog.Events;
 using Serilog.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. Bootstrap Serilog very early ---
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration) // read from appsettings.json
+    .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .Enrich.WithExceptionDetails()
     .Enrich.WithProperty("Application", "JassSpace.Api")
+    .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
     .CreateLogger();
 
 builder.Host.UseSerilog((ctx, services, cfg) =>
@@ -35,6 +38,7 @@ builder.Host.UseSerilog((ctx, services, cfg) =>
        .ReadFrom.Services(services)
        .Enrich.FromLogContext()
        .Enrich.WithExceptionDetails()
+       .Enrich.WithProperty("Application", "JassSpace.Api")
        .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName);
 });
 
@@ -165,9 +169,6 @@ builder.Services.AddSingleton<IIpGeolocationService, IpGeolocationService>();
 builder.Services.AddSingleton<IBootlegTokenService, BootlegTokenService>();
 builder.Services.AddScoped<ITurnstileVerificationService, TurnstileVerificationService>();
 
-// Add custom app services (example)
-// builder.Services.AddSingleton<ILoggingService, LoggingService>();
-
 var app = builder.Build();
 var applyMigrationsOnStartup = builder.Configuration.GetValue("ApplyMigrationsOnStartup", true);
 
@@ -178,21 +179,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseForwardedHeaders();
+app.UseMiddleware<CorrelationIdMiddleware>();
 
-// Serilog request logging (logs HTTP requests with correlation info)
 app.UseSerilogRequestLogging(opts =>
 {
-    opts.EnrichDiagnosticContext = (diag, http) =>
-    {
-        diag.Set("RequestHost", http.Request.Host.Value!);
-        diag.Set("RequestScheme", http.Request.Scheme);
-        diag.Set("ClientIP", http.Connection.RemoteIpAddress?.ToString()!);
-        diag.Set("UserId", http.User?.FindFirst("oid")?.Value ?? http.User?.Identity?.Name!);
-        diag.Set("CorrelationId", http.Request.Headers["X-Correlation-Id"].ToString());
-    };
+    opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    opts.GetLevel = (httpContext, _, exception) => GetRequestCompletionLogLevel(httpContext, exception);
+    opts.EnrichDiagnosticContext = EnrichRequestCompletion;
 });
-// Correlation ID middleware (ensures every request has one)
-app.UseMiddleware<CorrelationIdMiddleware>();
 
 // Enable CORS
 app.UseCustomCors();
@@ -240,11 +234,12 @@ app.MapControllers();
 // --- 4. Start app with safe logging ---
 try
 {
-    Log.Information("Starting JassSpace.Api...");
+    Log.Information("Starting JassSpace.Api.");
     if (applyMigrationsOnStartup)
     {
         await ApplyDatabaseMigrationsAsync(app);
     }
+
     await ValidateStartupDependenciesAsync(app);
     await app.RunAsync();
 }
@@ -255,6 +250,46 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+static LogEventLevel GetRequestCompletionLogLevel(HttpContext httpContext, Exception? exception)
+{
+    if (RequestLoggingContext.IsHealthRequest(httpContext))
+    {
+        return LogEventLevel.Debug;
+    }
+
+    if (exception is not null || httpContext.Response.StatusCode >= StatusCodes.Status500InternalServerError)
+    {
+        return LogEventLevel.Error;
+    }
+
+    return LogEventLevel.Information;
+}
+
+static void EnrichRequestCompletion(IDiagnosticContext diagnosticContext, HttpContext httpContext)
+{
+    var correlationId = RequestLoggingContext.GetOrCreateCorrelationId(httpContext);
+
+    diagnosticContext.Set(RequestLoggingContext.CorrelationIdPropertyName, correlationId);
+    diagnosticContext.Set(RequestLoggingContext.RequestIdPropertyName, correlationId);
+    diagnosticContext.Set(RequestLoggingContext.RequestHostPropertyName, httpContext.Request.Host.Value);
+    diagnosticContext.Set(RequestLoggingContext.RequestSchemePropertyName, httpContext.Request.Scheme);
+    diagnosticContext.Set(RequestLoggingContext.ClientIpPropertyName, httpContext.Connection.RemoteIpAddress?.ToString());
+
+    var userId = RequestLoggingContext.TryGetUserId(httpContext.User);
+    if (!string.IsNullOrWhiteSpace(userId))
+    {
+        diagnosticContext.Set(RequestLoggingContext.UserIdPropertyName, userId);
+    }
+
+    var sessionId = RequestLoggingContext.TryGetSessionId(httpContext.User);
+    if (!string.IsNullOrWhiteSpace(sessionId))
+    {
+        diagnosticContext.Set(RequestLoggingContext.SessionIdPropertyName, sessionId);
+    }
+
+    diagnosticContext.Set("RequestPath", RequestLoggingContext.GetRequestPath(httpContext));
 }
 
 static async Task ValidateStartupDependenciesAsync(WebApplication app)

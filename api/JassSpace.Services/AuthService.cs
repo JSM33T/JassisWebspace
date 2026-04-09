@@ -358,7 +358,7 @@ public sealed class AuthService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send verification email to {Email}", normalizedEmail);
+            _logger.LogError(ex, "Failed to send verification email for user {UserId}", userId);
         }
 
         var userInfo = BuildUserInfo(
@@ -532,7 +532,7 @@ public sealed class AuthService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send welcome email to {Email}", user.Email);
+            _logger.LogError(ex, "Failed to send welcome email for user {UserId}", user.Id);
         }
 
         return new AuthVerifyEmailResult(
@@ -620,7 +620,7 @@ public sealed class AuthService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to resend verification email to {Email}", user.Email);
+            _logger.LogError(ex, "Failed to resend verification email for user {UserId}", user.Id);
         }
 
         return new AuthResendVerificationResult(
@@ -660,7 +660,7 @@ public sealed class AuthService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send password reset email to {Email}", user.Email);
+            _logger.LogError(ex, "Failed to send password reset email for user {UserId}", user.Id);
         }
 
         return new VerificationSentResponse("Password reset code sent to your email", DateTimeOffset.UtcNow);
@@ -734,7 +734,7 @@ public sealed class AuthService(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send welcome email to {Email}", user.Email);
+                _logger.LogError(ex, "Failed to send welcome email for user {UserId}", user.Id);
             }
         }
 
@@ -1241,7 +1241,7 @@ public sealed class AuthService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send welcome email to new GitHub OAuth user {Email}", newUser.Email);
+            _logger.LogError(ex, "Failed to send welcome email to new GitHub OAuth user {UserId}", newUser.Id);
         }
 
         return newUser;
@@ -1444,7 +1444,7 @@ public sealed class AuthService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send welcome email to new Google OAuth user {Email}", newUser.Email);
+            _logger.LogError(ex, "Failed to send welcome email to new Google OAuth user {UserId}", newUser.Id);
         }
 
         return newUser;

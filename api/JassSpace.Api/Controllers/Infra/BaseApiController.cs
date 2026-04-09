@@ -1,10 +1,9 @@
-﻿using JassSpace.Api.Extensions;
+using JassSpace.Api.Extensions;
+using JassSpace.Api.Logging;
 using JassSpace.Contracts;
 using JassSpace.Infra;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
-using System.Security.Claims;
 
 namespace JassSpace.Api.Controllers;
 
@@ -21,31 +20,17 @@ namespace JassSpace.Api.Controllers;
 [ApiExplorerSettings(IgnoreApi = true)]
 public abstract class BaseApiController : ControllerBase
 {
-    /// <summary>
-    /// Standard request ID header name.
-    /// </summary>
-    private const string HeaderRequestId = "X-Request-Id";
-
-    /// <summary>
-    /// Standard correlation ID header name.
-    /// </summary>
-    private const string HeaderCorrelationId = "X-Correlation-Id";
-
     // -------- Context helpers --------
 
     /// <summary>
-    /// Gets the current request ID from <see cref="HttpContext.Items"/> or headers.
+    /// Gets the current request ID alias for the active correlation ID.
     /// </summary>
-    protected string? RequestId =>
-        HttpContext.Items[nameof(RequestId)] as string
-        ?? TryGetHeader(HeaderRequestId);
+    protected string? RequestId => RequestLoggingContext.TryGetRequestId(HttpContext);
 
     /// <summary>
-    /// Gets the current correlation ID from <see cref="HttpContext.Items"/> or headers.
+    /// Gets the current correlation ID from normalized request context.
     /// </summary>
-    protected string? CorrelationId =>
-        HttpContext.Items[nameof(CorrelationId)] as string
-        ?? TryGetHeader(HeaderCorrelationId);
+    protected string? CorrelationId => RequestLoggingContext.TryGetCorrelationId(HttpContext);
 
     /// <summary>
     /// Gets the bearer token (without the "Bearer " prefix) from the Authorization header.
@@ -59,9 +44,7 @@ public abstract class BaseApiController : ControllerBase
     /// <summary>
     /// Gets the user identifier from claims (NameIdentifier or "oid").
     /// </summary>
-    protected string? UserId =>
-        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-        ?? User.FindFirst("oid")?.Value;
+    protected string? UserId => RequestLoggingContext.TryGetUserId(User);
 
     /// <summary>
     /// Gets the tenant identifier from claims ("tid" or "tenant_id").
@@ -236,16 +219,6 @@ public abstract class BaseApiController : ControllerBase
         long total,
         bool? isFromCache = null)
         => Ok(new ApiResponse<IReadOnlyCollection<T>>(items, new PagedMeta(page, pageSize, total), isFromCache));
-
-    // -------- Utilities --------
-
-    /// <summary>
-    /// Tries to get a header value as string if present and not empty.
-    /// </summary>
-    private string? TryGetHeader(string name)
-        => Request.Headers.TryGetValue(name, out StringValues v) && !StringValues.IsNullOrEmpty(v)
-            ? v.ToString()
-            : null;
 
     private ProblemDetails CreateProblemDetails(
         int statusCode,

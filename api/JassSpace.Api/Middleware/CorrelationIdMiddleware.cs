@@ -1,15 +1,13 @@
-﻿using Microsoft.AspNetCore.Http;
+using JassSpace.Api.Logging;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-using System.Threading.Tasks;
+using Serilog.Context;
 
 namespace JassSpace.Api.Middleware;
 
 public sealed class CorrelationIdMiddleware
 {
     private readonly RequestDelegate _next;
-
-    // standard header name
-    public const string HeaderName = "X-Correlation-Id";
 
     public CorrelationIdMiddleware(RequestDelegate next)
     {
@@ -18,36 +16,38 @@ public sealed class CorrelationIdMiddleware
 
     public async Task Invoke(HttpContext context)
     {
-        // 1. Try to read incoming correlation id
         string correlationId;
-        if (context.Request.Headers.TryGetValue(HeaderName, out StringValues cid) &&
-            !StringValues.IsNullOrEmpty(cid))
+        if (context.Request.Headers.TryGetValue(RequestLoggingContext.CorrelationIdHeaderName, out StringValues correlationHeader) &&
+            !StringValues.IsNullOrEmpty(correlationHeader))
         {
-            correlationId = cid.ToString();
+            correlationId = correlationHeader.ToString();
+        }
+        else if (context.Request.Headers.TryGetValue(RequestLoggingContext.LegacyRequestIdHeaderName, out StringValues legacyHeader) &&
+                 !StringValues.IsNullOrEmpty(legacyHeader))
+        {
+            correlationId = legacyHeader.ToString();
         }
         else
         {
-            // 2. If none provided, generate a new one
             correlationId = Guid.NewGuid().ToString("N");
         }
 
-        // 3. Store it in HttpContext for downstream access
-        context.Items[HeaderName] = correlationId;
+        RequestLoggingContext.SetCorrelationId(context, correlationId);
 
-        // 4. Also override TraceIdentifier (so built-in logging picks it up)
-        context.TraceIdentifier = correlationId;
-
-        // 5. Ensure the response also has the header
         context.Response.OnStarting(() =>
         {
-            if (!context.Response.Headers.ContainsKey(HeaderName))
+            if (!context.Response.Headers.ContainsKey(RequestLoggingContext.CorrelationIdHeaderName))
             {
-                context.Response.Headers[HeaderName] = correlationId;
+                context.Response.Headers[RequestLoggingContext.CorrelationIdHeaderName] = correlationId;
             }
+
             return Task.CompletedTask;
         });
 
-        // 6. Call the next middleware
-        await _next(context);
+        using (LogContext.PushProperty(RequestLoggingContext.CorrelationIdPropertyName, correlationId))
+        using (LogContext.PushProperty(RequestLoggingContext.RequestIdPropertyName, correlationId))
+        {
+            await _next(context);
+        }
     }
 }

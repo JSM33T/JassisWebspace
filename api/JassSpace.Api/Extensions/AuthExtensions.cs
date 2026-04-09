@@ -1,7 +1,9 @@
 using JassSpace.Api.Configuration;
+using JassSpace.Api.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using Serilog;
 using System.Security.Claims;
 using System.Text;
 
@@ -22,23 +24,6 @@ public static class AuthExtensions
     /// <exception cref="InvalidOperationException">
     /// Thrown if the JWT configuration section is missing or invalid (e.g., missing secret key).
     /// </exception>
-    /// <example>
-    /// Example configuration in <c>appsettings.json</c>:
-    /// <code json>
-    /// {
-    ///   "JWT": {
-    ///     "Issuer": "your-issuer",
-    ///     "Audience": "your-audience",
-    ///     "SecretKey": "your-very-strong-secret"
-    ///   }
-    /// }
-    /// </code>
-    ///
-    /// Example usage in <c>Program.cs</c>:
-    /// <code>
-    /// builder.Services.AddJwtAuthentication(builder.Configuration, builder.Environment);
-    /// </code>
-    /// </example>
     public static IServiceCollection AddJwtAuthentication(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -79,14 +64,26 @@ public static class AuthExtensions
             {
                 OnAuthenticationFailed = context =>
                 {
-                    Log.Warning("JWT Authentication failed: {Error}", context.Exception.Message);
-                    return System.Threading.Tasks.Task.CompletedTask;
+                    var logger = context.HttpContext.RequestServices
+                        .GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("Authentication.Jwt");
+
+                    logger.LogWarning(
+                        context.Exception,
+                        "JWT authentication failed for {RequestPath}.",
+                        RequestLoggingContext.GetRequestPath(context.HttpContext));
+
+                    return Task.CompletedTask;
                 },
                 OnTokenValidated = context =>
                 {
-                    var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                    Log.Information("JWT token validated for user {UserId}", userId);
-                    return System.Threading.Tasks.Task.CompletedTask;
+                    var logger = context.HttpContext.RequestServices
+                        .GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("Authentication.Jwt");
+                    var userId = RequestLoggingContext.TryGetUserId(context.Principal);
+
+                    logger.LogDebug("JWT token validated for user {UserId}.", userId);
+                    return Task.CompletedTask;
                 }
             };
         });

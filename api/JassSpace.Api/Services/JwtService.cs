@@ -77,8 +77,13 @@ public class JwtService : IJwtService
         var token = tokenHandler.CreateToken(tokenDescriptor);
         var tokenString = tokenHandler.WriteToken(token);
 
-        _logger.LogInformation("Generated JWT token for user {UserId} ({Username}) - IssuedAt: {IssuedAt}, NotBefore: {NotBefore}, Expires: {Expires}", 
-            user.Id, user.Username, tokenDescriptor.IssuedAt, tokenDescriptor.NotBefore, tokenDescriptor.Expires);
+        _logger.LogDebug(
+            "Issued JWT for user {UserId} with session {SessionId}. IssuedAt: {IssuedAt}, NotBefore: {NotBefore}, Expires: {Expires}",
+            user.Id,
+            sessionId,
+            tokenDescriptor.IssuedAt,
+            tokenDescriptor.NotBefore,
+            tokenDescriptor.Expires);
         
         return tokenString;
     }

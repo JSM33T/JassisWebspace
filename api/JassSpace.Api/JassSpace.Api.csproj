@@ -35,6 +35,9 @@
 		<!-- Console sink -->
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
 
+		<!-- Compact JSON formatting for console logs -->
+		<PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+
 		<!-- File sink (optional, enable in config) -->
 		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
 

@@ -24,10 +24,7 @@ public sealed class AuthController(
     [ProducesResponseType(typeof(ApiResponse<ProblemDetails>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Login attempt for {EmailOrUsername} with CorrelationId {CorrelationId}",
-            request.EmailOrUsername,
-            CorrelationId);
+        logger.LogInformation("Login attempt received with CorrelationId {CorrelationId}", CorrelationId);
 
         try
         {
@@ -56,7 +53,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during login for {EmailOrUsername}", request.EmailOrUsername);
+            logger.LogError(ex, "Error during login.");
             return ProblemEnvelope(
                 statusCode: StatusCodes.Status500InternalServerError,
                 title: "Internal Server Error",
@@ -75,7 +72,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking username availability for {Username}", username);
+            logger.LogError(ex, "Error checking username availability.");
             return Problem(
                 statusCode: StatusCodes.Status500InternalServerError,
                 title: "Internal Server Error",
@@ -94,7 +91,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking email availability for {Email}", email);
+            logger.LogError(ex, "Error checking email availability.");
             return Problem(
                 statusCode: StatusCodes.Status500InternalServerError,
                 title: "Internal Server Error",
@@ -109,10 +106,7 @@ public sealed class AuthController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Registration attempt for email {Email} with CorrelationId {CorrelationId}",
-            request.Email,
-            CorrelationId);
+        logger.LogInformation("Registration attempt received with CorrelationId {CorrelationId}", CorrelationId);
 
         try
         {
@@ -133,7 +127,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during registration for email {Email}", request.Email);
+            logger.LogError(ex, "Error during registration.");
             return Problem(
                 statusCode: StatusCodes.Status500InternalServerError,
                 title: "Internal Server Error",
@@ -230,10 +224,7 @@ public sealed class AuthController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Email verification attempt for {Email} with CorrelationId {CorrelationId}",
-            request.Email,
-            CorrelationId);
+        logger.LogInformation("Email verification attempt received with CorrelationId {CorrelationId}", CorrelationId);
 
         try
         {
@@ -244,7 +235,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during email verification for {Email}", request.Email);
+            logger.LogError(ex, "Error during email verification.");
             return Problem(
                 statusCode: StatusCodes.Status500InternalServerError,
                 title: "Internal Server Error",
@@ -297,7 +288,7 @@ public sealed class AuthController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Resend verification attempt for {Email} with CorrelationId {CorrelationId}", request.Email, CorrelationId);
+        logger.LogInformation("Resend verification attempt received with CorrelationId {CorrelationId}", CorrelationId);
 
         try
         {
@@ -324,7 +315,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during resend verification for {Email}", request.Email);
+            logger.LogError(ex, "Error during resend verification.");
             return Problem("An error occurred while resending verification");
         }
     }
@@ -334,10 +325,7 @@ public sealed class AuthController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Forgot password attempt for {Email} with CorrelationId {CorrelationId}",
-            request.Email,
-            CorrelationId);
+        logger.LogInformation("Forgot password attempt received with CorrelationId {CorrelationId}", CorrelationId);
 
         try
         {
@@ -362,7 +350,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during forgot password for {Email}", request.Email);
+            logger.LogError(ex, "Error during forgot password.");
             return Problem("An error occurred while processing password reset request");
         }
     }
@@ -372,10 +360,7 @@ public sealed class AuthController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Reset password attempt for {Email} with CorrelationId {CorrelationId}",
-            request.Email,
-            CorrelationId);
+        logger.LogInformation("Reset password attempt received with CorrelationId {CorrelationId}", CorrelationId);
 
         try
         {
@@ -386,7 +371,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during password reset for {Email}", request.Email);
+            logger.LogError(ex, "Error during password reset.");
             return Problem("An error occurred while resetting password");
         }
     }
@@ -397,7 +382,7 @@ public sealed class AuthController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SetPassword([FromBody] SetPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("SetPassword attempt for {Email} with CorrelationId {CorrelationId}", request.Email, CorrelationId);
+        logger.LogInformation("Set password attempt received for user {UserId} with CorrelationId {CorrelationId}", UserId, CorrelationId);
 
         try
         {
@@ -412,7 +397,7 @@ public sealed class AuthController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during set password for {Email}", request.Email);
+            logger.LogError(ex, "Error during set password for user {UserId}.", UserId);
             return Problem("An error occurred while setting password");
         }
     }
@@ -558,7 +543,7 @@ public sealed class AuthController(
 
     private Guid? TryGetCurrentSessionId()
     {
-        var sessionClaim = User.FindFirst("session_id")?.Value ?? User.FindFirst("sid")?.Value;
+        var sessionClaim = JassSpace.Api.Logging.RequestLoggingContext.TryGetSessionId(User);
         return Guid.TryParse(sessionClaim, out var sessionId) ? sessionId : null;
     }
 

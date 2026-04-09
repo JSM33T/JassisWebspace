@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace JassSpace.Api.Extensions
 {
@@ -19,7 +18,7 @@ namespace JassSpace.Api.Extensions
     ///     <description>Uses the <c>"DefaultConnection"</c> connection string from configuration.</description>
     ///   </item>
     ///   <item>
-    ///     <description>Sets EF Core migrations assembly to <c>JassSpace.Api</c>.</description>
+    ///     <description>Sets EF Core migrations assembly to <c>JassSpace.Data</c>.</description>
     ///   </item>
     ///   <item>
     ///     <description>Enables retry on transient failures (max 3 retries, 5-second delay).</description>
@@ -30,9 +29,6 @@ namespace JassSpace.Api.Extensions
     ///   </item>
     ///   <item>
     ///     <description>Enables sensitive data logging and detailed errors in the Development environment.</description>
-    ///   </item>
-    ///   <item>
-    ///     <description>Logs EF Core messages to console at <see cref="LogLevel.Warning"/>.</description>
     ///   </item>
     /// </list>
     ///
@@ -65,7 +61,6 @@ namespace JassSpace.Api.Extensions
             {
                 options.UseNpgsql(connectionString, npgsqlOptions =>
                 {
-                    // Put migrations where your DbContext assembly is (JassSpace.Data)
                     npgsqlOptions.MigrationsAssembly("JassSpace.Data");
                     npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                     npgsqlOptions.EnableRetryOnFailure(
@@ -85,8 +80,6 @@ namespace JassSpace.Api.Extensions
                     options.EnableSensitiveDataLogging();
                     options.EnableDetailedErrors();
                 }
-
-                options.LogTo(Console.WriteLine, LogLevel.Warning);
             }
 
             services.AddDbContext<JassSpaceDbContext>(Configure, ServiceLifetime.Scoped, ServiceLifetime.Singleton);

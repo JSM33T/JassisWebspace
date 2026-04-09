@@ -44,8 +44,7 @@ public sealed class ContactController(
         if (!turnstileResult.Success)
         {
             logger.LogWarning(
-                "Turnstile validation failed for contact request from {Email}. Errors: {ErrorCodes}",
-                request.Email,
+                "Turnstile validation failed for contact request. Errors: {ErrorCodes}",
                 string.Join(",", turnstileResult.ErrorCodes));
             return BadRequestProblem(
                 "Verification required",
@@ -59,7 +58,7 @@ public sealed class ContactController(
             switch (result.Status)
             {
                 case ContactCreateStatus.Success:
-                    logger.LogInformation("Stored contact submission {ContactId} from {Email}", result.Response!.Id, request.Email);
+                    logger.LogInformation("Stored contact submission {ContactId}.", result.Response!.Id);
                     return Created(
                         $"/contact/{result.Response.Id}",
                         new ApiResponse<ContactResponse>(result.Response));
@@ -80,7 +79,7 @@ public sealed class ContactController(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to store contact submission for {Email}", request.Email);
+            logger.LogError(ex, "Failed to store contact submission.");
             return Problem(
                 StatusCodes.Status500InternalServerError,
                 "Failed to save contact request",
