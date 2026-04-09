@@ -2,7 +2,7 @@ using JassSpace.Api.Controllers;
 using JassSpace.Infra;
 using Microsoft.AspNetCore.Mvc;
 
-namespace JassSpace.tests.Support;
+namespace JassSpace.Tests.Support;
 
 public sealed class TestableBaseApiController : BaseApiController
 {

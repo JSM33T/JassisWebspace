@@ -5,12 +5,12 @@ using JassSpace.Contracts;
 using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
-using JassSpace.tests.Support;
+using JassSpace.Tests.Support;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace JassSpace.tests.Controllers;
+namespace JassSpace.Tests.Controllers;
 
 public sealed class ContactControllerTests
 {

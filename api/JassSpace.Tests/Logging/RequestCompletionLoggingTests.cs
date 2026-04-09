@@ -1,11 +1,11 @@
 using System.Net;
 using System.Security.Claims;
 using JassSpace.Api.Logging;
-using JassSpace.tests.Support;
+using JassSpace.Tests.Support;
 using Microsoft.AspNetCore.Http;
 using Serilog.Events;
 
-namespace JassSpace.tests.Logging;
+namespace JassSpace.Tests.Logging;
 
 public sealed class RequestCompletionLoggingTests
 {

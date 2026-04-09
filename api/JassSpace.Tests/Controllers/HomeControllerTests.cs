@@ -1,12 +1,12 @@
 using JassSpace.Api.Controllers;
 using JassSpace.Contracts;
 using JassSpace.Contracts.Responses;
-using JassSpace.tests.Support;
+using JassSpace.Tests.Support;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace JassSpace.tests.Controllers;
+namespace JassSpace.Tests.Controllers;
 
 public sealed class HomeControllerTests
 {

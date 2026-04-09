@@ -1,7 +1,7 @@
 using System.Text.Json;
-using JassSpace.tests.Support;
+using JassSpace.Tests.Support;
 
-namespace JassSpace.tests.Configuration;
+namespace JassSpace.Tests.Configuration;
 
 public sealed class SerilogConfigurationTests
 {

@@ -1,4 +1,4 @@
-namespace JassSpace.tests.Support;
+namespace JassSpace.Tests.Support;
 
 public static class TestPaths
 {

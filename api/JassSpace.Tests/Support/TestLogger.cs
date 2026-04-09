@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace JassSpace.tests.Support;
+namespace JassSpace.Tests.Support;
 
 public sealed record TestLogEntry(
     LogLevel Level,

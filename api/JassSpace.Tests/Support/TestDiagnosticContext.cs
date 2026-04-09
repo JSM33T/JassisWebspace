@@ -1,6 +1,6 @@
 using Serilog;
 
-namespace JassSpace.tests.Support;
+namespace JassSpace.Tests.Support;
 
 public sealed class TestDiagnosticContext : IDiagnosticContext
 {

@@ -25,7 +25,7 @@ COPY global.json ./
 
 # Restore
 COPY JassSpace.Api/JassSpace.Api.csproj JassSpace.Api/
-COPY JassSpace.tests/JassSpace.tests.csproj JassSpace.tests/
+COPY JassSpace.Tests/JassSpace.Tests.csproj JassSpace.Tests/
 COPY JassSpace.Contracts/JassSpace.Contracts.csproj JassSpace.Contracts/
 COPY JassSpace.Data/JassSpace.Data.csproj JassSpace.Data/
 COPY JassSpace.Entities/JassSpace.Entities.csproj JassSpace.Entities/
@@ -33,7 +33,7 @@ COPY JassSpace.Infra/JassSpace.Infra.csproj JassSpace.Infra/
 COPY JassSpace.Repositories/JassSpace.Repositories.csproj JassSpace.Repositories/
 COPY JassSpace.Services/JassSpace.Services.csproj JassSpace.Services/
 RUN dotnet restore JassSpace.Api/JassSpace.Api.csproj
-RUN dotnet restore JassSpace.tests/JassSpace.tests.csproj
+RUN dotnet restore JassSpace.Tests/JassSpace.Tests.csproj
 
 # Copy the rest and build
 COPY . .
@@ -50,7 +50,7 @@ RUN dotnet publish JassSpace.Api.csproj -c $BUILD_CONFIGURATION -o /app/publish 
 FROM build AS test
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-ENTRYPOINT ["dotnet", "test", "JassSpace.tests/JassSpace.tests.csproj", "-c", "Release", "--no-restore", "--logger", "console;verbosity=normal"]
+ENTRYPOINT ["dotnet", "test", "JassSpace.Tests/JassSpace.Tests.csproj", "-c", "Release", "--no-restore", "--logger", "console;verbosity=normal"]
 
 # Final
 FROM base AS final

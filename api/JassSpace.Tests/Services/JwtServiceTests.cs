@@ -2,10 +2,10 @@ using System.IdentityModel.Tokens.Jwt;
 using JassSpace.Api.Configuration;
 using JassSpace.Api.Services;
 using JassSpace.Entities;
-using JassSpace.tests.Support;
+using JassSpace.Tests.Support;
 using Microsoft.Extensions.Options;
 
-namespace JassSpace.tests.Services;
+namespace JassSpace.Tests.Services;
 
 public sealed class JwtServiceTests
 {
