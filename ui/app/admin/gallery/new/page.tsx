@@ -48,8 +48,8 @@ export default function CreateAlbumPage() {
     const [loading, setLoading] = useState(false);
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
-    const [imageFiles, setImageFiles] = useState<File[]>([]);
-    const [imagesPreview, setImagesPreview] = useState<string[]>([]);
+    const [selectedImages, setSelectedImages] = useState<Array<{ id: string; file: File; preview: string }>>([]);
+    const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
     const [authors, setAuthors] = useState<GalleryAuthor[]>([]);
     const [authorSearch, setAuthorSearch] = useState("");
 
@@ -104,43 +104,60 @@ export default function CreateAlbumPage() {
     const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
-            setImageFiles((prev) => [...prev, ...files]);
             files.forEach((file) => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
-                    setImagesPreview((prev) => [...prev, reader.result as string]);
+                    setSelectedImages((prev) => [
+                        ...prev,
+                        {
+                            id: Math.random().toString(36).slice(2),
+                            file,
+                            preview: reader.result as string,
+                        },
+                    ]);
                 };
                 reader.readAsDataURL(file);
             });
         }
+
+        e.target.value = "";
     };
 
-    const removeImage = (index: number) => {
-        setImageFiles((prev) => prev.filter((_, i) => i !== index));
-        setImagesPreview((prev) => prev.filter((_, i) => i !== index));
+    const removeImage = (imageId: string) => {
+        setSelectedImages((prev) => prev.filter((image) => image.id !== imageId));
     };
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        let createdAlbumId: string | null = null;
+
         try {
             setLoading(true);
             const sortOrder = values.sortOrder?.trim() ? Number(values.sortOrder) : undefined;
 
-            const imageTitles = imageFiles.map((_, i) => `Image ${i + 1}`);
-            const imageDescriptions = imageFiles.map(() => "");
-            const imageOrders = imageFiles.map((_, i) => i + 1);
-
-            await adminGalleryService.createAlbum({
+            const createdAlbum = await adminGalleryService.createAlbum({
                 name: values.name,
+                slug: values.slug,
                 description: values.description,
                 authorIds: values.authorIds || [],
                 isActive: values.isActive,
                 sortOrder,
                 coverImage: coverFile || undefined,
-                imageFiles: imageFiles.length > 0 ? imageFiles : undefined,
-                imageTitles,
-                imageDescriptions,
-                imageOrders,
             });
+            createdAlbumId = createdAlbum.id;
+
+            if (selectedImages.length > 0) {
+                setUploadProgress({ current: 0, total: selectedImages.length });
+
+                for (const [index, image] of selectedImages.entries()) {
+                    setUploadProgress({ current: index + 1, total: selectedImages.length });
+                    await adminGalleryService.addImageToAlbum(createdAlbum.id, {
+                        imageFile: image.file,
+                        title: `Image ${index + 1}`,
+                        description: "",
+                        order: index + 1,
+                    });
+                }
+            }
 
             toast.success("Album created successfully");
 
@@ -148,8 +165,16 @@ export default function CreateAlbumPage() {
             router.refresh();
         } catch (error) {
             console.error(error);
+            if (createdAlbumId) {
+                toast.error("Album was created, but one or more images failed to upload. You can continue from the edit page.");
+                router.push(`/admin/gallery/${createdAlbumId}/edit`);
+                router.refresh();
+                return;
+            }
+
             toast.error("Failed to create album. Please try again.");
         } finally {
+            setUploadProgress(null);
             setLoading(false);
         }
     }
@@ -353,34 +378,44 @@ export default function CreateAlbumPage() {
                                     </Button>
                                 </div>
                             </div>
+                            <p className="text-xs text-muted-foreground">
+                                Images are uploaded one by one after the album is created to avoid oversized requests.
+                            </p>
 
                             <Card className="min-h-[400px]">
                                 <CardContent className="p-4">
-                                    {imagesPreview.length === 0 ? (
+                                    {selectedImages.length === 0 ? (
                                         <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-20">
                                             <ImageIcon className="h-16 w-16 mb-4 opacity-20" />
                                             <p>No images added yet</p>
                                             <p className="text-sm">Click &quot;Add Images&quot; to upload photos</p>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                            {imagesPreview.map((preview, index) => (
-                                                <div key={index} className="relative aspect-square group rounded-md overflow-hidden border bg-muted">
-                                                    <Image
-                                                        src={preview}
-                                                        alt={`Preview ${index}`}
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeImage(index)}
-                                                        className="absolute top-2 right-2 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </button>
-                                                </div>
-                                            ))}
+                                        <div className="space-y-4">
+                                            {uploadProgress ? (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Uploading image {uploadProgress.current} of {uploadProgress.total}
+                                                </p>
+                                            ) : null}
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                                {selectedImages.map((image, index) => (
+                                                    <div key={image.id} className="relative aspect-square group rounded-md overflow-hidden border bg-muted">
+                                                        <Image
+                                                            src={image.preview}
+                                                            alt={`Preview ${index}`}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeImage(image.id)}
+                                                            className="absolute top-2 right-2 p-1 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </CardContent>
@@ -391,7 +426,9 @@ export default function CreateAlbumPage() {
                     <div className="flex justify-end">
                         <Button type="submit" size="lg" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Create Album
+                            {uploadProgress
+                                ? `Uploading ${uploadProgress.current}/${uploadProgress.total}`
+                                : "Create Album"}
                         </Button>
                     </div>
                 </form>

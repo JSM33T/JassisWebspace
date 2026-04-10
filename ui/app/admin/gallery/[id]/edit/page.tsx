@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Loader2, Upload, X, Trash, Image as ImageIcon, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -62,6 +62,7 @@ export default function EditAlbumPage() {
     const [loading, setLoading] = useState(true);
     const [savingDetails, setSavingDetails] = useState(false);
     const [uploadingImages, setUploadingImages] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
     const [authors, setAuthors] = useState<GalleryAuthor[]>([]);
     const [authorSearch, setAuthorSearch] = useState("");
 
@@ -102,24 +103,7 @@ export default function EditAlbumPage() {
         },
     });
 
-    useEffect(() => {
-        loadAlbum();
-    }, [albumId]);
-
-    useEffect(() => {
-        const timeoutId = setTimeout(async () => {
-            try {
-                const data = await adminGalleryService.getPotentialAuthors(authorSearch.trim() || undefined);
-                setAuthors(data);
-            } catch (error) {
-                console.error("Failed to load authors", error);
-            }
-        }, 250);
-
-        return () => clearTimeout(timeoutId);
-    }, [authorSearch]);
-
-    const loadAlbum = async () => {
+    const loadAlbum = useCallback(async () => {
         try {
             setLoading(true);
             const data = await adminGalleryService.getAlbumById(albumId);
@@ -143,7 +127,24 @@ export default function EditAlbumPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [albumId, form, router]);
+
+    useEffect(() => {
+        loadAlbum();
+    }, [loadAlbum]);
+
+    useEffect(() => {
+        const timeoutId = setTimeout(async () => {
+            try {
+                const data = await adminGalleryService.getPotentialAuthors(authorSearch.trim() || undefined);
+                setAuthors(data);
+            } catch (error) {
+                console.error("Failed to load authors", error);
+            }
+        }, 250);
+
+        return () => clearTimeout(timeoutId);
+    }, [authorSearch]);
 
     const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -283,26 +284,31 @@ export default function EditAlbumPage() {
 
         try {
             setUploadingImages(true);
+            const imagesToUpload = [...newImages];
 
-            const imageFiles = newImages.map(img => img.file);
-            const imageTitles = newImages.map(img => img.title);
-            const imageDescriptions = newImages.map(img => img.description);
-            const imageOrders = newImages.map(img => img.order);
+            setUploadProgress({ current: 0, total: imagesToUpload.length });
 
-            await adminGalleryService.addImagesToAlbum(albumId, {
-                imageFiles,
-                imageTitles,
-                imageDescriptions,
-                imageOrders,
-            });
+            for (const [index, image] of imagesToUpload.entries()) {
+                setUploadProgress({ current: index + 1, total: imagesToUpload.length });
+
+                await adminGalleryService.addImageToAlbum(albumId, {
+                    imageFile: image.file,
+                    title: image.title,
+                    description: image.description,
+                    order: image.order,
+                });
+
+                setNewImages((prev) => prev.filter((item) => item.id !== image.id));
+            }
 
             toast.success("Images uploaded successfully");
-            setNewImages([]);
             loadAlbum();
         } catch (error) {
             console.error(error);
-            toast.error("Failed to upload images");
+            toast.error("Some images may still be pending. Uploaded items were kept and the rest stayed selected.");
+            loadAlbum();
         } finally {
+            setUploadProgress(null);
             setUploadingImages(false);
         }
     };
@@ -537,7 +543,7 @@ export default function EditAlbumPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Add New Images</CardTitle>
-                            <CardDescription>Upload more photos to this album</CardDescription>
+                            <CardDescription>Upload more photos to this album one by one to avoid oversized requests</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="flex items-center gap-4">
@@ -558,11 +564,16 @@ export default function EditAlbumPage() {
                                     </span>
                                 )}
                             </div>
+                            {uploadProgress ? (
+                                <p className="text-sm text-muted-foreground">
+                                    Uploading image {uploadProgress.current} of {uploadProgress.total}
+                                </p>
+                            ) : null}
 
                             {newImages.length > 0 && (
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 gap-4">
-                                        {newImages.map((img, index) => (
+                                        {newImages.map((img) => (
                                             <div key={img.id} className="flex gap-4 p-4 border rounded-lg bg-muted/30">
                                                 <div className="relative w-32 h-32 flex-shrink-0 bg-muted rounded-md overflow-hidden">
                                                     <Image
@@ -617,7 +628,9 @@ export default function EditAlbumPage() {
                                     <div className="flex justify-end border-t pt-4">
                                         <Button onClick={onUploadImages} disabled={uploadingImages}>
                                             {uploadingImages && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Upload {newImages.length} Images
+                                            {uploadProgress
+                                                ? `Uploading ${uploadProgress.current}/${uploadProgress.total}`
+                                                : `Upload ${newImages.length} Images`}
                                         </Button>
                                     </div>
                                 </div>

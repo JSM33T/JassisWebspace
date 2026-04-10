@@ -162,6 +162,44 @@ public sealed class AdminGalleryController(
             cancellationToken);
     }
 
+    private async Task<int> GetNextImageOrderAsync(Guid albumId, CancellationToken cancellationToken)
+    {
+        var maxOrder = await dbContext.Images
+            .Where(i => i.AlbumId == albumId)
+            .Select(i => (int?)i.Order)
+            .MaxAsync(cancellationToken);
+
+        return (maxOrder ?? 0) + 1;
+    }
+
+    private async Task<Image> CreateAlbumImageAsync(
+        Guid albumId,
+        IFormFile imageFile,
+        string? title,
+        string? description,
+        int order,
+        CancellationToken cancellationToken)
+    {
+        var imageUpload = await UploadFileAsync(
+            imageFile,
+            $"gallery/images/{albumId}-{Guid.NewGuid()}",
+            cancellationToken);
+
+        var image = new Image
+        {
+            Id = Guid.NewGuid(),
+            AlbumId = albumId,
+            Url = GetFullMediaUrl(imageUpload.BlobName),
+            Title = title,
+            Description = description,
+            Order = order,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.Images.Add(image);
+        return image;
+    }
+
     /// <summary>
     /// Upload an image for gallery use and get back the media controller URL
     /// </summary>
@@ -354,28 +392,12 @@ public sealed class AdminGalleryController(
                     var imageFile = imageFiles[i];
                     if (imageFile.Length == 0) continue;
 
-                    // Upload image to blob using Album ID
-                    var imageUpload = await UploadFileAsync(imageFile, $"gallery/images/{albumId}-{Guid.NewGuid()}", cancellationToken);
-                    var imageUrl = GetFullMediaUrl(imageUpload.BlobName);
-
-                    // Get metadata for this image
                     var title = imageTitles != null && i < imageTitles.Count ? imageTitles[i] : null;
                     var desc = imageDescriptions != null && i < imageDescriptions.Count ? imageDescriptions[i] : null;
                     var order = imageOrders != null && i < imageOrders.Count ? imageOrders[i] : i + 1;
 
-                    var image = new Image
-                    {
-                        Id = Guid.NewGuid(),
-                        AlbumId = album.Id,
-                        Url = imageUrl,
-                        Title = title,
-                        Description = desc,
-                        Order = order,
-                        CreatedAt = DateTimeOffset.UtcNow
-                    };
-
+                    var image = await CreateAlbumImageAsync(album.Id, imageFile, title, desc, order, cancellationToken);
                     images.Add(image);
-                    dbContext.Images.Add(image);
                 }
             }
 
@@ -422,6 +444,65 @@ public sealed class AdminGalleryController(
     }
 
     /// <summary>
+    /// Add a single image to an existing album
+    /// </summary>
+    [HttpPost("albums/{albumId:guid}/images/single")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ApiResponse<ImageResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AddImageToAlbum(
+        Guid albumId,
+        [FromForm] IFormFile? imageFile,
+        [FromForm] string? title,
+        [FromForm] string? description,
+        [FromForm] int? order,
+        CancellationToken cancellationToken = default)
+    {
+        var albumExists = await dbContext.Albums
+            .AnyAsync(a => a.Id == albumId, cancellationToken);
+
+        if (!albumExists)
+        {
+            return NotFoundProblem("Album not found", $"No album found with ID '{albumId}'.");
+        }
+
+        if (imageFile is null || imageFile.Length == 0)
+        {
+            return BadRequestProblem("No image provided", "Provide a non-empty image file.");
+        }
+
+        try
+        {
+            var resolvedOrder = order ?? await GetNextImageOrderAsync(albumId, cancellationToken);
+            var image = await CreateAlbumImageAsync(albumId, imageFile, title, description, resolvedOrder, cancellationToken);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
+
+            var response = new ImageResponse(
+                image.Id,
+                image.AlbumId,
+                image.Url,
+                image.Title,
+                image.Description,
+                image.Order,
+                image.CreatedAt
+            );
+
+            return OkEnvelope(response);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to add image to album {AlbumId}", albumId);
+            return Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to add image",
+                "An unexpected error occurred while adding the image to the album.");
+        }
+    }
+
+    /// <summary>
     /// Add images to an existing album
     /// </summary>
     [HttpPost("albums/{albumId:guid}/images")]
@@ -459,28 +540,12 @@ public sealed class AdminGalleryController(
                 var imageFile = imageFiles[i];
                 if (imageFile.Length == 0) continue;
 
-                // Upload image to blob
-                var imageUpload = await UploadFileAsync(imageFile, $"gallery/images/{albumId}-{Guid.NewGuid()}", cancellationToken);
-                var imageUrl = GetFullMediaUrl(imageUpload.BlobName);
-
-                // Get metadata for this image
                 var title = imageTitles != null && i < imageTitles.Count ? imageTitles[i] : null;
                 var desc = imageDescriptions != null && i < imageDescriptions.Count ? imageDescriptions[i] : null;
                 var order = imageOrders != null && i < imageOrders.Count ? imageOrders[i] : i + 1;
 
-                var image = new Image
-                {
-                    Id = Guid.NewGuid(),
-                    AlbumId = albumId,
-                    Url = imageUrl,
-                    Title = title,
-                    Description = desc,
-                    Order = order,
-                    CreatedAt = DateTimeOffset.UtcNow
-                };
-
+                var image = await CreateAlbumImageAsync(albumId, imageFile, title, desc, order, cancellationToken);
                 images.Add(image);
-                dbContext.Images.Add(image);
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);

@@ -16,6 +16,13 @@ export interface CreateAlbumRequest {
     imageOrders?: number[];
 }
 
+export interface AddAlbumImageRequest {
+    imageFile: File;
+    title?: string;
+    description?: string;
+    order?: number;
+}
+
 class AdminGalleryService {
     async getAllAlbums(isActive?: boolean): Promise<Album[]> {
         const queryParams = new URLSearchParams();
@@ -123,6 +130,17 @@ class AdminGalleryService {
         }
 
         return post<Image[]>(`/admin/gallery/albums/${albumId}/images`, formData);
+    }
+
+    async addImageToAlbum(albumId: string, data: AddAlbumImageRequest): Promise<Image> {
+        const formData = new FormData();
+        formData.append('imageFile', data.imageFile);
+
+        if (data.title !== undefined) formData.append('title', data.title);
+        if (data.description !== undefined) formData.append('description', data.description);
+        if (data.order !== undefined) formData.append('order', data.order.toString());
+
+        return post<Image>(`/admin/gallery/albums/${albumId}/images/single`, formData);
     }
 
     async updateImage(imageId: string, data: { title?: string, description?: string, order?: number }): Promise<Image> {
