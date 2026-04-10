@@ -32,7 +32,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon, Mail } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon, Mail, House } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -371,18 +371,11 @@ export function Navbar() {
         (item) => item.href === '/privacy' || item.href === '/faq'
     );
 
-    const mobileDockItems = [
-        { href: '/', label: 'Home', icon: LogoMark },
-        { href: '/blog', label: 'Blog', icon: FileText },
-        { href: '/gallery', label: 'Gallery', icon: Image },
-        { href: '/music', label: 'Music', icon: Music },
-    ];
-
     const mobileMenuSections = [
         {
             title: 'Explore',
             items: [
-                { href: '/', label: 'Home', icon: LogoMark },
+                { href: '/', label: 'Home', icon: House },
                 ...studioMenuItems,
             ],
         },
@@ -394,8 +387,6 @@ export function Navbar() {
         'group relative flex h-11 cursor-pointer items-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
     const railIconClassName = 'h-[18px] w-[18px]';
-    const railHomeIconClassName = 'h-[28px] w-[28px]';
-
     const railBubbleClassName =
         'pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-xl border border-border/70 bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground opacity-0 shadow-lg shadow-black/10 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100';
 
@@ -443,7 +434,7 @@ export function Navbar() {
                                 onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
                                 onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                             >
-                                <LogoMark className={railHomeIconClassName} />
+                                <House className="h-5 w-5" />
                                 {isRailExpanded ? (
                                     <span className="truncate text-sm font-semibold text-foreground">Home</span>
                                 ) : (
@@ -754,45 +745,62 @@ export function Navbar() {
 
             <nav
                 className={cn(
-                    'fixed inset-x-0 bottom-4 z-50 px-4 transition-all duration-300 lg:hidden',
-                    isNavbarHidden ? 'pointer-events-none translate-y-24 opacity-0' : 'translate-y-0 opacity-100'
+                    'fixed inset-x-0 top-0 z-50 px-4 pt-4 transition-all duration-300 lg:hidden',
+                    isNavbarHidden ? 'pointer-events-none -translate-y-24 opacity-0' : 'translate-y-0 opacity-100'
                 )}
             >
-                <div className="mx-auto max-w-sm rounded-[2rem] border border-border/60 bg-background/90 p-2 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
-                    <div className="grid grid-cols-5 gap-1">
-                        {mobileDockItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = isActivePath(item.href);
-                            const isHomeItem = item.href === '/';
+                <div className="mx-auto flex h-14 max-w-md items-center justify-between rounded-[1.75rem] border border-border/60 bg-background/90 px-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
+                    <Link
+                        href="/"
+                        aria-current={isActivePath('/') ? 'page' : undefined}
+                        className="flex items-center rounded-full text-foreground transition-colors hover:text-primary"
+                    >
+                        <LogoMark className="h-7 w-7" />
+                    </Link>
 
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    aria-current={isActive ? 'page' : undefined}
-                                    className={cn(
-                                        'flex h-14 flex-col items-center justify-center rounded-2xl text-[11px] font-medium transition-all duration-200',
-                                        isActive
-                                            ? 'bg-primary/12 text-foreground shadow-sm shadow-primary/10'
-                                            : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'
-                                    )}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="relative h-9 w-9 rounded-full hover:bg-accent/50"
+                            onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
+                            aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                            title={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                        >
+                            <AnimatePresence mode="wait" initial={false}>
+                                <motion.span
+                                    key={activeMode}
+                                    initial={{ rotate: -90, scale: 0.7, opacity: 0 }}
+                                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                                    exit={{ rotate: 90, scale: 0.7, opacity: 0 }}
+                                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                                    className="absolute inset-0 flex items-center justify-center"
                                 >
-                                    <Icon className={cn('mb-1', isHomeItem ? 'h-6 w-6' : 'h-4 w-4')} />
-                                    <span>{item.label}</span>
-                                </Link>
-                            );
-                        })}
+                                    {activeMode === 'dark' ? (
+                                        <Sun className="h-4 w-4" />
+                                    ) : (
+                                        <Moon className="h-4 w-4" />
+                                    )}
+                                </motion.span>
+                            </AnimatePresence>
+                        </Button>
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 px-2 hover:bg-accent/50"
+                            onClick={() => handleSidebarOpenChange(true)}
+                            title="Open sidebar"
+                        >
+                            <PanelRight className={`h-4 w-4 ${sidebarOpen ? 'text-primary' : ''}`} />
+                        </Button>
 
                         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                             <SheetTrigger asChild>
-                                <button
-                                    type="button"
-                                    className="flex h-14 cursor-pointer flex-col items-center justify-center rounded-2xl text-[11px] font-medium text-muted-foreground transition-all duration-200 hover:bg-accent/70 hover:text-foreground"
-                                    aria-label="Open menu"
-                                >
-                                    <Menu className="mb-1 h-4 w-4" />
-                                    <span>Menu</span>
-                                </button>
+                                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full">
+                                    <Menu className="h-4 w-4" />
+                                </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[340px] sm:max-w-[340px]">
                                 <SheetHeader>

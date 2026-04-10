@@ -47,7 +47,7 @@ export function AppShell({ children }: AppShellProps) {
                 <Navbar />
                 <div
                     className={cn(
-                        'min-h-screen pb-24 transition-[padding] duration-200 lg:pb-0',
+                        'min-h-screen transition-[padding] duration-200',
                         isRailExpanded ? 'lg:pl-72 lg:pr-4' : 'lg:pl-28'
                     )}
                 >

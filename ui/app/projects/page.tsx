@@ -243,15 +243,15 @@ export default function ProjectsPage() {
                             </div>
                         </div>
                     </div>
-                    <div className="border-t bg-card/95 px-10 pb-6 pt-4 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+                    <div className="border-t bg-card/95 px-5 pb-5 pt-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:px-8 sm:pb-6 md:px-10">
                         <div className="flex justify-center">
-                            <div className="inline-flex flex-wrap items-center gap-2 rounded-full border bg-background/70 p-1">
+                            <div className="flex w-full flex-col gap-2 rounded-[1.5rem] border bg-background/70 p-2 sm:inline-flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:rounded-full sm:p-1">
                                 {selectedProject?.links?.repo && (
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         asChild
-                                        className="h-10 min-w-[110px] rounded-full px-4"
+                                        className="h-10 w-full rounded-full px-4 sm:min-w-[110px] sm:w-auto"
                                     >
                                         <Link href={selectedProject.links.repo} target="_blank" rel="noreferrer">
                                             GitHub
@@ -263,7 +263,7 @@ export default function ProjectsPage() {
                                         variant="ghost"
                                         size="sm"
                                         asChild
-                                        className="h-10 min-w-[110px] rounded-full px-4"
+                                        className="h-10 w-full rounded-full px-4 sm:min-w-[110px] sm:w-auto"
                                     >
                                         <Link href={selectedProject.links.live} target="_blank" rel="noreferrer">
                                             Live
@@ -272,7 +272,7 @@ export default function ProjectsPage() {
                                 )}
                                 <Button
                                     size="sm"
-                                    className="h-10 min-w-[110px] rounded-full px-4"
+                                    className="h-10 w-full rounded-full px-4 sm:min-w-[110px] sm:w-auto"
                                     onClick={goToContactWithRef}
                                 >
                                     <Send className="mr-2 h-4 w-4" />

@@ -192,17 +192,17 @@ export default function ServicesPage() {
 
             {/* Service Details Dialog */}
             <Dialog open={!!selectedService} onOpenChange={(open) => !open && closeService()}>
-                <DialogContent className="sm:max-w-[50vw] rounded-3xl border bg-card/90 backdrop-blur-xl p-0 overflow-hidden">
-                    <div className="p-10 space-y-8">
+                <DialogContent className="w-[calc(100%-1rem)] max-w-[calc(100%-1rem)] rounded-3xl border bg-card/90 p-0 overflow-hidden backdrop-blur-xl sm:max-w-2xl lg:max-w-[50vw]">
+                    <div className="space-y-6 p-5 sm:p-8 md:space-y-8 md:p-10">
                         <DialogHeader>
-                            <div className="flex items-center gap-3 mb-4">
+                            <div className="mb-4 flex items-center gap-3">
                                 <Badge variant={selectedService?.status === 'Active' ? 'default' : 'secondary'} className="rounded-full">
                                     {selectedService?.status}
                                 </Badge>
                                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Service Details</span>
                             </div>
-                            <DialogTitle className="text-3xl font-bold tracking-tight">{selectedService?.title}</DialogTitle>
-                            <div className="pt-6">
+                            <DialogTitle className="text-2xl font-bold tracking-tight sm:text-3xl">{selectedService?.title}</DialogTitle>
+                            <div className="pt-4 sm:pt-6">
                                 <article className="prose prose-neutral dark:prose-invert max-w-none text-foreground/80">
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                         {selectedService?.details || ""}
@@ -210,18 +210,18 @@ export default function ServicesPage() {
                                 </article>
                             </div>
                         </DialogHeader>
-                        <div className="pt-8 border-t flex flex-col gap-6">
+                        <div className="flex flex-col gap-5 border-t pt-6 sm:gap-6 sm:pt-8">
                             <div className="text-sm text-muted-foreground italic">
                                 {selectedService?.status === 'Active'
                                     ? "Currently accepting new projects."
                                     : "Check back later for availability."
                                 }
                             </div>
-                            <div className="flex items-center justify-end gap-3">
-                                <Button variant="ghost" className="rounded-full px-8" onClick={closeService}>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                                <Button variant="ghost" className="w-full rounded-full px-6 sm:w-auto sm:px-8" onClick={closeService}>
                                     Close
                                 </Button>
-                                <Button className="rounded-full px-10 h-12 text-base" onClick={goToContactWithRef}>
+                                <Button className="h-12 w-full rounded-full px-6 text-base sm:w-auto sm:px-10" onClick={goToContactWithRef}>
                                     <Send className="mr-2 h-4 w-4" />
                                     Enquire Now
                                 </Button>
