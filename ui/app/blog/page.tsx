@@ -171,7 +171,7 @@ export default function BlogHomePage() {
                 <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            <main className="flex-1 px-4 pb-14 pt-0 md:pb-16">
+            <main className="flex-1 px-4 pb-14 pt-20 md:pb-16 md:pt-0">
                 <div className="container mx-auto max-w-7xl">
                     <PageIntroCard
                         badge="Blogs"

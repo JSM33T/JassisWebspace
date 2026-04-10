@@ -371,13 +371,6 @@ export function Navbar() {
         (item) => item.href === '/privacy' || item.href === '/faq'
     );
 
-    const mobileDockItems = [
-        { href: '/', label: 'Home', icon: LogoMark },
-        { href: '/blog', label: 'Blog', icon: FileText },
-        { href: '/gallery', label: 'Gallery', icon: Image },
-        { href: '/music', label: 'Music', icon: Music },
-    ];
-
     const mobileMenuSections = [
         {
             title: 'Explore',
@@ -754,45 +747,36 @@ export function Navbar() {
 
             <nav
                 className={cn(
-                    'fixed inset-x-0 bottom-4 z-50 px-4 transition-all duration-300 lg:hidden',
-                    isNavbarHidden ? 'pointer-events-none translate-y-24 opacity-0' : 'translate-y-0 opacity-100'
+                    'fixed inset-x-0 top-0 z-50 px-4 pt-4 transition-all duration-300 lg:hidden',
+                    isNavbarHidden ? 'pointer-events-none -translate-y-24 opacity-0' : 'translate-y-0 opacity-100'
                 )}
             >
-                <div className="mx-auto max-w-sm rounded-[2rem] border border-border/60 bg-background/90 p-2 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
-                    <div className="grid grid-cols-5 gap-1">
-                        {mobileDockItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = isActivePath(item.href);
-                            const isHomeItem = item.href === '/';
+                <div className="mx-auto flex h-14 max-w-md items-center justify-between rounded-[1.75rem] border border-border/60 bg-background/90 px-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
+                    <Link
+                        href="/"
+                        aria-current={isActivePath('/') ? 'page' : undefined}
+                        className="flex items-center gap-3 rounded-full text-foreground transition-colors hover:text-primary"
+                    >
+                        <LogoMark className="h-7 w-7" />
+                        <span className="text-sm font-semibold uppercase tracking-[0.14em]">Home</span>
+                    </Link>
 
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    aria-current={isActive ? 'page' : undefined}
-                                    className={cn(
-                                        'flex h-14 flex-col items-center justify-center rounded-2xl text-[11px] font-medium transition-all duration-200',
-                                        isActive
-                                            ? 'bg-primary/12 text-foreground shadow-sm shadow-primary/10'
-                                            : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'
-                                    )}
-                                >
-                                    <Icon className={cn('mb-1', isHomeItem ? 'h-6 w-6' : 'h-4 w-4')} />
-                                    <span>{item.label}</span>
-                                </Link>
-                            );
-                        })}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 px-2 hover:bg-accent/50"
+                            onClick={() => handleSidebarOpenChange(true)}
+                            title="Open sidebar"
+                        >
+                            <PanelRight className={`h-4 w-4 ${sidebarOpen ? 'text-primary' : ''}`} />
+                        </Button>
 
                         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                             <SheetTrigger asChild>
-                                <button
-                                    type="button"
-                                    className="flex h-14 cursor-pointer flex-col items-center justify-center rounded-2xl text-[11px] font-medium text-muted-foreground transition-all duration-200 hover:bg-accent/70 hover:text-foreground"
-                                    aria-label="Open menu"
-                                >
-                                    <Menu className="mb-1 h-4 w-4" />
-                                    <span>Menu</span>
-                                </button>
+                                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full">
+                                    <Menu className="h-4 w-4" />
+                                </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[340px] sm:max-w-[340px]">
                                 <SheetHeader>
