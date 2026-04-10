@@ -137,8 +137,8 @@ export default function BlogViewPage() {
                 <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-secondary/8 blur-[120px]" />
             </div>
 
-            <main className="flex-1 px-4 pb-16 pt-2 md:pt-4">
-                <div className="container mx-auto max-w-6xl">
+            <main className="flex-1 px-4 pb-16 pt-8 md:pt-10">
+                <div className="container mx-auto max-w-6xl pt-12">
                     <PageIntroCard
                         title={blog.title}
                         topContent={

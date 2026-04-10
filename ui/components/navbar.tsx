@@ -32,7 +32,7 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon, Mail } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon, Mail, House } from 'lucide-react';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -375,7 +375,7 @@ export function Navbar() {
         {
             title: 'Explore',
             items: [
-                { href: '/', label: 'Home', icon: LogoMark },
+                { href: '/', label: 'Home', icon: House },
                 ...studioMenuItems,
             ],
         },
@@ -387,8 +387,6 @@ export function Navbar() {
         'group relative flex h-11 cursor-pointer items-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
     const railIconClassName = 'h-[18px] w-[18px]';
-    const railHomeIconClassName = 'h-[28px] w-[28px]';
-
     const railBubbleClassName =
         'pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-xl border border-border/70 bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground opacity-0 shadow-lg shadow-black/10 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100';
 
@@ -436,7 +434,7 @@ export function Navbar() {
                                 onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
                                 onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
                             >
-                                <LogoMark className={railHomeIconClassName} />
+                                <House className="h-5 w-5" />
                                 {isRailExpanded ? (
                                     <span className="truncate text-sm font-semibold text-foreground">Home</span>
                                 ) : (
@@ -755,13 +753,39 @@ export function Navbar() {
                     <Link
                         href="/"
                         aria-current={isActivePath('/') ? 'page' : undefined}
-                        className="flex items-center gap-3 rounded-full text-foreground transition-colors hover:text-primary"
+                        className="flex items-center rounded-full text-foreground transition-colors hover:text-primary"
                     >
                         <LogoMark className="h-7 w-7" />
-                        <span className="text-sm font-semibold uppercase tracking-[0.14em]">Home</span>
                     </Link>
 
                     <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="relative h-9 w-9 rounded-full hover:bg-accent/50"
+                            onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
+                            aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                            title={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                        >
+                            <AnimatePresence mode="wait" initial={false}>
+                                <motion.span
+                                    key={activeMode}
+                                    initial={{ rotate: -90, scale: 0.7, opacity: 0 }}
+                                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                                    exit={{ rotate: 90, scale: 0.7, opacity: 0 }}
+                                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                                    className="absolute inset-0 flex items-center justify-center"
+                                >
+                                    {activeMode === 'dark' ? (
+                                        <Sun className="h-4 w-4" />
+                                    ) : (
+                                        <Moon className="h-4 w-4" />
+                                    )}
+                                </motion.span>
+                            </AnimatePresence>
+                        </Button>
+
                         <Button
                             variant="ghost"
                             size="sm"

@@ -150,7 +150,7 @@ export default function MusicTrackViewPage() {
 
     return (
         <div className="pt-8">
-            <div className="container max-w-5xl mx-auto px-4 pt-4 mb-12">
+            <div className="container max-w-5xl mx-auto px-4 pt-12 mb-12">
                 <Button variant="ghost" size="sm" asChild className="mb-6">
                     <Link href="/music">
                         <ArrowLeft className="mr-2 h-4 w-4" />
