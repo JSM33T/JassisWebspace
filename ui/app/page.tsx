@@ -205,7 +205,7 @@ export default function HomePage() {
 
                         <motion.div
                             variants={itemVariants}
-                            className="pointer-events-none absolute bottom-7 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80"
+                            className="pointer-events-none absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80 md:flex"
                         >
                             <motion.span
                                 animate={{ opacity: [0.55, 1, 0.55], y: [0, 2, 0] }}
