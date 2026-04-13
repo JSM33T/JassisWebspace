@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "postbuild": "node scripts/prepare-standalone.mjs",
+    "prestart": "npm run build",
+    "start": "node .next/standalone/server.js",
     "lint": "eslint"
   },
   "dependencies": {
