@@ -33,6 +33,8 @@ public record GetBlogsQueryParams(
     DateTimeOffset? StartDate,
     DateTimeOffset? EndDate,
     Guid? CategoryId,
+    string? AuthorUsername,
+    bool? IsPublished,
     int Page = 1,
     int PageSize = 10
 );

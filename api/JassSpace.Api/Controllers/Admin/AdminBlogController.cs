@@ -218,63 +218,56 @@ public sealed class AdminBlogController(
     [Authorize(Roles = "admin,mod")]
     [ProducesResponseType(typeof(ApiResponse<List<BlogListItemResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBlogs(
-        [FromQuery] string? search = null,
-        [FromQuery] DateTimeOffset? startDate = null,
-        [FromQuery] DateTimeOffset? endDate = null,
-        [FromQuery] Guid? categoryId = null,
-        [FromQuery] string? authorUsername = null,
-        [FromQuery] bool? isPublished = null,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 100,
+        [FromQuery] GetBlogsQueryParams query,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1 || pageSize > 200) pageSize = 100;
+            var page = query.Page < 1 ? 1 : query.Page;
+            var pageSize = query.PageSize < 1 || query.PageSize > 200 ? 100 : query.PageSize;
 
-            var query = dbContext.Blogs
+            var blogQuery = dbContext.Blogs
                 .AsNoTracking()
                 .Include(b => b.Category)
                 .Include(b => b.Authors)
                     .ThenInclude(ba => ba.User)
                 .AsQueryable();
 
-            if (isPublished.HasValue)
+            if (query.IsPublished.HasValue)
             {
-                query = query.Where(b => b.IsPublished == isPublished.Value);
+                blogQuery = blogQuery.Where(b => b.IsPublished == query.IsPublished.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(search))
+            if (!string.IsNullOrWhiteSpace(query.Search))
             {
-                var searchLower = search.ToLower();
-                query = query.Where(b =>
+                var searchLower = query.Search.ToLower();
+                blogQuery = blogQuery.Where(b =>
                     b.Title.ToLower().Contains(searchLower) ||
                     (b.Excerpt != null && b.Excerpt.ToLower().Contains(searchLower)) ||
                     b.Content.ToLower().Contains(searchLower));
             }
 
-            if (startDate.HasValue)
+            if (query.StartDate.HasValue)
             {
-                query = query.Where(b => b.PublishedAt >= startDate.Value);
+                blogQuery = blogQuery.Where(b => b.PublishedAt >= query.StartDate.Value);
             }
 
-            if (endDate.HasValue)
+            if (query.EndDate.HasValue)
             {
-                query = query.Where(b => b.PublishedAt <= endDate.Value);
+                blogQuery = blogQuery.Where(b => b.PublishedAt <= query.EndDate.Value);
             }
 
-            if (categoryId.HasValue)
+            if (query.CategoryId.HasValue)
             {
-                query = query.Where(b => b.CategoryId == categoryId.Value);
+                blogQuery = blogQuery.Where(b => b.CategoryId == query.CategoryId.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(authorUsername))
+            if (!string.IsNullOrWhiteSpace(query.AuthorUsername))
             {
-                query = query.Where(b => b.Authors.Any(ba => ba.User.Username == authorUsername));
+                blogQuery = blogQuery.Where(b => b.Authors.Any(ba => ba.User.Username == query.AuthorUsername));
             }
 
-            var blogs = await query
+            var blogs = await blogQuery
                 .OrderByDescending(b => b.UpdatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -439,21 +432,17 @@ public sealed class AdminBlogController(
                     .Select(u => u.Id)
                     .ToListAsync(cancellationToken);
 
-                int order = 0;
-                foreach (var userId in request.AuthorIds)
-                {
-                    if (existingUserIds.Contains(userId))
-                    {
-                        dbContext.BlogAuthors.Add(new BlogAuthor
+                dbContext.BlogAuthors.AddRange(
+                    request.AuthorIds
+                        .Where(existingUserIds.Contains)
+                        .Select((userId, i) => new BlogAuthor
                         {
                             Id = Guid.NewGuid(),
                             BlogId = blogId,
                             UserId = userId,
-                            Order = order++,
+                            Order = i,
                             CreatedAt = now
-                        });
-                    }
-                }
+                        }));
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -643,16 +632,13 @@ public sealed class AdminBlogController(
             // Update Authors
             // Only privileged users can modify author assignments.
             // Assigned authors can still edit content/metadata but cannot reassign authors.
-            var requestAuthorIds = IsPrivilegedUser()
+            var requestAuthorIds = IsPrivilegedUser(User)
                 ? request.AuthorIds ?? new List<Guid>()
                 : blog.Authors.Select(a => a.UserId).ToList();
 
             // Remove existing not in request
             var authorsToRemove = blog.Authors.Where(a => !requestAuthorIds.Contains(a.UserId)).ToList();
-            foreach (var author in authorsToRemove)
-            {
-                dbContext.BlogAuthors.Remove(author);
-            }
+            dbContext.BlogAuthors.RemoveRange(authorsToRemove);
 
             // Add new authors
             var existingAuthorUserIds = blog.Authors.Select(a => a.UserId).ToList();
@@ -667,23 +653,17 @@ public sealed class AdminBlogController(
                     .ToListAsync(cancellationToken);
 
                  int currentMaxOrder = blog.Authors.Any() ? blog.Authors.Max(a => a.Order) + 1 : 0;
-                 foreach (var userId in requestAuthorIds) 
-                 {
-                    // Re-ordering logic could be complex. For now, just append new ones. 
-                    // If full reorder is needed, we'd clear and re-add or specific index update.
-                    // Simple approach: Add new ones at end.
-                    if (existingUsers.Contains(userId) && !existingAuthorUserIds.Contains(userId))
-                    {
-                         dbContext.BlogAuthors.Add(new BlogAuthor
-                        {
-                            Id = Guid.NewGuid(),
-                            BlogId = id,
-                            UserId = userId,
-                            Order = currentMaxOrder++,
-                            CreatedAt = DateTimeOffset.UtcNow
-                        });
-                    }
-                 }
+                 dbContext.BlogAuthors.AddRange(
+                     requestAuthorIds
+                         .Where(uid => existingUsers.Contains(uid) && !existingAuthorUserIds.Contains(uid))
+                         .Select((userId, i) => new BlogAuthor
+                         {
+                             Id = Guid.NewGuid(),
+                             BlogId = id,
+                             UserId = userId,
+                             Order = currentMaxOrder + i,
+                             CreatedAt = DateTimeOffset.UtcNow
+                         }));
             }
             
             // If strictly respecting order in request is required:
@@ -815,14 +795,14 @@ public sealed class AdminBlogController(
         }
     }
 
-    private bool IsPrivilegedUser()
+    private static bool IsPrivilegedUser(ClaimsPrincipal user)
     {
-        return User.IsInRole("admin") || User.IsInRole("mod");
+        return user.IsInRole("admin") || user.IsInRole("mod");
     }
 
     private bool CanCurrentUserEditBlog(IEnumerable<Guid> authorIds)
     {
-        if (IsPrivilegedUser())
+        if (IsPrivilegedUser(User))
         {
             return true;
         }
@@ -905,7 +885,7 @@ public sealed class AdminBlogController(
             cancellationToken);
     }
 
-    private IEnumerable<string> ExtractBlobNamesFromContent(string content)
+    private static IEnumerable<string> ExtractBlobNamesFromContent(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
         {
@@ -990,12 +970,14 @@ public sealed class AdminBlogController(
     /// <summary>
     /// Generates a URL-friendly slug from a title
     /// </summary>
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
     private static string GenerateSlug(string title)
     {
         var slug = title.ToLowerInvariant();
-        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "");
-        slug = Regex.Replace(slug, @"\s+", "-");
-        slug = Regex.Replace(slug, @"-+", "-");
+        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "", RegexOptions.None, RegexTimeout);
+        slug = Regex.Replace(slug, @"\s+", "-", RegexOptions.None, RegexTimeout);
+        slug = Regex.Replace(slug, @"-+", "-", RegexOptions.None, RegexTimeout);
         slug = slug.Trim('-');
         return slug;
     }
