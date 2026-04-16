@@ -141,6 +141,8 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IAdminContentService, AdminContentService>();
+builder.Services.AddScoped<IAdminBlogService, AdminBlogService>();
+builder.Services.AddScoped<IAdminGalleryService, AdminGalleryService>();
 builder.Services.AddScoped<IAdminMusicService, AdminMusicService>();
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IGalleryService, GalleryService>();

@@ -1,18 +1,12 @@
 using JassSpace.Api.Configuration;
-using JassSpace.Api.Extensions;
 using JassSpace.Api.Filters;
 using JassSpace.Api.Services;
 using JassSpace.Contracts;
+using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
-using JassSpace.Data;
-using JassSpace.Entities;
-using JassSpace.Entities.Enums;
-using JassSpace.Infra;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 
 namespace JassSpace.Api.Controllers;
 
@@ -22,17 +16,11 @@ namespace JassSpace.Api.Controllers;
 [Route("admin/blog")]
 [Authorize]
 public sealed class AdminBlogController(
-    JassSpaceDbContext dbContext,
+    IAdminBlogService adminBlogService,
     ILogger<AdminBlogController> logger,
-    IAzureBlobStorageService blobStorageService,
-    IImageProcessingService imageProcessingService,
-    IHttpContextAccessor httpContextAccessor,
     IHttpResponseCacheStore responseCacheStore)
     : BaseApiController
 {
-    private const string BlogBlobPrefix = "blog/";
-    private const string MediaPathPrefix = "/media/";
-
     /// <summary>
     /// Get all blog categories
     /// </summary>
@@ -41,19 +29,7 @@ public sealed class AdminBlogController(
     [ProducesResponseType(typeof(ApiResponse<List<BlogCategoryResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategories(CancellationToken cancellationToken = default)
     {
-        var categories = await dbContext.BlogCategories
-            .AsNoTracking()
-            .OrderBy(c => c.Name)
-            .Select(c => new BlogCategoryResponse(
-                c.Id,
-                c.Name,
-                c.Slug,
-                c.Description,
-                c.CreatedAt,
-                c.UpdatedAt
-            ))
-            .ToListAsync(cancellationToken);
-
+        var categories = await adminBlogService.GetCategoriesAsync(cancellationToken);
         return OkEnvelope(categories);
     }
 
@@ -65,38 +41,16 @@ public sealed class AdminBlogController(
         [FromBody] CreateBlogCategoryRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequestProblem("Invalid category name", "Category name cannot be empty.");
-        }
-
         try
         {
-            var now = DateTimeOffset.UtcNow;
-            var category = new BlogCategory
+            var result = await adminBlogService.CreateCategoryAsync(request, cancellationToken);
+            if (result.Status != AdminBlogCategoryMutationStatus.Success)
             {
-                Id = Guid.NewGuid(),
-                Name = request.Name.Trim(),
-                Slug = await GenerateUniqueCategorySlug(request.Name, cancellationToken),
-                Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-                CreatedAt = now,
-                UpdatedAt = now
-            };
+                return MapCategoryProblem(result, "Category operation failed");
+            }
 
-            dbContext.BlogCategories.Add(category);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
-
-            return OkEnvelope(new BlogCategoryResponse(
-                category.Id,
-                category.Name,
-                category.Slug,
-                category.Description,
-                category.CreatedAt,
-                category.UpdatedAt
-            ));
+            await InvalidateCategoryCachesAsync(cancellationToken);
+            return OkEnvelope(result.Category!);
         }
         catch (Exception ex)
         {
@@ -118,50 +72,16 @@ public sealed class AdminBlogController(
         [FromBody] CreateBlogCategoryRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequestProblem("Invalid category name", "Category name cannot be empty.");
-        }
-
-        var category = await dbContext.BlogCategories
-            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-
-        if (category is null)
-        {
-            return NotFoundProblem("Category not found", $"No category found with ID '{id}'.");
-        }
-
         try
         {
-            var normalizedName = request.Name.Trim();
-            if (!string.Equals(category.Name, normalizedName, StringComparison.Ordinal))
+            var result = await adminBlogService.UpdateCategoryAsync(id, request, cancellationToken);
+            if (result.Status != AdminBlogCategoryMutationStatus.Success)
             {
-                var targetSlug = GenerateSlug(normalizedName);
-                var slugExists = await dbContext.BlogCategories
-                    .AnyAsync(c => c.Slug == targetSlug && c.Id != id, cancellationToken);
-
-                category.Slug = slugExists
-                    ? $"{targetSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}"
-                    : targetSlug;
+                return MapCategoryProblem(result, "Category operation failed");
             }
 
-            category.Name = normalizedName;
-            category.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
-            category.UpdatedAt = DateTimeOffset.UtcNow;
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
-
-            return OkEnvelope(new BlogCategoryResponse(
-                category.Id,
-                category.Name,
-                category.Slug,
-                category.Description,
-                category.CreatedAt,
-                category.UpdatedAt
-            ));
+            await InvalidateCategoryCachesAsync(cancellationToken);
+            return OkEnvelope(result.Category!);
         }
         catch (Exception ex)
         {
@@ -184,33 +104,7 @@ public sealed class AdminBlogController(
         [FromQuery] int take = 100,
         CancellationToken cancellationToken = default)
     {
-        take = Math.Clamp(take, 1, 200);
-
-        var query = dbContext.Users
-            .AsNoTracking()
-            .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var pattern = $"%{search.Trim()}%";
-            query = query.Where(u =>
-                EF.Functions.ILike(u.Username, pattern) ||
-                EF.Functions.ILike(u.DisplayName ?? string.Empty, pattern) ||
-                EF.Functions.ILike(u.FirstName ?? string.Empty, pattern) ||
-                EF.Functions.ILike(u.LastName ?? string.Empty, pattern));
-        }
-
-        var authors = await query
-            .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
-            .Take(take)
-            .Select(u => new BlogAuthorResponse(
-                u.Id,
-                u.Username,
-                u.DisplayName ?? $"{u.FirstName} {u.LastName}".Trim(),
-                0 // Order not applicable for potential authors list
-            ))
-            .ToListAsync(cancellationToken);
-
+        var authors = await adminBlogService.GetAuthorsAsync(search, take, cancellationToken);
         return OkEnvelope(authors);
     }
 
@@ -223,86 +117,8 @@ public sealed class AdminBlogController(
     {
         try
         {
-            var page = query.Page < 1 ? 1 : query.Page;
-            var pageSize = query.PageSize < 1 || query.PageSize > 200 ? 100 : query.PageSize;
-
-            var blogQuery = dbContext.Blogs
-                .AsNoTracking()
-                .Include(b => b.Category)
-                .Include(b => b.Authors)
-                    .ThenInclude(ba => ba.User)
-                .AsQueryable();
-
-            if (query.IsPublished.HasValue)
-            {
-                blogQuery = blogQuery.Where(b => b.IsPublished == query.IsPublished.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(query.Search))
-            {
-                var searchLower = query.Search.ToLower();
-                blogQuery = blogQuery.Where(b =>
-                    b.Title.ToLower().Contains(searchLower) ||
-                    (b.Excerpt != null && b.Excerpt.ToLower().Contains(searchLower)) ||
-                    b.Content.ToLower().Contains(searchLower));
-            }
-
-            if (query.StartDate.HasValue)
-            {
-                blogQuery = blogQuery.Where(b => b.PublishedAt >= query.StartDate.Value);
-            }
-
-            if (query.EndDate.HasValue)
-            {
-                blogQuery = blogQuery.Where(b => b.PublishedAt <= query.EndDate.Value);
-            }
-
-            if (query.CategoryId.HasValue)
-            {
-                blogQuery = blogQuery.Where(b => b.CategoryId == query.CategoryId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(query.AuthorUsername))
-            {
-                blogQuery = blogQuery.Where(b => b.Authors.Any(ba => ba.User.Username == query.AuthorUsername));
-            }
-
-            var blogs = await blogQuery
-                .OrderByDescending(b => b.UpdatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(b => new BlogListItemResponse(
-                    b.Id,
-                    b.Title,
-                    b.Slug,
-                    b.Excerpt,
-                    b.FeaturedImage,
-                    b.Category != null ? new BlogCategoryResponse(
-                        b.Category.Id,
-                        b.Category.Name,
-                        b.Category.Slug,
-                        b.Category.Description,
-                        b.Category.CreatedAt,
-                        b.Category.UpdatedAt
-                    ) : null,
-                    b.Authors.OrderBy(ba => ba.Order).Select(ba => new BlogAuthorResponse(
-                        ba.UserId,
-                        ba.User.Username,
-                        ba.User.DisplayName,
-                        ba.Order
-                    )).ToList(),
-                    b.IsPublished,
-                    b.PublishedAt,
-                    b.CreatedAt,
-                    b.UpdatedAt
-                ))
-                .ToListAsync(cancellationToken);
-
-            var normalized = blogs
-                .Select(b => b with { FeaturedImage = NormalizeBlogMediaUrl(b.FeaturedImage) })
-                .ToList();
-
-            return OkEnvelope(normalized);
+            var blogs = await adminBlogService.GetBlogsAsync(query, cancellationToken);
+            return OkEnvelope(blogs);
         }
         catch (Exception ex)
         {
@@ -322,19 +138,22 @@ public sealed class AdminBlogController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBlog(Guid id, CancellationToken cancellationToken = default)
     {
-        var blog = await GetBlogWithDetails(id, cancellationToken);
-        
-        if (blog is null)
-        {
-            return NotFoundProblem("Blog not found", $"No blog found with ID '{id}'.");
-        }
+        var result = await adminBlogService.GetBlogAsync(
+            id,
+            TryGetCurrentUserId(),
+            IsPrivilegedUser(),
+            cancellationToken);
 
-        if (!CanCurrentUserEditBlog(blog.Authors.Select(a => a.UserId)))
+        return result.Status switch
         {
-            return ForbiddenProblem("You are not authorized to edit this blog.");
-        }
-
-        return OkEnvelope(blog);
+            AdminBlogMutationStatus.Success => OkEnvelope(result.Blog!),
+            AdminBlogMutationStatus.BlogNotFound => NotFoundProblem("Blog not found", result.ErrorMessage),
+            AdminBlogMutationStatus.Forbidden => ForbiddenProblem(result.ErrorMessage ?? "You are not authorized to edit this blog."),
+            _ => Problem(
+                StatusCodes.Status500InternalServerError,
+                "Failed to retrieve blog",
+                "An unexpected error occurred while retrieving the blog.")
+        };
     }
 
     /// <summary>
@@ -355,10 +174,12 @@ public sealed class AdminBlogController(
 
         try
         {
-            var baseName = !string.IsNullOrWhiteSpace(fileName) ? fileName : Guid.NewGuid().ToString();
-            var uploadResult = await UploadBlogFileAsync(file, baseName, cancellationToken);
-            var mediaUrl = BuildBlogMediaUrl(uploadResult.BlobName);
-            var response = new MediaUploadResponse(uploadResult.BlobName, mediaUrl);
+            await using var stream = file.OpenReadStream();
+            var response = await adminBlogService.UploadBlogImageAsync(
+                new AdminMediaUploadInput(stream, file.FileName, fileName),
+                GetBaseUrl(),
+                cancellationToken);
+
             return OkEnvelope(response);
         }
         catch (Exception ex)
@@ -382,105 +203,18 @@ public sealed class AdminBlogController(
         [FromBody] CreateBlogRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Title))
-        {
-            return BadRequestProblem("Invalid title", "Blog title cannot be empty.");
-        }
-
         try
         {
-            // Generate slug
-            var slug = !string.IsNullOrWhiteSpace(request.Slug) 
-                ? GenerateSlug(request.Slug) 
-                : GenerateSlug(request.Title);
-            
-            // Check if slug already exists
-            var slugExists = await dbContext.Blogs
-                .AnyAsync(b => b.Slug == slug, cancellationToken);
-            
-            if (slugExists)
+            var result = await adminBlogService.CreateBlogAsync(request, cancellationToken);
+            if (result.Status != AdminBlogMutationStatus.Success)
             {
-                slug = $"{slug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+                return MapBlogMutationProblem(result);
             }
 
-            var blogId = request.Id ?? Guid.NewGuid();
-            var now = DateTimeOffset.UtcNow;
-
-            var blog = new Blog
-            {
-                Id = blogId,
-                Title = request.Title,
-                Slug = slug,
-                Excerpt = request.Excerpt,
-                Content = request.Content,
-                FeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage),
-                CategoryId = request.CategoryId,
-                IsPublished = request.IsPublished,
-                PublishedAt = request.IsPublished ? now : null,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
-            dbContext.Blogs.Add(blog);
-
-            // Add Authors
-            if (request.AuthorIds != null && request.AuthorIds.Count > 0)
-            {
-                // Verify users exist
-                var existingUserIds = await dbContext.Users
-                    .Where(u => request.AuthorIds.Contains(u.Id))
-                    .Select(u => u.Id)
-                    .ToListAsync(cancellationToken);
-
-                dbContext.BlogAuthors.AddRange(
-                    request.AuthorIds
-                        .Where(existingUserIds.Contains)
-                        .Select((userId, i) => new BlogAuthor
-                        {
-                            Id = Guid.NewGuid(),
-                            BlogId = blogId,
-                            UserId = userId,
-                            Order = i,
-                            CreatedAt = now
-                        }));
-            }
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            // Create Content entry for the blog
-            var contentSlug = slug;
-            var existingContentSlug = await dbContext.Contents
-                .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
-            
-            if (existingContentSlug)
-            {
-                contentSlug = $"{slug}-{blog.Id.ToString().Substring(0, 8)}";
-            }
-
-            var content = new Content
-            {
-                Id = Guid.NewGuid(),
-                ContentType = ContentType.Blog,
-                ContentRefId = blog.Id,
-                Title = blog.Title,
-                Slug = contentSlug,
-                IsPublished = blog.IsPublished,
-                PublishedAt = blog.PublishedAt,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
-            dbContext.Contents.Add(content);
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            // Fetch created blog for response to ensure we have all includes
-            var createdBlog = await GetBlogWithDetails(blogId, cancellationToken);
-            if (createdBlog == null) return  Problem(StatusCodes.Status500InternalServerError, "Creation failed", "Could not retrieve created blog.");
-
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
-
-            return Created($"/admin/blog/{blog.Id}", new ApiResponse<BlogDetailResponse>(createdBlog));
+            await InvalidateBlogCachesAsync(cancellationToken);
+            return Created(
+                $"/admin/blog/{result.Blog!.Id}",
+                new ApiResponse<BlogDetailResponse>(result.Blog));
         }
         catch (Exception ex)
         {
@@ -503,220 +237,22 @@ public sealed class AdminBlogController(
         [FromBody] UpdateBlogRequest request,
         CancellationToken cancellationToken = default)
     {
-        var blog = await dbContext.Blogs
-            .Include(b => b.Authors)
-            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
-
-        if (blog is null)
-        {
-            return NotFoundProblem("Blog not found", $"No blog found with ID '{id}'.");
-        }
-
-        if (!CanCurrentUserEditBlog(blog.Authors.Select(a => a.UserId)))
-        {
-            return ForbiddenProblem("You are not authorized to edit this blog.");
-        }
-
         try
         {
-            // Handle Slug Update
-            var targetSlug = !string.IsNullOrWhiteSpace(request.Slug)
-                ? GenerateSlug(request.Slug)
-                : (request.Title != blog.Title ? GenerateSlug(request.Title) : blog.Slug);
+            var result = await adminBlogService.UpdateBlogAsync(
+                id,
+                request,
+                TryGetCurrentUserId(),
+                IsPrivilegedUser(),
+                cancellationToken);
 
-            if (targetSlug != blog.Slug)
+            if (result.Status != AdminBlogMutationStatus.Success)
             {
-                 var slugExists = await dbContext.Blogs
-                    .AnyAsync(b => b.Slug == targetSlug && b.Id != id, cancellationToken);
-                
-                if (!slugExists)
-                {
-                    blog.Slug = targetSlug;
-                }
-                else 
-                {
-                     // If slug taken by another blog, append random
-                     blog.Slug = $"{targetSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
-                }
-            }
-            
-            blog.Title = request.Title;
-
-            var normalizedFeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage);
-            var existingFeaturedBlobName = ExtractBlogBlobNameFromMediaUrl(blog.FeaturedImage);
-            var incomingFeaturedBlobName = ExtractBlogBlobNameFromMediaUrl(normalizedFeaturedImage);
-
-            // Delete previous featured image only when blob identity actually changes.
-            if (!string.IsNullOrWhiteSpace(existingFeaturedBlobName) &&
-                !string.Equals(existingFeaturedBlobName, incomingFeaturedBlobName, StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    await blobStorageService.DeleteBlobAsync(existingFeaturedBlobName, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to delete old image blob {BlobUrl}", blog.FeaturedImage);
-                    // Swallow exception so we still update the blog record
-                }
+                return MapBlogMutationProblem(result);
             }
 
-            blog.Excerpt = request.Excerpt;
-            blog.Content = request.Content;
-            blog.FeaturedImage = normalizedFeaturedImage;
-            blog.CategoryId = request.CategoryId;
-            
-            // Handle Publishing logic
-            if (request.IsPublished && !blog.IsPublished)
-            {
-                blog.PublishedAt = DateTimeOffset.UtcNow; // Set published date if newly published
-            }
-            blog.IsPublished = request.IsPublished;
-            
-            blog.UpdatedAt = DateTimeOffset.UtcNow;
-
-            // Update associated Content entity
-            var content = await dbContext.Contents
-                .FirstOrDefaultAsync(c => c.ContentType == ContentType.Blog && c.ContentRefId == id, cancellationToken);
-            
-            if (content != null)
-            {
-                content.Title = blog.Title;
-                
-                // Update slug if blog slug changed (which happens if title changed)
-                // We should try to keep them in sync, but handle uniqueness
-                if (content.Slug != blog.Slug)
-                {
-                    var contentSlug = blog.Slug;
-                    var existingContentSlug = await dbContext.Contents
-                        .AnyAsync(c => c.Slug == contentSlug && c.Id != content.Id, cancellationToken);
-                    
-                    if (existingContentSlug)
-                    {
-                        contentSlug = $"{blog.Slug}-{content.Id.ToString().Substring(0, 8)}";
-                    }
-                    content.Slug = contentSlug;
-                }
-
-                content.IsPublished = blog.IsPublished;
-                content.PublishedAt = blog.PublishedAt;
-                content.UpdatedAt = DateTimeOffset.UtcNow;
-            }
-            else
-            {
-                // If content entry missing for some reason, create it
-                 var contentSlug = blog.Slug;
-                var existingContentSlug = await dbContext.Contents
-                    .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
-                
-                if (existingContentSlug)
-                {
-                    contentSlug = $"{blog.Slug}-{blog.Id.ToString().Substring(0, 8)}";
-                }
-
-                var newContent = new Content
-                {
-                    Id = Guid.NewGuid(),
-                    ContentType = ContentType.Blog,
-                    ContentRefId = blog.Id,
-                    Title = blog.Title,
-                    Slug = contentSlug,
-                    IsPublished = blog.IsPublished,
-                    PublishedAt = blog.PublishedAt,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                };
-                dbContext.Contents.Add(newContent);
-            }
-
-            // Update Authors
-            // Only privileged users can modify author assignments.
-            // Assigned authors can still edit content/metadata but cannot reassign authors.
-            var requestAuthorIds = IsPrivilegedUser(User)
-                ? request.AuthorIds ?? new List<Guid>()
-                : blog.Authors.Select(a => a.UserId).ToList();
-
-            // Remove existing not in request
-            var authorsToRemove = blog.Authors.Where(a => !requestAuthorIds.Contains(a.UserId)).ToList();
-            dbContext.BlogAuthors.RemoveRange(authorsToRemove);
-
-            // Add new authors
-            var existingAuthorUserIds = blog.Authors.Select(a => a.UserId).ToList();
-            var newAuthorUserIds = requestAuthorIds.Where(uid => !existingAuthorUserIds.Contains(uid)).ToList();
-
-            if (newAuthorUserIds.Count > 0)
-            {
-                // Verify users exist
-                 var existingUsers = await dbContext.Users
-                    .Where(u => newAuthorUserIds.Contains(u.Id))
-                    .Select(u => u.Id)
-                    .ToListAsync(cancellationToken);
-
-                 int currentMaxOrder = blog.Authors.Any() ? blog.Authors.Max(a => a.Order) + 1 : 0;
-                 dbContext.BlogAuthors.AddRange(
-                     requestAuthorIds
-                         .Where(uid => existingUsers.Contains(uid) && !existingAuthorUserIds.Contains(uid))
-                         .Select((userId, i) => new BlogAuthor
-                         {
-                             Id = Guid.NewGuid(),
-                             BlogId = id,
-                             UserId = userId,
-                             Order = currentMaxOrder + i,
-                             CreatedAt = DateTimeOffset.UtcNow
-                         }));
-            }
-            
-            // If strictly respecting order in request is required:
-            // This simple implementation doesn't strictly reorder existing authors based on the request list order 
-            // unless we rewrite the whole collection. For MVP, adding/removing is sufficient.
-
-            // Handle Orphaned Content Images (Cleanup)
-            try
-            {
-                // 1. Get all blobs associated with this blog's content (legacy and foldered naming)
-                var legacyPrefix = $"blog-{id}-";
-                var folderPrefix = $"blog/blog-{id}-";
-                var storedBlobs = (await blobStorageService.ListBlobsByPrefixAsync(folderPrefix, cancellationToken))
-                    .Concat(await blobStorageService.ListBlobsByPrefixAsync(legacyPrefix, cancellationToken))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                
-                if (storedBlobs.Any())
-                {
-                    // 2. Identify images currently used in the new content
-                    var usedBlobNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                    foreach (var blobName in ExtractBlobNamesFromContent(request.Content))
-                    {
-                        usedBlobNames.Add(blobName);
-                    }
-
-                    // 3. Find orphans (Stored but not Used)
-                    var orphans = storedBlobs.Where(b => !usedBlobNames.Contains(b)).ToList();
-
-                    // 4. Delete orphans
-                    foreach (var orphan in orphans)
-                    {
-                        await blobStorageService.DeleteBlobAsync(orphan, cancellationToken);
-                        logger.LogInformation("Deleted orphaned content image {BlobName} for blog {BlogId}", orphan, id);
-                    }
-                }
-            }
-            catch (Exception ex) 
-            {
-                logger.LogError(ex, "Failed to clean up orphaned images for blog {BlogId}", id);
-                // Non-critical, swallow exception to ensure blog update persists
-            }
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            var updatedBlog = await GetBlogWithDetails(id, cancellationToken);
-            if (updatedBlog == null) return Problem(StatusCodes.Status500InternalServerError, "Update failed", "Could not retrieve updated blog.");
-
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
-
-            return OkEnvelope(updatedBlog);
+            await InvalidateBlogCachesAsync(cancellationToken);
+            return OkEnvelope(result.Blog!);
         }
         catch (Exception ex)
         {
@@ -737,52 +273,15 @@ public sealed class AdminBlogController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteBlog(Guid id, CancellationToken cancellationToken = default)
     {
-        var blog = await dbContext.Blogs
-            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
-
-        if (blog is null)
-        {
-            return NotFoundProblem("Blog not found", $"No blog found with ID '{id}'.");
-        }
-
         try
         {
-            if (!string.IsNullOrWhiteSpace(blog.FeaturedImage))
+            var result = await adminBlogService.DeleteBlogAsync(id, cancellationToken);
+            if (result.Status == AdminBlogDeleteStatus.BlogNotFound)
             {
-                 try 
-                {
-                    var featuredBlobName = ExtractBlogBlobNameFromMediaUrl(blog.FeaturedImage);
-                    if (!string.IsNullOrWhiteSpace(featuredBlobName))
-                    {
-                        await blobStorageService.DeleteBlobAsync(featuredBlobName, cancellationToken);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to delete image blob {BlobUrl}", blog.FeaturedImage);
-                }
+                return NotFoundProblem("Blog not found", result.ErrorMessage);
             }
 
-            // Delete associated Content entity
-            var content = await dbContext.Contents
-                .FirstOrDefaultAsync(c => c.ContentType == ContentType.Blog && c.ContentRefId == id, cancellationToken);
-            
-            if (content != null)
-            {
-                // Delete all comments associated with this content
-                await dbContext.Comments
-                    .Where(c => c.ContentId == content.Id)
-                    .ExecuteDeleteAsync(cancellationToken);
-
-                dbContext.Contents.Remove(content);
-            }
-
-            dbContext.Blogs.Remove(blog);
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
-
+            await InvalidateBlogCachesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
@@ -795,205 +294,60 @@ public sealed class AdminBlogController(
         }
     }
 
-    private static bool IsPrivilegedUser(ClaimsPrincipal user)
+    private IActionResult MapCategoryProblem(
+        AdminBlogCategoryMutationResult result,
+        string fallbackTitle)
     {
-        return user.IsInRole("admin") || user.IsInRole("mod");
+        return result.Status switch
+        {
+            AdminBlogCategoryMutationStatus.InvalidName => BadRequestProblem("Invalid category name", result.ErrorMessage),
+            AdminBlogCategoryMutationStatus.CategoryNotFound => NotFoundProblem("Category not found", result.ErrorMessage),
+            _ => Problem(
+                StatusCodes.Status500InternalServerError,
+                fallbackTitle,
+                "An unexpected error occurred while processing the category.")
+        };
     }
 
-    private bool CanCurrentUserEditBlog(IEnumerable<Guid> authorIds)
+    private IActionResult MapBlogMutationProblem(AdminBlogMutationResult result)
     {
-        if (IsPrivilegedUser(User))
+        return result.Status switch
         {
-            return true;
-        }
-
-        if (!Guid.TryParse(UserId, out var currentUserId))
-        {
-            return false;
-        }
-
-        var authorIdSet = authorIds.Distinct().ToList();
-        return authorIdSet.Contains(currentUserId);
+            AdminBlogMutationStatus.InvalidTitle => BadRequestProblem("Invalid title", result.ErrorMessage),
+            AdminBlogMutationStatus.BlogNotFound => NotFoundProblem("Blog not found", result.ErrorMessage),
+            AdminBlogMutationStatus.Forbidden => ForbiddenProblem(result.ErrorMessage ?? "You are not authorized to edit this blog."),
+            _ => Problem(
+                StatusCodes.Status500InternalServerError,
+                "Blog operation failed",
+                "An unexpected error occurred while processing the blog.")
+        };
     }
 
-    // Helper to get response DTO
-    private async Task<BlogDetailResponse?> GetBlogWithDetails(Guid blogId, CancellationToken cancellationToken)
+    private async Task InvalidateCategoryCachesAsync(CancellationToken cancellationToken)
     {
-        var response = await dbContext.Blogs
-            .AsNoTracking()
-            .Where(b => b.Id == blogId)
-            .Select(b => new BlogDetailResponse(
-                b.Id,
-                dbContext.Contents.FirstOrDefault(c => c.ContentRefId == b.Id && c.ContentType == ContentType.Blog)!.Id,
-                b.Title,
-                b.Slug,
-                b.Excerpt,
-                b.Content,
-                b.FeaturedImage,
-                b.Category == null ? null : new BlogCategoryResponse(
-                    b.Category.Id,
-                    b.Category.Name,
-                    b.Category.Slug,
-                    b.Category.Description,
-                    b.Category.CreatedAt,
-                    b.Category.UpdatedAt
-                ),
-                b.Authors.OrderBy(a => a.Order).Select(a => new BlogAuthorResponse(
-                    a.UserId,
-                    a.User.Username,
-                    a.User.DisplayName,
-                    a.Order
-                )).ToList(),
-                b.IsPublished,
-                b.PublishedAt,
-                b.CreatedAt,
-                b.UpdatedAt,
-                0,
-                false,
-                0
-            ))
-            .FirstOrDefaultAsync(cancellationToken);
+        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogCategory, cancellationToken);
+        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
+    }
 
-        return response is null
-            ? null
-            : response with { FeaturedImage = NormalizeBlogMediaUrl(response.FeaturedImage) };
+    private async Task InvalidateBlogCachesAsync(CancellationToken cancellationToken)
+    {
+        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
+    }
+
+    private Guid? TryGetCurrentUserId()
+    {
+        return Guid.TryParse(UserId, out var currentUserId) ? currentUserId : null;
+    }
+
+    private bool IsPrivilegedUser()
+    {
+        return User.IsInRole("admin") || User.IsInRole("mod");
     }
 
     private string GetBaseUrl()
     {
-        var request = httpContextAccessor.HttpContext?.Request;
-        if (request == null) return "http://localhost:5283";
-        return $"{request.Scheme}://{request.Host}";
-    }
-
-    private string BuildBlogMediaUrl(string blobName)
-    {
-        var publicBlobName = StripBlogPrefix(blobName);
-        return $"{GetBaseUrl()}{MediaPathPrefix}{publicBlobName}";
-    }
-
-    private async Task<BlobUploadResult> UploadBlogFileAsync(IFormFile file, string? blobName, CancellationToken cancellationToken)
-    {
-        await using var stream = file.OpenReadStream();
-        await using var processedStream = await imageProcessingService.ProcessImageAsync(stream, cancellationToken);
-
-        return await blobStorageService.UploadImageAsync(
-            processedStream,
-            file.FileName,
-            "image/webp",
-            string.IsNullOrWhiteSpace(blobName) ? null : EnsureBlogBlobName(blobName),
-            cancellationToken);
-    }
-
-    private static IEnumerable<string> ExtractBlobNamesFromContent(string content)
-    {
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            yield break;
-        }
-
-        // Parse /media/... links from markdown/html and map to storage blob names.
-        var matches = Regex.Matches(content, @"/media/([^\s\)""'<>]+)", RegexOptions.IgnoreCase);
-        foreach (Match match in matches)
-        {
-            var candidate = match.Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(candidate))
-            {
-                continue;
-            }
-
-            var trimmed = candidate.Split('?', '#')[0].Trim();
-            if (string.IsNullOrWhiteSpace(trimmed))
-            {
-                continue;
-            }
-
-            yield return EnsureBlogBlobName(trimmed);
-            yield return StripBlogPrefix(trimmed);
-        }
-    }
-
-    private static string EnsureBlogBlobName(string blobName)
-    {
-        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
-        return normalized.StartsWith(BlogBlobPrefix, StringComparison.OrdinalIgnoreCase)
-            ? normalized
-            : $"{BlogBlobPrefix}{normalized}";
-    }
-
-    private static string StripBlogPrefix(string blobName)
-    {
-        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
-        return normalized.StartsWith(BlogBlobPrefix, StringComparison.OrdinalIgnoreCase)
-            ? normalized[BlogBlobPrefix.Length..]
-            : normalized;
-    }
-
-    private static string? NormalizeBlogMediaUrl(string? mediaUrl)
-    {
-        if (string.IsNullOrWhiteSpace(mediaUrl))
-        {
-            return mediaUrl;
-        }
-
-        var trimmed = mediaUrl.Trim();
-        if (!MediaUrlHelper.TryExtractMediaBlobName(trimmed, out var blobName))
-        {
-            return trimmed;
-        }
-
-        var publicBlobName = StripBlogPrefix(blobName);
-
-        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
-        {
-            return $"{absolute.Scheme}://{absolute.Authority}{MediaPathPrefix}{publicBlobName}";
-        }
-
-        return $"{MediaPathPrefix}{publicBlobName}";
-    }
-
-    private static string? ExtractBlogBlobNameFromMediaUrl(string? mediaUrl)
-    {
-        if (string.IsNullOrWhiteSpace(mediaUrl))
-        {
-            return null;
-        }
-
-        if (!MediaUrlHelper.TryExtractMediaBlobName(mediaUrl.Trim(), out var blobName))
-        {
-            return null;
-        }
-
-        return EnsureBlogBlobName(blobName);
-    }
-
-    /// <summary>
-    /// Generates a URL-friendly slug from a title
-    /// </summary>
-    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
-
-    private static string GenerateSlug(string title)
-    {
-        var slug = title.ToLowerInvariant();
-        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "", RegexOptions.None, RegexTimeout);
-        slug = Regex.Replace(slug, @"\s+", "-", RegexOptions.None, RegexTimeout);
-        slug = Regex.Replace(slug, @"-+", "-", RegexOptions.None, RegexTimeout);
-        slug = slug.Trim('-');
-        return slug;
-    }
-
-    private async Task<string> GenerateUniqueCategorySlug(string name, CancellationToken cancellationToken)
-    {
-        var baseSlug = GenerateSlug(name);
-        var slug = baseSlug;
-        var counter = 1;
-
-        while (await dbContext.BlogCategories.AnyAsync(c => c.Slug == slug, cancellationToken))
-        {
-            slug = $"{baseSlug}-{counter}";
-            counter++;
-        }
-
-        return slug;
+        return $"{Request.Scheme}://{Request.Host}";
     }
 }

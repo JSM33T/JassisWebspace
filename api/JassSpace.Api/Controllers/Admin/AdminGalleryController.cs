@@ -1,17 +1,11 @@
 using JassSpace.Api.Configuration;
-using JassSpace.Api.Extensions;
 using JassSpace.Api.Services;
 using JassSpace.Contracts;
+using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
-using JassSpace.Data;
-using JassSpace.Entities;
-using JassSpace.Entities.Enums;
-using JassSpace.Infra;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 
 namespace JassSpace.Api.Controllers;
 
@@ -21,16 +15,11 @@ namespace JassSpace.Api.Controllers;
 [Route("admin/gallery")]
 [Authorize(Roles = "admin")]
 public sealed class AdminGalleryController(
-    JassSpaceDbContext dbContext,
-    IAzureBlobStorageService blobStorageService,
-    IImageProcessingService imageProcessingService,
+    IAdminGalleryService adminGalleryService,
     ILogger<AdminGalleryController> logger,
-    IHttpContextAccessor httpContextAccessor,
     IHttpResponseCacheStore responseCacheStore)
     : BaseApiController
 {
-    private const string GalleryBlobPrefix = "gallery/";
-
     [HttpGet("authors")]
     [ProducesResponseType(typeof(ApiResponse<List<GalleryAuthorResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuthors(
@@ -38,32 +27,7 @@ public sealed class AdminGalleryController(
         [FromQuery] int take = 100,
         CancellationToken cancellationToken = default)
     {
-        take = Math.Clamp(take, 1, 200);
-        var query = dbContext.Users
-            .AsNoTracking()
-            .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var pattern = $"%{search.Trim()}%";
-            query = query.Where(u =>
-                EF.Functions.ILike(u.Username, pattern) ||
-                EF.Functions.ILike(u.DisplayName ?? string.Empty, pattern) ||
-                EF.Functions.ILike(u.FirstName ?? string.Empty, pattern) ||
-                EF.Functions.ILike(u.LastName ?? string.Empty, pattern));
-        }
-
-        var authors = await query
-            .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
-            .Take(take)
-            .Select(u => new GalleryAuthorResponse(
-                u.Id,
-                u.Username,
-                u.DisplayName ?? $"{u.FirstName} {u.LastName}".Trim(),
-                0
-            ))
-            .ToListAsync(cancellationToken);
-
+        var authors = await adminGalleryService.GetAuthorsAsync(search, take, cancellationToken);
         return OkEnvelope(authors);
     }
 
@@ -73,50 +37,8 @@ public sealed class AdminGalleryController(
         [FromQuery] bool? isActive = null,
         CancellationToken cancellationToken = default)
     {
-        var query = dbContext.Albums
-            .AsNoTracking()
-            .AsQueryable();
-
-        if (isActive.HasValue)
-        {
-            query = query.Where(a => a.IsActive == isActive.Value);
-        }
-
-        var albums = await query
-            .OrderBy(a => a.SortOrder)
-            .ThenByDescending(a => a.UpdatedAt ?? a.CreatedAt)
-            .Select(a => new AlbumResponse(
-                a.Id,
-                a.Name,
-                a.Slug,
-                a.Cover,
-                a.Description,
-                a.CreatedAt,
-                a.UpdatedAt,
-                a.Images.Count,
-                a.Authors
-                    .OrderBy(ga => ga.Order)
-                    .Select(ga => new GalleryAuthorResponse(
-                        ga.UserId,
-                        ga.User.Username,
-                        ga.User.DisplayName,
-                        ga.Order
-                    ))
-                    .ToList(),
-                dbContext.Contents
-                    .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == a.Id)
-                    .Select(c => (Guid?)c.Id)
-                    .FirstOrDefault(),
-                a.IsActive,
-                a.SortOrder
-            ))
-            .ToListAsync(cancellationToken);
-
-        var normalized = albums
-            .Select(a => a with { Cover = NormalizeGalleryMediaUrl(a.Cover) })
-            .ToList();
-
-        return OkEnvelope(normalized);
+        var albums = await adminGalleryService.GetAlbumsAsync(isActive, cancellationToken);
+        return OkEnvelope(albums);
     }
 
     [HttpGet("albums/{albumId:guid}")]
@@ -124,80 +46,10 @@ public sealed class AdminGalleryController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAlbum(Guid albumId, CancellationToken cancellationToken = default)
     {
-        var album = await GetAlbumWithDetails(albumId, cancellationToken);
-
-        if (album is null)
-        {
-            return NotFoundProblem("Album not found", $"No album found with ID '{albumId}'.");
-        }
-
-        return OkEnvelope(album);
-    }
-
-    private string GetBaseUrl()
-    {
-        var request = httpContextAccessor.HttpContext?.Request;
-        if (request == null) return "http://localhost:5283";
-        return $"{request.Scheme}://{request.Host}";
-    }
-
-    private string GetFullMediaUrl(string blobName)
-    {
-        var publicBlobName = StripGalleryPrefix(blobName);
-        return $"{GetBaseUrl()}/media/{publicBlobName}";
-    }
-
-    private async Task<BlobUploadResult> UploadFileAsync(IFormFile file, string? blobName, CancellationToken cancellationToken)
-    {
-        await using var stream = file.OpenReadStream();
-        
-        // Process the image (convert to WebP and scale if needed)
-        await using var processedStream = await imageProcessingService.ProcessImageAsync(stream, cancellationToken);
-        
-        return await blobStorageService.UploadImageAsync(
-            processedStream,
-            file.FileName,
-            "image/webp", // Force WebP content type
-            string.IsNullOrWhiteSpace(blobName) ? null : EnsureGalleryBlobName(blobName),
-            cancellationToken);
-    }
-
-    private async Task<int> GetNextImageOrderAsync(Guid albumId, CancellationToken cancellationToken)
-    {
-        var maxOrder = await dbContext.Images
-            .Where(i => i.AlbumId == albumId)
-            .Select(i => (int?)i.Order)
-            .MaxAsync(cancellationToken);
-
-        return (maxOrder ?? 0) + 1;
-    }
-
-    private async Task<Image> CreateAlbumImageAsync(
-        Guid albumId,
-        IFormFile imageFile,
-        string? title,
-        string? description,
-        int order,
-        CancellationToken cancellationToken)
-    {
-        var imageUpload = await UploadFileAsync(
-            imageFile,
-            $"gallery/images/{albumId}-{Guid.NewGuid()}",
-            cancellationToken);
-
-        var image = new Image
-        {
-            Id = Guid.NewGuid(),
-            AlbumId = albumId,
-            Url = GetFullMediaUrl(imageUpload.BlobName),
-            Title = title,
-            Description = description,
-            Order = order,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-
-        dbContext.Images.Add(image);
-        return image;
+        var result = await adminGalleryService.GetAlbumAsync(albumId, TryGetCurrentUserId(), cancellationToken);
+        return result.Status == AdminGalleryOperationStatus.AlbumNotFound
+            ? NotFoundProblem("Album not found", result.ErrorMessage)
+            : OkEnvelope(result.Album!);
     }
 
     /// <summary>
@@ -218,25 +70,12 @@ public sealed class AdminGalleryController(
 
         try
         {
-            // Use custom fileName if provided (e.g. Blog ID), otherwise random
-            // Note: UploadFileAsync forces WebP, so actual blob name will effectively be {fileName/guid} (no extension in blob name, but MIME type correct)
-            // or we can append it here if we want extension in blob name.
-            // AzureBlobStorageService doesn't append extension unless name is null.
-            // But browsers might need extension for some behavior? 
-            // The previous logic used just GUID string. Let's stick to consistent logic.
-            // If fileName is "123-abc", blob name is "123-abc".
-            
-            var baseName = !string.IsNullOrWhiteSpace(fileName) ? fileName : Guid.NewGuid().ToString();
-            
-            // Revert back: using just the base name.
-            // If the user wants to ensure overwrite by ID, they pass the ID.
-            
-            var uploadResult = await UploadFileAsync(file, baseName, cancellationToken);
-            
-            // Return the media controller URL instead of blob URL
-            var mediaUrl = GetFullMediaUrl(uploadResult.BlobName);
-            var response = new MediaUploadResponse(uploadResult.BlobName, mediaUrl);
-            
+            await using var stream = file.OpenReadStream();
+            var response = await adminGalleryService.UploadGalleryImageAsync(
+                new AdminMediaUploadInput(stream, file.FileName, fileName),
+                GetBaseUrl(),
+                cancellationToken);
+
             return OkEnvelope(response);
         }
         catch (Exception ex)
@@ -270,168 +109,37 @@ public sealed class AdminGalleryController(
         [FromForm] List<Guid>? authorIds,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return BadRequestProblem("Invalid album name", "Album name cannot be empty.");
-        }
-
+        var openedStreams = new List<Stream>();
         try
         {
-            // Generate slug
-            var targetSlug = !string.IsNullOrWhiteSpace(slug) 
-                ? GenerateSlug(slug) 
-                : GenerateSlug(name);
-            
-            // Check if slug already exists
-            var slugExists = await dbContext.Albums
-                .AnyAsync(a => a.Slug == targetSlug, cancellationToken);
-            
-            if (slugExists)
+            var coverInput = OpenMediaInput(coverImage, null, openedStreams);
+            var imageInputs = OpenGalleryImageInputs(
+                imageFiles,
+                imageTitles,
+                imageDescriptions,
+                imageOrders,
+                openedStreams);
+
+            var result = await adminGalleryService.CreateAlbumWithImagesAsync(
+                new AdminGalleryCreateAlbumWithImagesRequest(
+                    name,
+                    slug,
+                    description,
+                    isActive,
+                    sortOrder,
+                    authorIds),
+                coverInput,
+                imageInputs,
+                GetBaseUrl(),
+                cancellationToken);
+
+            if (result.Status != AdminGalleryOperationStatus.Success)
             {
-                targetSlug = $"{targetSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+                return MapGalleryProblem(result.Status, result.ErrorMessage);
             }
 
-            var albumId = Guid.NewGuid();
-
-            // Upload cover image if provided
-            string? coverUrl = null;
-            if (coverImage is not null && coverImage.Length > 0)
-            {
-                // Use ID for immutable blob path
-                var coverUpload = await UploadFileAsync(coverImage, $"gallery/covers/{albumId}", cancellationToken);
-                coverUrl = GetFullMediaUrl(coverUpload.BlobName);
-            }
-
-            // Create the album
-            var album = new Album
-            {
-                Id = albumId,
-                Name = name,
-                Slug = targetSlug,
-                Cover = coverUrl,
-                Description = description,
-                IsActive = isActive ?? true,
-                SortOrder = sortOrder ?? await GetNextAlbumSortOrder(cancellationToken),
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-
-            dbContext.Albums.Add(album);
-
-            var authorResponses = new List<GalleryAuthorResponse>();
-            if (authorIds is { Count: > 0 })
-            {
-                var validAuthors = await dbContext.Users
-                    .Where(u => authorIds.Contains(u.Id))
-                    .Select(u => new
-                    {
-                        u.Id,
-                        u.Username,
-                        u.DisplayName
-                    })
-                    .ToListAsync(cancellationToken);
-
-                for (int i = 0; i < authorIds.Count; i++)
-                {
-                    var authorId = authorIds[i];
-                    var matched = validAuthors.FirstOrDefault(u => u.Id == authorId);
-                    if (matched is null)
-                    {
-                        continue;
-                    }
-
-                    dbContext.GalleryAuthors.Add(new GalleryAuthor
-                    {
-                        Id = Guid.NewGuid(),
-                        AlbumId = album.Id,
-                        UserId = authorId,
-                        Order = i,
-                        CreatedAt = DateTimeOffset.UtcNow
-                    });
-
-                    authorResponses.Add(new GalleryAuthorResponse(
-                        matched.Id,
-                        matched.Username,
-                        matched.DisplayName,
-                        i
-                    ));
-                }
-            }
-
-            // Create Content entry
-            var contentSlug = targetSlug;
-            var existingContentSlug = await dbContext.Contents
-                .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
-            
-            if (existingContentSlug)
-            {
-                contentSlug = $"{targetSlug}-{album.Id.ToString().Substring(0, 8)}";
-            }
-
-            var content = new Content
-            {
-                Id = Guid.NewGuid(),
-                ContentType = ContentType.Album,
-                ContentRefId = album.Id,
-                Title = name,
-                Slug = contentSlug,
-                IsPublished = true,
-                PublishedAt = DateTimeOffset.UtcNow,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-
-            dbContext.Contents.Add(content);
-
-            // Upload and create images
-            var images = new List<Image>();
-            if (imageFiles is not null && imageFiles.Count > 0)
-            {
-                for (int i = 0; i < imageFiles.Count; i++)
-                {
-                    var imageFile = imageFiles[i];
-                    if (imageFile.Length == 0) continue;
-
-                    var title = imageTitles != null && i < imageTitles.Count ? imageTitles[i] : null;
-                    var desc = imageDescriptions != null && i < imageDescriptions.Count ? imageDescriptions[i] : null;
-                    var order = imageOrders != null && i < imageOrders.Count ? imageOrders[i] : i + 1;
-
-                    var image = await CreateAlbumImageAsync(album.Id, imageFile, title, desc, order, cancellationToken);
-                    images.Add(image);
-                }
-            }
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
-
-            // Return the created album with images
-            var response = new AlbumWithImagesResponse(
-                album.Id,
-                album.Name,
-                album.Slug,
-                album.Cover,
-                album.Description,
-                album.CreatedAt,
-                album.UpdatedAt,
-                images.Select(i => new ImageResponse(
-                    i.Id,
-                    i.AlbumId,
-                    i.Url,
-                    i.Title,
-                    i.Description,
-                    i.Order,
-                    i.CreatedAt
-                )).ToList(),
-                authorResponses,
-                content.Id,
-                0,
-                false,
-                0,
-                album.IsActive,
-                album.SortOrder
-            );
-
-            return OkEnvelope(response);
+            await InvalidateGalleryCacheAsync(cancellationToken);
+            return OkEnvelope(result.Album!);
         }
         catch (Exception ex)
         {
@@ -440,6 +148,10 @@ public sealed class AdminGalleryController(
                 StatusCodes.Status500InternalServerError,
                 "Failed to create album",
                 "An unexpected error occurred while creating the album.");
+        }
+        finally
+        {
+            await DisposeStreamsAsync(openedStreams);
         }
     }
 
@@ -459,14 +171,6 @@ public sealed class AdminGalleryController(
         [FromForm] int? order,
         CancellationToken cancellationToken = default)
     {
-        var albumExists = await dbContext.Albums
-            .AnyAsync(a => a.Id == albumId, cancellationToken);
-
-        if (!albumExists)
-        {
-            return NotFoundProblem("Album not found", $"No album found with ID '{albumId}'.");
-        }
-
         if (imageFile is null || imageFile.Length == 0)
         {
             return BadRequestProblem("No image provided", "Provide a non-empty image file.");
@@ -474,23 +178,20 @@ public sealed class AdminGalleryController(
 
         try
         {
-            var resolvedOrder = order ?? await GetNextImageOrderAsync(albumId, cancellationToken);
-            var image = await CreateAlbumImageAsync(albumId, imageFile, title, description, resolvedOrder, cancellationToken);
+            await using var stream = imageFile.OpenReadStream();
+            var result = await adminGalleryService.AddImageToAlbumAsync(
+                albumId,
+                new AdminGalleryImageUploadInput(stream, imageFile.FileName, title, description, order),
+                GetBaseUrl(),
+                cancellationToken);
 
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
+            if (result.Status != AdminGalleryOperationStatus.Success)
+            {
+                return MapGalleryProblem(result.Status, result.ErrorMessage);
+            }
 
-            var response = new ImageResponse(
-                image.Id,
-                image.AlbumId,
-                image.Url,
-                image.Title,
-                image.Description,
-                image.Order,
-                image.CreatedAt
-            );
-
-            return OkEnvelope(response);
+            await InvalidateGalleryCacheAsync(cancellationToken);
+            return OkEnvelope(result.Image!);
         }
         catch (Exception ex)
         {
@@ -517,51 +218,34 @@ public sealed class AdminGalleryController(
         [FromForm] List<int>? imageOrders,
         CancellationToken cancellationToken = default)
     {
-        // Check if album exists
-        var albumExists = await dbContext.Albums
-            .AnyAsync(a => a.Id == albumId, cancellationToken);
-
-        if (!albumExists)
-        {
-            return NotFoundProblem("Album not found", $"No album found with ID '{albumId}'.");
-        }
-
         if (imageFiles is null || imageFiles.Count == 0)
         {
             return BadRequestProblem("No images provided", "Provide at least one image file.");
         }
 
+        var openedStreams = new List<Stream>();
         try
         {
-            var images = new List<Image>();
+            var imageInputs = OpenGalleryImageInputs(
+                imageFiles,
+                imageTitles,
+                imageDescriptions,
+                imageOrders,
+                openedStreams);
 
-            for (int i = 0; i < imageFiles.Count; i++)
+            var result = await adminGalleryService.AddImagesToAlbumAsync(
+                albumId,
+                imageInputs,
+                GetBaseUrl(),
+                cancellationToken);
+
+            if (result.Status != AdminGalleryOperationStatus.Success)
             {
-                var imageFile = imageFiles[i];
-                if (imageFile.Length == 0) continue;
-
-                var title = imageTitles != null && i < imageTitles.Count ? imageTitles[i] : null;
-                var desc = imageDescriptions != null && i < imageDescriptions.Count ? imageDescriptions[i] : null;
-                var order = imageOrders != null && i < imageOrders.Count ? imageOrders[i] : i + 1;
-
-                var image = await CreateAlbumImageAsync(albumId, imageFile, title, desc, order, cancellationToken);
-                images.Add(image);
+                return MapGalleryProblem(result.Status, result.ErrorMessage);
             }
 
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
-
-            var response = images.Select(i => new ImageResponse(
-                i.Id,
-                i.AlbumId,
-                i.Url,
-                i.Title,
-                i.Description,
-                i.Order,
-                i.CreatedAt
-            )).ToList();
-
-            return OkEnvelope(response);
+            await InvalidateGalleryCacheAsync(cancellationToken);
+            return OkEnvelope(result.Images);
         }
         catch (Exception ex)
         {
@@ -570,6 +254,10 @@ public sealed class AdminGalleryController(
                 StatusCodes.Status500InternalServerError,
                 "Failed to add images",
                 "An unexpected error occurred while adding images to the album.");
+        }
+        finally
+        {
+            await DisposeStreamsAsync(openedStreams);
         }
     }
 
@@ -591,153 +279,31 @@ public sealed class AdminGalleryController(
         [FromForm] List<Guid>? authorIds,
         CancellationToken cancellationToken = default)
     {
-        var album = await dbContext.Albums
-            .Include(a => a.Authors)
-            .FirstOrDefaultAsync(a => a.Id == albumId, cancellationToken);
-
-        if (album is null)
-        {
-            return NotFoundProblem("Album not found", $"No album found with ID '{albumId}'.");
-        }
-
+        var openedStreams = new List<Stream>();
         try
         {
-            var originalName = album.Name;
+            var coverInput = OpenMediaInput(coverImage, null, openedStreams);
+            var result = await adminGalleryService.UpdateAlbumAsync(
+                albumId,
+                new AdminGalleryUpdateAlbumRequest(
+                    name,
+                    slug,
+                    description,
+                    createdAt,
+                    isActive,
+                    sortOrder,
+                    authorIds),
+                coverInput,
+                GetBaseUrl(),
+                cancellationToken);
 
-            // Update name and slug
-            if (!string.IsNullOrWhiteSpace(name))
+            if (result.Status != AdminGalleryOperationStatus.Success)
             {
-                if (name != album.Name)
-                {
-                    album.Name = name;
-                }
+                return MapGalleryProblem(result.Status, result.ErrorMessage);
             }
 
-            // Handle Slug Update
-            var targetSlug = !string.IsNullOrWhiteSpace(slug)
-                ? GenerateSlug(slug)
-                : (!string.IsNullOrWhiteSpace(name) && name != originalName ? GenerateSlug(name) : album.Slug);
-
-            if (targetSlug != album.Slug)
-            {
-                 var slugExists = await dbContext.Albums
-                    .AnyAsync(a => a.Slug == targetSlug && a.Id != albumId, cancellationToken);
-                
-                if (!slugExists)
-                {
-                    album.Slug = targetSlug;
-                }
-                else 
-                {
-                     // If slug taken by another album, append random
-                     album.Slug = $"{targetSlug}-{Guid.NewGuid().ToString().Substring(0, 8)}";
-                }
-            }
-
-            // Update description
-            if (description is not null)
-            {
-                album.Description = description;
-            }
-
-            if (createdAt.HasValue)
-            {
-                album.CreatedAt = createdAt.Value.ToUniversalTime();
-            }
-
-            // Upload new cover image if provided
-            if (coverImage is not null && coverImage.Length > 0)
-            {
-                var coverUpload = await UploadFileAsync(coverImage, $"gallery/covers/{albumId}", cancellationToken);
-                album.Cover = GetFullMediaUrl(coverUpload.BlobName);
-            }
-
-            // Update active status
-            if (isActive.HasValue)
-            {
-                album.IsActive = isActive.Value;
-            }
-
-            if (sortOrder.HasValue)
-            {
-                album.SortOrder = sortOrder.Value;
-            }
-
-            album.UpdatedAt = DateTimeOffset.UtcNow;
-
-            var requestAuthorIds = authorIds ?? new List<Guid>();
-            var authorsToRemove = album.Authors.Where(a => !requestAuthorIds.Contains(a.UserId)).ToList();
-            foreach (var author in authorsToRemove)
-            {
-                dbContext.GalleryAuthors.Remove(author);
-            }
-
-            var existingAuthorUserIds = album.Authors.Select(a => a.UserId).ToList();
-            var newAuthorUserIds = requestAuthorIds.Where(uid => !existingAuthorUserIds.Contains(uid)).ToList();
-            if (newAuthorUserIds.Count > 0)
-            {
-                var existingUsers = await dbContext.Users
-                    .Where(u => newAuthorUserIds.Contains(u.Id))
-                    .Select(u => u.Id)
-                    .ToListAsync(cancellationToken);
-
-                var orderByUserId = requestAuthorIds
-                    .Select((id, index) => new { id, index })
-                    .ToDictionary(x => x.id, x => x.index);
-
-                foreach (var userId in newAuthorUserIds)
-                {
-                    if (!existingUsers.Contains(userId))
-                    {
-                        continue;
-                    }
-
-                    dbContext.GalleryAuthors.Add(new GalleryAuthor
-                    {
-                        Id = Guid.NewGuid(),
-                        AlbumId = albumId,
-                        UserId = userId,
-                        Order = orderByUserId[userId],
-                        CreatedAt = DateTimeOffset.UtcNow
-                    });
-                }
-            }
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
-
-            var imageCount = await dbContext.Images
-                .CountAsync(i => i.AlbumId == albumId, cancellationToken);
-            var authors = await dbContext.GalleryAuthors
-                .Where(ga => ga.AlbumId == albumId)
-                .OrderBy(ga => ga.Order)
-                .Select(ga => new GalleryAuthorResponse(
-                    ga.UserId,
-                    ga.User.Username,
-                    ga.User.DisplayName,
-                    ga.Order
-                ))
-                .ToListAsync(cancellationToken);
-
-            var response = new AlbumResponse(
-                album.Id,
-                album.Name,
-                album.Slug,
-                album.Cover,
-                album.Description,
-                album.CreatedAt,
-                album.UpdatedAt,
-                imageCount,
-                authors,
-                await dbContext.Contents
-                    .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
-                    .Select(c => (Guid?)c.Id)
-                    .FirstOrDefaultAsync(cancellationToken),
-                album.IsActive,
-                album.SortOrder
-            );
-
-            return OkEnvelope(response with { Cover = NormalizeGalleryMediaUrl(response.Cover) });
+            await InvalidateGalleryCacheAsync(cancellationToken);
+            return OkEnvelope(result.Album!);
         }
         catch (Exception ex)
         {
@@ -746,6 +312,10 @@ public sealed class AdminGalleryController(
                 StatusCodes.Status500InternalServerError,
                 "Failed to update album",
                 "An unexpected error occurred while updating the album.");
+        }
+        finally
+        {
+            await DisposeStreamsAsync(openedStreams);
         }
     }
 
@@ -757,57 +327,21 @@ public sealed class AdminGalleryController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAlbum(Guid albumId, CancellationToken cancellationToken = default)
     {
-        var album = await dbContext.Albums
-            .Include(a => a.Images)
-            .FirstOrDefaultAsync(a => a.Id == albumId, cancellationToken);
-
-        if (album is null)
-        {
-            return NotFoundProblem("Album not found", $"No album found with ID '{albumId}'.");
-        }
-
         try
         {
-            // 1. Delete Cover Image Blob if exists
-            var coverBlobName = ExtractBlobNameFromUrl(album.Cover);
-            if (!string.IsNullOrEmpty(coverBlobName))
+            var result = await adminGalleryService.DeleteAlbumAsync(albumId, cancellationToken);
+            if (result.Status != AdminGalleryOperationStatus.Success)
             {
-                await blobStorageService.DeleteBlobAsync(coverBlobName, cancellationToken);
+                return MapGalleryProblem(result.Status, result.ErrorMessage);
             }
 
-            // 2. Delete All Image Blobs
-            foreach (var image in album.Images)
-            {
-                var imageBlobName = ExtractBlobNameFromUrl(image.Url);
-                if (!string.IsNullOrEmpty(imageBlobName))
-                {
-                    await blobStorageService.DeleteBlobAsync(imageBlobName, cancellationToken);
-                }
-            }
-
-            // 3. Delete DB Records
-            // Cascade delete should handle Images if configured, but let's be explicit with the context
-            dbContext.Images.RemoveRange(album.Images); // Remove images first
-            
-            // Remove Content entry if exists (polymorphic relation manual cleanup usually)
-            var content = await dbContext.Contents
-                .FirstOrDefaultAsync(c => c.ContentRefId == albumId && c.ContentType == ContentType.Album, cancellationToken);
-            if (content != null)
-            {
-                 dbContext.Contents.Remove(content);
-            }
-
-            dbContext.Albums.Remove(album);
-            
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
-
+            await InvalidateGalleryCacheAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to delete album {AlbumId} and cleanup blobs", albumId);
-             return Problem(
+            return Problem(
                 StatusCodes.Status500InternalServerError,
                 "Failed to delete album",
                 "An unexpected error occurred while deleting the album.");
@@ -827,34 +361,22 @@ public sealed class AdminGalleryController(
         [FromForm] int? order,
         CancellationToken cancellationToken = default)
     {
-        var image = await dbContext.Images
-            .FirstOrDefaultAsync(i => i.Id == imageId, cancellationToken);
-
-        if (image is null)
-        {
-            return NotFoundProblem("Image not found", $"No image found with ID '{imageId}'.");
-        }
-
         try
         {
-            if (title != null) image.Title = title;
-            if (description != null) image.Description = description;
-            if (order.HasValue) image.Order = order.Value;
+            var result = await adminGalleryService.UpdateImageAsync(
+                imageId,
+                title,
+                description,
+                order,
+                cancellationToken);
 
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
+            if (result.Status != AdminGalleryOperationStatus.Success)
+            {
+                return MapGalleryProblem(result.Status, result.ErrorMessage);
+            }
 
-            var response = new ImageResponse(
-                image.Id,
-                image.AlbumId,
-                image.Url,
-                image.Title,
-                image.Description,
-                image.Order,
-                image.CreatedAt
-            );
-
-            return OkEnvelope(response);
+            await InvalidateGalleryCacheAsync(cancellationToken);
+            return OkEnvelope(result.Image!);
         }
         catch (Exception ex)
         {
@@ -874,28 +396,15 @@ public sealed class AdminGalleryController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteImage(Guid imageId, CancellationToken cancellationToken = default)
     {
-        var image = await dbContext.Images
-            .FirstOrDefaultAsync(i => i.Id == imageId, cancellationToken);
-
-        if (image is null)
-        {
-            return NotFoundProblem("Image not found", $"No image found with ID '{imageId}'.");
-        }
-
         try
         {
-            // 1. Delete Blob
-            var blobName = ExtractBlobNameFromUrl(image.Url);
-            if (!string.IsNullOrEmpty(blobName))
+            var result = await adminGalleryService.DeleteImageAsync(imageId, cancellationToken);
+            if (result.Status != AdminGalleryOperationStatus.Success)
             {
-                await blobStorageService.DeleteBlobAsync(blobName, cancellationToken);
+                return MapGalleryProblem(result.Status, result.ErrorMessage);
             }
 
-            // 2. Delete DB Record
-            dbContext.Images.Remove(image);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
-
+            await InvalidateGalleryCacheAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
@@ -908,174 +417,95 @@ public sealed class AdminGalleryController(
         }
     }
 
-    private string? ExtractBlobNameFromUrl(string? url)
+    private IActionResult MapGalleryProblem(
+        AdminGalleryOperationStatus status,
+        string? errorMessage)
     {
-        if (string.IsNullOrEmpty(url)) return null;
-        var marker = "/media/";
-        var index = url.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-        if (index == -1) return null;
+        return status switch
+        {
+            AdminGalleryOperationStatus.InvalidName => BadRequestProblem("Invalid album name", errorMessage),
+            AdminGalleryOperationStatus.AlbumNotFound => NotFoundProblem("Album not found", errorMessage),
+            AdminGalleryOperationStatus.ImageNotFound => NotFoundProblem("Image not found", errorMessage),
+            _ => Problem(
+                StatusCodes.Status500InternalServerError,
+                "Gallery operation failed",
+                "An unexpected error occurred while processing the gallery request.")
+        };
+    }
 
-        var blobName = url[(index + marker.Length)..].Trim();
-        if (string.IsNullOrWhiteSpace(blobName))
+    private async Task InvalidateGalleryCacheAsync(CancellationToken cancellationToken)
+    {
+        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
+    }
+
+    private static AdminMediaUploadInput? OpenMediaInput(
+        IFormFile? file,
+        string? requestedFileName,
+        List<Stream> openedStreams)
+    {
+        if (file is null || file.Length == 0)
         {
             return null;
         }
 
-        return EnsureGalleryBlobName(blobName);
+        var stream = file.OpenReadStream();
+        openedStreams.Add(stream);
+        return new AdminMediaUploadInput(stream, file.FileName, requestedFileName);
     }
 
-    private static string EnsureGalleryBlobName(string blobName)
+    private static List<AdminGalleryImageUploadInput> OpenGalleryImageInputs(
+        List<IFormFile>? imageFiles,
+        List<string>? imageTitles,
+        List<string>? imageDescriptions,
+        List<int>? imageOrders,
+        List<Stream> openedStreams)
     {
-        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
-        return normalized.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase)
-            ? normalized
-            : $"{GalleryBlobPrefix}{normalized}";
-    }
-
-    private static string StripGalleryPrefix(string blobName)
-    {
-        if (blobName.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase))
+        var inputs = new List<AdminGalleryImageUploadInput>();
+        if (imageFiles is null)
         {
-            return blobName[GalleryBlobPrefix.Length..];
+            return inputs;
         }
 
-        return blobName;
-    }
-
-    /// <summary>
-    /// Generates a URL-friendly slug from a title
-    /// </summary>
-    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
-
-    private static string GenerateSlug(string title)
-    {
-        var slug = title.ToLowerInvariant();
-        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "", RegexOptions.None, RegexTimeout);
-        slug = Regex.Replace(slug, @"\s+", "-", RegexOptions.None, RegexTimeout);
-        slug = Regex.Replace(slug, @"-+", "-", RegexOptions.None, RegexTimeout);
-        slug = slug.Trim('-');
-        return slug;
-    }
-
-    private async Task<int> GetNextAlbumSortOrder(CancellationToken cancellationToken)
-    {
-        var maxSortOrder = await dbContext.Albums
-            .Select(a => (int?)a.SortOrder)
-            .MaxAsync(cancellationToken);
-
-        return (maxSortOrder ?? -1) + 1;
-    }
-
-    private async Task<AlbumWithImagesResponse?> GetAlbumWithDetails(Guid albumId, CancellationToken cancellationToken)
-    {
-        var albumData = await dbContext.Albums
-            .AsNoTracking()
-            .Where(a => a.Id == albumId)
-            .Select(a => new
-            {
-                a.Id,
-                a.Name,
-                a.Slug,
-                a.Cover,
-                a.Description,
-                a.CreatedAt,
-                a.UpdatedAt,
-                a.IsActive,
-                a.SortOrder,
-                Authors = a.Authors
-                    .OrderBy(ga => ga.Order)
-                    .Select(ga => new GalleryAuthorResponse(
-                        ga.UserId,
-                        ga.User.Username,
-                        ga.User.DisplayName,
-                        ga.Order
-                    ))
-                    .ToList(),
-                Images = a.Images
-                    .OrderBy(i => i.Order)
-                    .Select(i => new ImageResponse(
-                        i.Id,
-                        i.AlbumId,
-                        i.Url,
-                        i.Title,
-                        i.Description,
-                        i.Order,
-                        i.CreatedAt
-                    ))
-                    .ToList()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (albumData is null)
+        for (var i = 0; i < imageFiles.Count; i++)
         {
-            return null;
-        }
-
-        var contentId = await dbContext.Contents
-            .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
-            .Select(c => (Guid?)c.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var likeCount = 0;
-        var commentCount = 0;
-        var isLiked = false;
-
-        if (contentId.HasValue)
-        {
-            likeCount = await dbContext.Likes
-                .CountAsync(l => l.ContentId == contentId.Value, cancellationToken);
-
-            commentCount = await dbContext.Comments
-                .CountAsync(cm => cm.ContentId == contentId.Value && !cm.IsDeleted, cancellationToken);
-
-            if (Guid.TryParse(UserId, out var userGuid))
+            var imageFile = imageFiles[i];
+            if (imageFile.Length == 0)
             {
-                isLiked = await dbContext.Likes
-                    .AnyAsync(l => l.ContentId == contentId.Value && l.UserId == userGuid, cancellationToken);
+                continue;
             }
+
+            var title = imageTitles is not null && i < imageTitles.Count ? imageTitles[i] : null;
+            var description = imageDescriptions is not null && i < imageDescriptions.Count ? imageDescriptions[i] : null;
+            var order = imageOrders is not null && i < imageOrders.Count ? imageOrders[i] : i + 1;
+            var stream = imageFile.OpenReadStream();
+            openedStreams.Add(stream);
+
+            inputs.Add(new AdminGalleryImageUploadInput(
+                stream,
+                imageFile.FileName,
+                title,
+                description,
+                order));
         }
 
-        return new AlbumWithImagesResponse(
-            albumData.Id,
-            albumData.Name,
-            albumData.Slug,
-            NormalizeGalleryMediaUrl(albumData.Cover),
-            albumData.Description,
-            albumData.CreatedAt,
-            albumData.UpdatedAt,
-            albumData.Images
-                .Select(i => i with { Url = NormalizeGalleryMediaUrl(i.Url) ?? i.Url })
-                .ToList(),
-            albumData.Authors,
-            contentId,
-            likeCount,
-            isLiked,
-            commentCount,
-            albumData.IsActive,
-            albumData.SortOrder
-        );
+        return inputs;
     }
 
-    private string? NormalizeGalleryMediaUrl(string? mediaUrl)
+    private static async ValueTask DisposeStreamsAsync(IEnumerable<Stream> streams)
     {
-        if (string.IsNullOrWhiteSpace(mediaUrl))
+        foreach (var stream in streams)
         {
-            return mediaUrl;
+            await stream.DisposeAsync();
         }
+    }
 
-        var trimmed = mediaUrl.Trim();
-        if (!MediaUrlHelper.TryExtractMediaBlobName(trimmed, out var blobName))
-        {
-            return trimmed;
-        }
+    private Guid? TryGetCurrentUserId()
+    {
+        return Guid.TryParse(UserId, out var currentUserId) ? currentUserId : null;
+    }
 
-        var publicBlobName = StripGalleryPrefix(blobName);
-
-        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var absolute))
-        {
-            return $"{absolute.Scheme}://{absolute.Authority}/media/{publicBlobName}";
-        }
-
-        return $"/media/{publicBlobName}";
+    private string GetBaseUrl()
+    {
+        return $"{Request.Scheme}://{Request.Host}";
     }
 }
