@@ -436,6 +436,7 @@ public sealed class AdminMusicService(
             Slug = contentSlug,
             IsPublished = track.IsPublished,
             PublishedAt = track.PublishedAt,
+            SearchBody = BuildTrackSearchBody(track.Description, track.Tags),
             CreatedAt = now,
             UpdatedAt = now
         });
@@ -537,6 +538,7 @@ public sealed class AdminMusicService(
                 Slug = contentSlug,
                 IsPublished = track.IsPublished,
                 PublishedAt = track.PublishedAt,
+                SearchBody = BuildTrackSearchBody(track.Description, track.Tags),
                 CreatedAt = now,
                 UpdatedAt = now
             });
@@ -547,6 +549,7 @@ public sealed class AdminMusicService(
             content.Slug = await GenerateUniqueContentSlugAsync(track.Slug, content.Id, cancellationToken);
             content.IsPublished = track.IsPublished;
             content.PublishedAt = track.PublishedAt;
+            content.SearchBody = BuildTrackSearchBody(track.Description, track.Tags);
             content.UpdatedAt = now;
         }
 
@@ -1154,6 +1157,16 @@ public sealed class AdminMusicService(
             AdminMusicMutationStatus.Success,
             normalizedCategory,
             null);
+    }
+
+    private static string? BuildTrackSearchBody(string? description, string[]? tags)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(description))
+            parts.Add(description.Trim());
+        if (tags is { Length: > 0 })
+            parts.Add(string.Join(" ", tags.Where(t => !string.IsNullOrWhiteSpace(t))));
+        return parts.Count > 0 ? string.Join(" ", parts) : null;
     }
 
     private sealed record TrackRequestValidationResult(

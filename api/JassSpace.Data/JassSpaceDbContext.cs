@@ -368,6 +368,15 @@ public class JassSpaceDbContext : DbContext
         entity.HasIndex(e => new { e.ContentType, e.ContentRefId });
         entity.HasIndex(e => e.IsPublished);
         entity.HasIndex(e => e.CreatedAt);
+
+        // Full-text search: stored generated tsvector + GIN index
+        entity.HasGeneratedTsVectorColumn(
+            c => c.SearchVector,
+            "english",
+            c => new { c.Title, c.SearchBody });
+
+        entity.HasIndex(e => e.SearchVector)
+              .HasMethod("GIN");
     }
 
     private void ConfigureBlogEntity(ModelBuilder modelBuilder)

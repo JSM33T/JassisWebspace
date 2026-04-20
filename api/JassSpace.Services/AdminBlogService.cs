@@ -374,6 +374,7 @@ public sealed class AdminBlogService(
             Slug = contentSlug,
             IsPublished = blog.IsPublished,
             PublishedAt = blog.PublishedAt,
+            SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content),
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -543,6 +544,7 @@ public sealed class AdminBlogService(
 
             content.IsPublished = blog.IsPublished;
             content.PublishedAt = blog.PublishedAt;
+            content.SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content);
             content.UpdatedAt = DateTimeOffset.UtcNow;
             return;
         }
@@ -565,6 +567,7 @@ public sealed class AdminBlogService(
             Slug = newContentSlug,
             IsPublished = blog.IsPublished,
             PublishedAt = blog.PublishedAt,
+            SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content),
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         });
@@ -875,5 +878,19 @@ public sealed class AdminBlogService(
         }
 
         return slug;
+    }
+
+    private static string? BuildBlogSearchBody(string? excerpt, string? bodyHtml)
+    {
+        if (!string.IsNullOrWhiteSpace(excerpt))
+            return excerpt.Trim();
+
+        if (string.IsNullOrWhiteSpace(bodyHtml))
+            return null;
+
+        // Strip HTML tags and truncate to keep the tsvector lean.
+        var stripped = Regex.Replace(bodyHtml, @"<[^>]+>", " ", RegexOptions.None, RegexTimeout);
+        stripped = Regex.Replace(stripped, @"\s+", " ", RegexOptions.None, RegexTimeout).Trim();
+        return stripped.Length > 500 ? stripped[..500] : stripped;
     }
 }

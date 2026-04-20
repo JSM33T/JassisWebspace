@@ -32,7 +32,8 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon, Mail, House } from 'lucide-react';
+import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon, Mail, House, Search } from 'lucide-react';
+import { SearchModal } from '@/components/search-modal';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -70,6 +71,7 @@ export function Navbar() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [moreMenuOpen, setMoreMenuOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
     const [isNavbarHidden, setIsNavbarHidden] = useState(false);
     const [isRailExpanded, setIsRailExpanded] = useState(false);
     const [showRailScrollUpHint, setShowRailScrollUpHint] = useState(false);
@@ -220,6 +222,17 @@ export function Navbar() {
         if (savedState === 'true') {
             setIsRailExpanded(true);
         }
+    }, []);
+
+    useEffect(() => {
+        const handleGlobalKey = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setSearchOpen((prev) => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleGlobalKey);
+        return () => window.removeEventListener('keydown', handleGlobalKey);
     }, []);
 
     useEffect(() => {
@@ -441,6 +454,29 @@ export function Navbar() {
                                     <span className={railBubbleClassName}>Home</span>
                                 )}
                             </Link>
+
+                            <button
+                                type="button"
+                                className={cn(
+                                    railItemClassName,
+                                    isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center'
+                                )}
+                                onClick={() => setSearchOpen(true)}
+                                aria-label="Search"
+                                title="Search (⌘K)"
+                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
+                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
+                            >
+                                <Search className={railIconClassName} />
+                                {isRailExpanded ? (
+                                    <span className="flex-1 truncate text-sm font-medium text-foreground">Search</span>
+                                ) : (
+                                    <span className={railBubbleClassName}>Search <kbd className="ml-1 font-mono text-[9px]">⌘K</kbd></span>
+                                )}
+                                {isRailExpanded ? (
+                                    <kbd className="rounded border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">⌘K</kbd>
+                                ) : null}
+                            </button>
 
                             <button
                                 type="button"
@@ -764,6 +800,18 @@ export function Navbar() {
                             variant="ghost"
                             size="icon"
                             className="relative h-9 w-9 rounded-full hover:bg-accent/50"
+                            onClick={() => setSearchOpen(true)}
+                            aria-label="Search"
+                            title="Search"
+                        >
+                            <Search className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="relative h-9 w-9 rounded-full hover:bg-accent/50"
                             onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
                             aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                             title={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -835,6 +883,19 @@ export function Navbar() {
                                             </Link>
                                         </SheetClose>
                                     )}
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="h-12 w-full cursor-pointer justify-start rounded-2xl"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            setTimeout(() => setSearchOpen(true), 180);
+                                        }}
+                                    >
+                                        <Search className="mr-2 h-4 w-4" />
+                                        Search
+                                    </Button>
 
                                     <Button
                                         type="button"
@@ -1629,6 +1690,8 @@ export function Navbar() {
                     </div>
                 </SheetContent>
             </Sheet>
+
+            <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
 
             {/* Logout Confirmation Dialog */}
             <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>

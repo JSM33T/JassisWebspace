@@ -1,4 +1,5 @@
 using JassSpace.Entities.Enums;
+using NpgsqlTypes;
 
 namespace JassSpace.Entities;
 
@@ -13,4 +14,11 @@ public class Content
     public DateTimeOffset? PublishedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
+
+    // Populated by domain services (excerpt, description, tags) to enrich full-text search.
+    public string? SearchBody { get; set; }
+
+    // Stored generated column: to_tsvector('english', title || ' ' || coalesce(search_body,''))
+    // Maintained automatically by Postgres on every INSERT/UPDATE.
+    public NpgsqlTsVector SearchVector { get; set; } = null!;
 }

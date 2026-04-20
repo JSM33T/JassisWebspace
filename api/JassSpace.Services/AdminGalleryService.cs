@@ -210,6 +210,7 @@ public sealed class AdminGalleryService(
             Slug = contentSlug,
             IsPublished = true,
             PublishedAt = now,
+            SearchBody = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -400,6 +401,7 @@ public sealed class AdminGalleryService(
         album.UpdatedAt = DateTimeOffset.UtcNow;
 
         await UpdateAlbumAuthorsAsync(album, request.AuthorIds, albumId, cancellationToken);
+        await UpsertAlbumContentAsync(album, albumId, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var response = await BuildAlbumResponseAsync(album, albumId, cancellationToken);
@@ -922,5 +924,44 @@ public sealed class AdminGalleryService(
 
         blobName = relativeCandidate;
         return true;
+    }
+
+    private async Task UpsertAlbumContentAsync(Album album, Guid albumId, CancellationToken cancellationToken)
+    {
+        var content = await _dbContext.Contents
+            .FirstOrDefaultAsync(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId, cancellationToken);
+
+        var searchBody = string.IsNullOrWhiteSpace(album.Description) ? null : album.Description.Trim();
+        var now = DateTimeOffset.UtcNow;
+
+        if (content is not null)
+        {
+            content.Title = album.Name;
+            content.IsPublished = album.IsActive;
+            content.SearchBody = searchBody;
+            content.UpdatedAt = now;
+            return;
+        }
+
+        var slug = album.Slug;
+        var slugExists = await _dbContext.Contents
+            .AnyAsync(c => c.Slug == slug, cancellationToken);
+
+        if (slugExists)
+            slug = $"{album.Slug}-{album.Id.ToString()[..8]}";
+
+        _dbContext.Contents.Add(new Content
+        {
+            Id = Guid.NewGuid(),
+            ContentType = ContentType.Album,
+            ContentRefId = album.Id,
+            Title = album.Name,
+            Slug = slug,
+            IsPublished = album.IsActive,
+            PublishedAt = album.CreatedAt,
+            SearchBody = searchBody,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
     }
 }
