@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, SlidersHorizontal } from "lucide-react";
+import { LogoMark } from "@/components/logo-mark";
 
 const routes = [
     {
@@ -57,13 +58,24 @@ export function AdminSidebar() {
     const pathname = usePathname();
 
     return (
-        <div className="flex h-full flex-col space-y-4 py-4 text-sidebar-foreground">
-            <div className="flex-1 px-3 py-2">
-                <Link href="/admin" className="mb-14 flex items-center pl-3">
-                    <h1 className="text-2xl font-bold text-foreground">
-                        JassSpace Admin
-                    </h1>
+        <div className="flex h-full flex-col text-sidebar-foreground">
+            <div className="border-b border-sidebar-border/70 px-4 py-5">
+                <Link href="/admin" className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-sidebar-accent/70">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-sidebar-border bg-background/80 text-sidebar-primary shadow-sm">
+                        <LogoMark className="h-7 w-7" />
+                    </span>
+                    <span className="min-w-0">
+                        <span className="block text-base font-semibold leading-5 text-sidebar-foreground">
+                            JassSpace
+                        </span>
+                        <span className="block text-xs font-medium text-muted-foreground">
+                            Admin
+                        </span>
+                    </span>
                 </Link>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-5">
                 <div className="space-y-1">
                     {routes.map((route) => {
                         const isActive = route.href === "/admin"
@@ -75,19 +87,22 @@ export function AdminSidebar() {
                                 key={route.href}
                                 href={route.href}
                                 className={cn(
-                                    "group flex w-full cursor-pointer justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                                    "group relative flex w-full cursor-pointer justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                                     isActive
-                                        ? "bg-accent text-accent-foreground"
+                                        ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
                                         : "text-muted-foreground"
                                 )}
                             >
-                                <div className="flex flex-1 items-center">
+                                {isActive ? (
+                                    <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-sidebar-primary" />
+                                ) : null}
+                                <div className="flex flex-1 items-center pl-1">
                                     <route.icon
                                         className={cn(
                                             "mr-3 h-5 w-5 transition-colors",
                                             isActive
-                                                ? "text-accent-foreground"
-                                                : "text-accent group-hover:text-accent-foreground"
+                                                ? "text-sidebar-primary"
+                                                : "text-muted-foreground group-hover:text-sidebar-accent-foreground"
                                         )}
                                     />
                                     {route.label}
@@ -95,6 +110,12 @@ export function AdminSidebar() {
                             </Link>
                         );
                     })}
+                </div>
+            </div>
+
+            <div className="border-t border-sidebar-border/70 px-5 py-4">
+                <div className="h-1.5 rounded-full bg-sidebar-accent">
+                    <div className="h-full w-2/3 rounded-full bg-sidebar-primary" />
                 </div>
             </div>
         </div>
