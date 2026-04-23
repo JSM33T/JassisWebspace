@@ -15,4 +15,9 @@ public interface IAdminContentService
     Task<AdminContentDetailResponse?> GetContentAsync(
         Guid contentId,
         CancellationToken cancellationToken = default);
+
+    Task<List<AdminContentSearchResultResponse>> SearchContentsAsync(
+        string query,
+        string? contentType = null,
+        CancellationToken cancellationToken = default);
 }

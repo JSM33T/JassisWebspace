@@ -11,6 +11,7 @@ public class Content
     public required string Title { get; set; }
     public required string Slug { get; set; }
     public string? Description { get; set; }
+    public string? Cover { get; set; }
     public bool IsPublished { get; set; }
     public DateTimeOffset? PublishedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

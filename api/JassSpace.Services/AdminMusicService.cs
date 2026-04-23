@@ -435,6 +435,7 @@ public sealed class AdminMusicService(
             Title = track.Title,
             Slug = contentSlug,
             Description = track.Description,
+            Cover = track.Cover,
             IsPublished = track.IsPublished,
             PublishedAt = track.PublishedAt,
             SearchBody = BuildTrackSearchBody(track.Description, track.Tags),
@@ -538,6 +539,7 @@ public sealed class AdminMusicService(
                 Title = track.Title,
                 Slug = contentSlug,
                 Description = track.Description,
+                Cover = track.Cover,
                 IsPublished = track.IsPublished,
                 PublishedAt = track.PublishedAt,
                 SearchBody = BuildTrackSearchBody(track.Description, track.Tags),
@@ -550,6 +552,7 @@ public sealed class AdminMusicService(
             content.Title = track.Title;
             content.Slug = await GenerateUniqueContentSlugAsync(track.Slug, content.Id, cancellationToken);
             content.Description = track.Description;
+            content.Cover = track.Cover;
             content.IsPublished = track.IsPublished;
             content.PublishedAt = track.PublishedAt;
             content.SearchBody = BuildTrackSearchBody(track.Description, track.Tags);

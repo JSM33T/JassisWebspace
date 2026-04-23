@@ -24,6 +24,18 @@ public sealed record AdminContentListItemResponse(
     DateTimeOffset LastActivityAt
 );
 
+public sealed record AdminContentSearchResultResponse(
+    Guid Id,
+    string Title,
+    string Slug,
+    string? Description,
+    string? Cover,
+    string ContentType,
+    bool IsPublished,
+    DateTimeOffset? PublishedAt,
+    DateTimeOffset CreatedAt
+);
+
 public sealed record AdminContentDetailResponse(
     Guid Id,
     string Title,

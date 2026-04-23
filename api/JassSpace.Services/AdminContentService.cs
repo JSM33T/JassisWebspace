@@ -1,6 +1,7 @@
 using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Responses;
 using JassSpace.Data;
+using JassSpace.Entities;
 using JassSpace.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -236,5 +237,57 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
             lastActivity,
             likedBy,
             distinctCommenters);
+    }
+
+    public async Task<List<AdminContentSearchResultResponse>> SearchContentsAsync(
+        string query,
+        string? contentType = null,
+        CancellationToken cancellationToken = default)
+    {
+        var term = query.Trim();
+
+        if (term.Length < 2)
+            return [];
+
+        // Hybrid: FTS match OR trigram similarity above threshold, ranked by weighted score.
+        // Title weight 3x, FTS rank 2x, Description 1x, Slug 0.5x.
+        // websearch_to_tsquery handles phrases/negation and is safe with arbitrary user input.
+        var rows = await _dbContext.Contents
+            .FromSqlInterpolated($"""
+                SELECT *
+                FROM "Contents"
+                WHERE
+                    "SearchVector" @@ websearch_to_tsquery('english', {term})
+                    OR similarity("Title", {term}) > 0.2
+                    OR similarity(coalesce("Description", ''), {term}) > 0.15
+                    OR similarity("Slug", {term}) > 0.2
+                ORDER BY (
+                    similarity("Title", {term}) * 3 +
+                    ts_rank("SearchVector", websearch_to_tsquery('english', {term})) * 2 +
+                    similarity(coalesce("Description", ''), {term}) +
+                    similarity("Slug", {term}) * 0.5
+                ) DESC
+                LIMIT 50
+                """)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(contentType) &&
+            Enum.TryParse<ContentType>(contentType, true, out var parsedType))
+        {
+            rows = rows.Where(r => r.ContentType == parsedType).ToList();
+        }
+
+        return rows.Select(r => new AdminContentSearchResultResponse(
+            r.Id,
+            r.Title,
+            r.Slug,
+            r.Description,
+            r.Cover,
+            r.ContentType.ToString(),
+            r.IsPublished,
+            r.PublishedAt,
+            r.CreatedAt
+        )).ToList();
     }
 }

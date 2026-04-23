@@ -373,7 +373,7 @@ public class JassSpaceDbContext : DbContext
         entity.HasGeneratedTsVectorColumn(
             c => c.SearchVector,
             "english",
-            c => new { c.Title, c.SearchBody });
+            c => new { c.Title, c.Description, c.SearchBody });
 
         entity.HasIndex(e => e.SearchVector)
               .HasMethod("GIN");

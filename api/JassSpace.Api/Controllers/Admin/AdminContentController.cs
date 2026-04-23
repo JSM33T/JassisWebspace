@@ -33,6 +33,21 @@ public sealed class AdminContentController(
         return OkEnvelope(response);
     }
 
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(ApiResponse<List<AdminContentSearchResultResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SearchContents(
+        [FromQuery] string q,
+        [FromQuery] string? contentType = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+            return BadRequestProblem("Query too short", "Search query must be at least 2 characters.");
+
+        var results = await adminContentService.SearchContentsAsync(q, contentType, cancellationToken);
+        return OkEnvelope(results);
+    }
+
     [HttpGet("{contentId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<AdminContentDetailResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

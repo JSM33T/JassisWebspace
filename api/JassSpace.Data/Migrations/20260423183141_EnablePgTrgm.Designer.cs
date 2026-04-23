@@ -4,6 +4,7 @@ using System.Net;
 using JassSpace.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace JassSpace.Data.Migrations
 {
     [DbContext(typeof(JassSpaceDbContext))]
-    partial class JassSpaceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260423183141_EnablePgTrgm")]
+    partial class EnablePgTrgm
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -457,9 +460,6 @@ namespace JassSpace.Data.Migrations
                     b.Property<int>("ContentType")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Cover")
-                        .HasColumnType("text");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -480,7 +480,7 @@ namespace JassSpace.Data.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
                         .HasAnnotation("Npgsql:TsVectorConfig", "english")
-                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "Description", "SearchBody" });
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "SearchBody" });
 
                     b.Property<string>("Slug")
                         .IsRequired()

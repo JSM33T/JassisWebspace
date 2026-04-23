@@ -949,6 +949,7 @@ public sealed class AdminGalleryService(
             }
 
             content.Description = album.Description;
+            content.Cover = album.Cover;
             content.IsPublished = album.IsActive;
             content.SearchBody = searchBody;
             content.UpdatedAt = now;
@@ -970,6 +971,7 @@ public sealed class AdminGalleryService(
             Title = album.Name,
             Slug = slug,
             Description = album.Description,
+            Cover = album.Cover,
             IsPublished = album.IsActive,
             PublishedAt = album.CreatedAt,
             SearchBody = searchBody,
