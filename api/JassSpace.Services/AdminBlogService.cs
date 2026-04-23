@@ -372,6 +372,7 @@ public sealed class AdminBlogService(
             ContentRefId = blog.Id,
             Title = blog.Title,
             Slug = contentSlug,
+            Description = blog.Excerpt,
             IsPublished = blog.IsPublished,
             PublishedAt = blog.PublishedAt,
             SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content),
@@ -542,6 +543,7 @@ public sealed class AdminBlogService(
                 content.Slug = contentSlug;
             }
 
+            content.Description = blog.Excerpt;
             content.IsPublished = blog.IsPublished;
             content.PublishedAt = blog.PublishedAt;
             content.SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content);
@@ -565,6 +567,7 @@ public sealed class AdminBlogService(
             ContentRefId = blog.Id,
             Title = blog.Title,
             Slug = newContentSlug,
+            Description = blog.Excerpt,
             IsPublished = blog.IsPublished,
             PublishedAt = blog.PublishedAt,
             SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content),

@@ -937,6 +937,18 @@ public sealed class AdminGalleryService(
         if (content is not null)
         {
             content.Title = album.Name;
+
+            if (content.Slug != album.Slug)
+            {
+                var newSlugTaken = await _dbContext.Contents
+                    .AnyAsync(c => c.Slug == album.Slug && c.Id != content.Id, cancellationToken);
+
+                content.Slug = newSlugTaken
+                    ? $"{album.Slug}-{content.Id.ToString()[..8]}"
+                    : album.Slug;
+            }
+
+            content.Description = album.Description;
             content.IsPublished = album.IsActive;
             content.SearchBody = searchBody;
             content.UpdatedAt = now;
@@ -957,6 +969,7 @@ public sealed class AdminGalleryService(
             ContentRefId = album.Id,
             Title = album.Name,
             Slug = slug,
+            Description = album.Description,
             IsPublished = album.IsActive,
             PublishedAt = album.CreatedAt,
             SearchBody = searchBody,
