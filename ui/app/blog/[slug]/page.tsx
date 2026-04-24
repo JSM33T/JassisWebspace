@@ -237,9 +237,9 @@ export default function BlogViewPage() {
                                     src={blog.featuredImage}
                                     alt={blog.title}
                                     fill
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 80vw, 1024px"
                                     className="object-cover"
                                     priority
-                                    unoptimized
                                 />
                             </div>
                         )}

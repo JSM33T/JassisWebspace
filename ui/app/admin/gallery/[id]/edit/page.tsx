@@ -506,8 +506,8 @@ export default function EditAlbumPage() {
                                                     src={coverPreview}
                                                     alt="Cover preview"
                                                     fill
+                                                    sizes="(max-width: 1280px) 100vw, 860px"
                                                     className="object-cover"
-                                                    unoptimized
                                                 />
                                             ) : (
                                                 <div className="text-center text-muted-foreground p-2">
@@ -580,6 +580,7 @@ export default function EditAlbumPage() {
                                                         src={img.preview}
                                                         alt="Preview"
                                                         fill
+                                                        sizes="128px"
                                                         className="object-cover"
                                                     />
                                                 </div>
@@ -683,8 +684,8 @@ export default function EditAlbumPage() {
                                                     src={image.url}
                                                     alt={image.title || "Album image"}
                                                     fill
+                                                    sizes="96px"
                                                     className="object-cover"
-                                                    unoptimized
                                                 />
                                             </div>
 

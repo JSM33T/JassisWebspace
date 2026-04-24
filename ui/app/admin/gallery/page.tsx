@@ -83,8 +83,8 @@ export default function AdminGalleryPage() {
                                         src={album.cover}
                                         alt={album.name}
                                         fill
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                         className="object-cover"
-                                        unoptimized
                                     />
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-muted-foreground">

@@ -612,8 +612,8 @@ export function BlogForm({
                                                         src={previewUrl || field.value || ""}
                                                         alt="Featured"
                                                         fill
+                                                        sizes="(max-width: 1280px) 100vw, 860px"
                                                         className="object-cover"
-                                                        unoptimized
                                                     />
                                                     <Button
                                                         type="button"

@@ -271,8 +271,8 @@ export default function BlogHomePage() {
                                                             src={blog.featuredImage}
                                                             alt={blog.title}
                                                             fill
+                                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                                             className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                                                            unoptimized
                                                             loading={index === 0 ? 'eager' : 'lazy'}
                                                             priority={index === 0}
                                                         />

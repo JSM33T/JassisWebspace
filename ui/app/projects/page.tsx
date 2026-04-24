@@ -215,7 +215,6 @@ export default function ProjectsPage() {
                                                 fill
                                                 sizes="(max-width: 1024px) 100vw, 65vw"
                                                 className="object-cover"
-                                                unoptimized
                                             />
                                         </div>
                                         {screenshots.length > 1 && (

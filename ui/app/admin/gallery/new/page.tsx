@@ -337,6 +337,7 @@ export default function CreateAlbumPage() {
                                                 src={coverPreview}
                                                 alt="Cover preview"
                                                 fill
+                                                sizes="160px"
                                                 className="object-cover"
                                             />
                                         ) : (
@@ -404,6 +405,7 @@ export default function CreateAlbumPage() {
                                                             src={image.preview}
                                                             alt={`Preview ${index}`}
                                                             fill
+                                                            sizes="(max-width: 640px) 50vw, 33vw"
                                                             className="object-cover"
                                                         />
                                                         <button

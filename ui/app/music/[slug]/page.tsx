@@ -165,9 +165,9 @@ export default function MusicTrackViewPage() {
                                 src={track.cover}
                                 alt={track.title}
                                 fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 40vw, 512px"
                                 className="object-cover"
                                 priority
-                                unoptimized
                             />
                         ) : (
                             <div className="h-full w-full flex items-center justify-center text-muted-foreground">

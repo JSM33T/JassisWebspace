@@ -213,8 +213,8 @@ export default function HomePage() {
                                         src={getVersionedGalleryCoverUrl(recentGalleries[0]) as string}
                                         alt={recentGalleries[0].name}
                                         fill
+                                        sizes="(max-width: 768px) 100vw, 52vw"
                                         className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                        unoptimized
                                         priority
                                     />
                                 ) : (
@@ -338,7 +338,6 @@ export default function HomePage() {
                                                                 fill
                                                                 sizes={isFeature ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 100vw, 25vw"}
                                                                 className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                                                unoptimized
                                                             />
                                                         ) : (
                                                             <div className="relative h-full w-full bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.42),transparent_54%),radial-gradient(circle_at_82%_76%,hsl(var(--secondary)/0.36),transparent_58%),linear-gradient(140deg,hsl(var(--muted)/0.8),hsl(var(--card)))]" />
@@ -433,7 +432,6 @@ export default function HomePage() {
                                                             fill
                                                             sizes="(max-width: 768px) 100vw, 50vw"
                                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                                            unoptimized
                                                         />
                                                     ) : (
                                                         <div className="relative flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.42),transparent_54%),radial-gradient(circle_at_82%_76%,hsl(var(--secondary)/0.36),transparent_58%),linear-gradient(140deg,hsl(var(--muted)/0.8),hsl(var(--card)))]">

@@ -115,7 +115,6 @@ export function GalleryThumb({
                 )}
                 onLoad={() => setIsLoaded(true)}
                 onError={() => setHasError(true)}
-                unoptimized
             />
         </div>
     );
