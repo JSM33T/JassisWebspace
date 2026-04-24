@@ -255,45 +255,42 @@ export default function AlbumDetailPage() {
                             </p>
                         </div>
                     ) : (
-                        <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+                        <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
                             {album.images.map((image, i) => (
                                 <motion.div
                                     key={image.id}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.5, delay: i * 0.1 }}
-                                    className="break-inside-avoid group cursor-zoom-in relative rounded-xl overflow-hidden bg-muted"
+                                    transition={{ duration: 0.4, delay: i * 0.06 }}
+                                    className="break-inside-avoid group cursor-zoom-in relative overflow-hidden rounded-2xl bg-muted"
                                     onClick={() => setImageParam(image.id)}
                                 >
-                                    <div className="relative w-full">
-                                        <GalleryThumb
-                                            src={toGalleryThumbUrl(image.url)}
-                                            alt={image.title || 'Album image'}
-                                            width={800}
-                                            height={600}
-                                            wrapperClassName="w-full"
-                                            imageClassName="group-hover:scale-105"
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                                    <GalleryThumb
+                                        src={toGalleryThumbUrl(image.url)}
+                                        alt={image.title || 'Album image'}
+                                        width={800}
+                                        height={600}
+                                        wrapperClassName="w-full"
+                                        imageClassName="transition-transform duration-500 group-hover:scale-105"
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    />
 
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                            <div className="bg-background/80 backdrop-blur-sm p-3 rounded-full text-foreground shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
-                                                <ZoomIn className="h-6 w-6" />
-                                            </div>
+                                    {/* Zoom icon */}
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        <div className="bg-background/80 backdrop-blur-sm p-3 rounded-full text-foreground shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300">
+                                            <ZoomIn className="h-5 w-5" />
                                         </div>
+                                    </div>
 
-                                        {(image.title || image.description) && (
-                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 pt-12 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                                                {image.title && (
-                                                    <h3 className="text-white font-semibold text-lg mb-1">{image.title}</h3>
-                                                )}
-                                                {image.description && (
-                                                    <p className="text-white/80 text-sm line-clamp-2">
-                                                        {image.description}
-                                                    </p>
-                                                )}
-                                            </div>
+                                    {/* Always-visible bottom label */}
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12">
+                                        <p className="mb-0.5 font-mono text-[11px] font-medium uppercase tracking-widest text-white/60">
+                                            {String(i + 1).padStart(2, '0')}
+                                        </p>
+                                        {image.title && (
+                                            <h3 className="line-clamp-1 text-sm font-semibold text-white">
+                                                {image.title}
+                                            </h3>
                                         )}
                                     </div>
                                 </motion.div>
