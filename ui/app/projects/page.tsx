@@ -109,7 +109,7 @@ export default function ProjectsPage() {
                         description="A showcase of my innovative projects and technical solutions."
                     />
 
-                    <div className="mt-6 grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2">
+                    <div className="mt-6 grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
                         {projects.map((project, index) => (
                             <motion.div
                                 key={project.title}
@@ -118,30 +118,51 @@ export default function ProjectsPage() {
                                 transition={{ duration: 0.3, delay: index * 0.05 }}
                             >
                                 <Card
-                                    className="flex flex-col h-full cursor-pointer rounded-3xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group"
+                                    className="flex flex-col h-full cursor-pointer rounded-2xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group"
                                     onClick={() => openProject(project)}
                                 >
-                                    <CardHeader className="p-8">
-                                        <div className="flex items-start justify-between gap-4 mb-4">
-                                        <div className="p-3 rounded-2xl border bg-background/50 group-hover:scale-110 transition-transform">
-                                            <Rocket className="h-5 w-5 text-primary opacity-70" />
-                                        </div>
-                                            <Badge variant="secondary" className="rounded-full px-3">
+                                    <CardHeader className="px-5 pt-5 pb-3 space-y-0">
+                                        <div className="mb-3">
+                                            <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide">
                                                 {project.highlight || 'Project'}
                                             </Badge>
                                         </div>
-                                        <CardTitle className="text-xl font-medium tracking-tight group-hover:text-primary transition-colors">
+                                        <CardTitle className="text-lg font-semibold tracking-tight leading-snug group-hover:text-primary transition-colors">
                                             {project.title}
                                         </CardTitle>
-                                        <CardDescription className="text-sm pt-2 line-clamp-2 leading-relaxed">
+                                        <div className="flex items-center gap-2 pt-2">
+                                            <div className="flex items-center justify-center w-6 h-6 rounded-full border bg-background/50 shrink-0">
+                                                <Rocket className="h-3 w-3 text-primary opacity-70" />
+                                            </div>
+                                            <span className="text-xs text-muted-foreground font-medium">
+                                                {project.tech?.[0] ?? 'Dev Project'}
+                                            </span>
+                                            {project.links?.live && (
+                                                <>
+                                                    <span className="text-muted-foreground/40 text-xs">·</span>
+                                                    <span className="text-xs text-muted-foreground">Live</span>
+                                                </>
+                                            )}
+                                        </div>
+                                        <CardDescription className="text-sm pt-3 line-clamp-2 leading-relaxed">
                                             {project.description}
                                         </CardDescription>
                                     </CardHeader>
-                                    <CardFooter className="mt-auto px-8 pb-8 pt-0 flex items-center justify-between gap-3">
-                                        <div className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">
-                                            View Project
+                                    <CardFooter className="mt-auto px-5 pb-5 pt-3 border-t flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                            <FolderCode className="h-3.5 w-3.5" />
+                                            <span>{project.tech?.length ?? 0} technologies</span>
                                         </div>
-                                        <MoveUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                            {project.tech?.slice(0, 2).map((t) => (
+                                                <Badge key={t} variant="outline" className="rounded-full px-2 py-0 text-xs">
+                                                    {t}
+                                                </Badge>
+                                            ))}
+                                            {(project.tech?.length ?? 0) > 2 && (
+                                                <span className="text-xs text-muted-foreground">+{(project.tech?.length ?? 0) - 2}</span>
+                                            )}
+                                        </div>
                                     </CardFooter>
                                 </Card>
                             </motion.div>
