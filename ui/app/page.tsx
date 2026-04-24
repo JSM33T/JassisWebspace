@@ -210,7 +210,7 @@ export default function HomePage() {
                             <Link href="/gallery" className="group relative w-[52%] overflow-hidden rounded-2xl border border-border/50 bg-muted shadow-xl transition-shadow duration-300 hover:shadow-2xl">
                                 {!galleryLoading && recentGalleries[0] && getVersionedGalleryCoverUrl(recentGalleries[0]) ? (
                                     <NextImage
-                                        src={getVersionedGalleryCoverUrl(recentGalleries[0])}
+                                        src={getVersionedGalleryCoverUrl(recentGalleries[0]) as string}
                                         alt={recentGalleries[0].name}
                                         fill
                                         className="object-cover transition-transform duration-500 group-hover:scale-105"
