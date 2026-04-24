@@ -345,8 +345,11 @@ export default function HomePage() {
                                                         )}
                                                     </div>
 
-                                                    <div className="absolute inset-0 flex items-end bg-black/0 p-4 transition-colors duration-300 group-hover:bg-black/60 group-focus-visible:bg-black/60 md:p-5">
-                                                        <h3 className="line-clamp-1 translate-y-2 text-lg font-semibold leading-tight text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 md:text-xl">
+                                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12 md:px-5 md:pb-5">
+                                                        <p className="mb-0.5 font-mono text-[10px] font-medium uppercase tracking-widest text-white/60">
+                                                            {String(index + 1).padStart(2, '0')}
+                                                        </p>
+                                                        <h3 className="line-clamp-1 text-base font-semibold text-white md:text-lg">
                                                             {album.name}
                                                         </h3>
                                                     </div>
@@ -439,8 +442,12 @@ export default function HomePage() {
                                                     )}
                                                 </div>
 
-                                                <div className="absolute inset-0 flex items-end bg-black/0 p-4 transition-colors duration-300 group-hover:bg-black/60 group-focus-visible:bg-black/60 md:p-5">
-                                                    <h3 className="line-clamp-2 translate-y-2 text-lg font-semibold leading-tight text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 md:text-xl">
+                                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12 md:px-5 md:pb-5">
+                                                    <p className="mb-0.5 font-mono text-[10px] font-medium uppercase tracking-widest text-white/60">
+                                                        {String(recentBlogs.indexOf(blog) + 1).padStart(2, '0')}
+                                                        {blog.category && <span className="ml-1">· {blog.category.name}</span>}
+                                                    </p>
+                                                    <h3 className="line-clamp-1 text-base font-semibold text-white md:text-lg">
                                                         {blog.title}
                                                     </h3>
                                                 </div>
