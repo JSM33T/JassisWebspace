@@ -5,9 +5,8 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { useSearchParams } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
-import { ArrowUpRight, BookOpen, Folder, Image as GalleryIcon, Info, Layers, Mail } from "lucide-react";
+import { ArrowUpRight, BookOpen, Folder, Image as GalleryIcon, Info, Layers, Mail, Music } from "lucide-react";
 
-import { LogoMark } from "@/components/logo-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +34,7 @@ const defaultLinks = [
     { href: "/projects", label: "Projects", icon: Folder },
     { href: "/blog", label: "Blog", icon: BookOpen },
     { href: "/gallery", label: "Gallery", icon: GalleryIcon },
+    { href: "/music", label: "Music", icon: Music },
 ];
 
 const resumeLinks = [
@@ -119,90 +119,126 @@ export default function HomePage() {
             <main className="relative mx-auto max-w-6xl px-6">
                 <motion.div variants={containerVariants} initial="hidden" animate="visible">
                     <motion.section
-                        className="relative mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col items-center justify-center pb-8 pt-24 text-center md:pb-10 md:pt-28"
+                        className="relative flex min-h-[100svh] w-full flex-col items-center justify-center gap-10 pb-8 pt-24 md:flex-row md:items-center md:gap-16 md:pb-10 md:pt-28"
                         variants={itemVariants}
                     >
-                        <motion.div variants={itemVariants} className="mb-10 flex items-start justify-center gap-3 sm:gap-5">
-                            {links.slice(0, 2).map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                    <Link
-                                        key={`icon-left-${item.href}`}
-                                        href={item.href}
-                                        className="flex w-16 flex-col items-center gap-2 text-muted-foreground transition-all hover:-translate-y-0.5 hover:text-foreground sm:w-20"
-                                        aria-label={item.label}
-                                    >
-                                        <span className="flex h-12 w-12 items-center justify-center rounded-full border bg-card/70 sm:h-14 sm:w-14">
-                                            <Icon className="h-5 w-5" />
-                                        </span>
-                                        <span className="text-xs font-medium tracking-wide text-foreground/90">{item.label}</span>
-                                    </Link>
-                                );
-                            })}
-
-                            <div className="flex h-24 w-24 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-lg shadow-primary/20 sm:h-28 sm:w-28">
-                                <LogoMark className="h-11 w-11 sm:h-14 sm:w-14" />
+                        {/* ── Left: text ── */}
+                        <div className="flex w-full flex-col items-center gap-7 text-center md:flex-1 md:items-start md:text-left">
+                            {/* Badge */}
+                            <div className="inline-flex items-center gap-2.5 rounded-full border border-border/60 bg-card/60 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-sm">
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                    <ArrowUpRight className="h-3 w-3" />
+                                </span>
+                                Full-stack Developer &amp; Designer
                             </div>
 
-                            {links.slice(2).map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                    <Link
-                                        key={`icon-right-${item.href}`}
-                                        href={item.href}
-                                        className="flex w-16 flex-col items-center gap-2 text-muted-foreground transition-all hover:-translate-y-0.5 hover:text-foreground sm:w-20"
-                                        aria-label={item.label}
-                                    >
-                                        <span className="flex h-12 w-12 items-center justify-center rounded-full border bg-card/70 sm:h-14 sm:w-14">
-                                            <Icon className="h-5 w-5" />
-                                        </span>
-                                        <span className="text-xs font-medium tracking-wide text-foreground/90">{item.label}</span>
+                            {/* Heading */}
+                            <h1 className="text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
+                                <span className="text-primary">Jassi&apos;s</span>
+                                <br />
+                                <span>Webspace</span>
+                            </h1>
+
+                            {/* Description */}
+                            <p className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
+                                Music, writing, visuals, and background details all sit in one simple flow.
+                            </p>
+
+                            {/* CTAs */}
+                            <div className="flex flex-wrap justify-center gap-3 md:justify-start">
+                                <Button asChild size="lg" className="rounded-full px-7">
+                                    <Link href="/about">
+                                        Explore
+                                        <ArrowUpRight className="ml-2 h-4 w-4" />
                                     </Link>
-                                );
-                            })}
-                        </motion.div>
+                                </Button>
+                                <Button asChild size="lg" variant="secondary" className="rounded-full px-7">
+                                    <Link href="/gallery">
+                                        <GalleryIcon className="mr-2 h-4 w-4" />
+                                        View Gallery
+                                    </Link>
+                                </Button>
+                            </div>
 
-                        <motion.div variants={itemVariants}>
-                            <Badge variant="secondary" className="rounded-full px-4 py-1.5">
-                                Explore
-                            </Badge>
-                        </motion.div>
-
-                        <motion.h1
-                            variants={itemVariants}
-                            className="mt-6 text-balance text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl"
-                        >
-                            <span className="block text-primary">Jassi&apos;s Webspace</span>
-                        </motion.h1>
-
-                        <motion.p
-                            variants={itemVariants}
-                            className="mx-auto mt-6 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl"
-                        >
-                            Jump directly into the sections that matter most. Music, writing,
-                            visuals, and background details all sit in one simple flow.
-                        </motion.p>
-
-                        <motion.div variants={itemVariants} className="mt-10 grid grid-cols-2 gap-3 sm:mx-auto sm:flex sm:w-fit sm:flex-wrap sm:justify-center">
-                            {links.map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                    <Button
-                                        key={`hero-button-${item.href}`}
-                                        asChild
-                                        size="lg"
-                                        variant="secondary"
-                                        className="rounded-full px-6"
-                                    >
-                                        <Link href={item.href}>
-                                            <Icon className="mr-2 h-4 w-4" />
+                            {/* Nav pills — mobile only */}
+                            <div className="flex flex-wrap justify-center gap-2 md:hidden">
+                                {links.map((item) => {
+                                    const Icon = item.icon;
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            className="inline-flex items-center gap-1.5 rounded-full border bg-card/70 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                                        >
+                                            <Icon className="h-3.5 w-3.5" />
                                             {item.label}
                                         </Link>
-                                    </Button>
-                                );
-                            })}
-                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
+                        {/* ── Right: structured two-column panel — desktop only ── */}
+                        <div className="hidden h-[460px] flex-1 gap-3 md:flex">
+                            {/* Left stack: nav + tagline */}
+                            <div className="flex flex-1 flex-col gap-3">
+                                <div className="flex-1 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm backdrop-blur-sm">
+                                    <p className="mb-4 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Navigate</p>
+                                    <div className="space-y-2">
+                                        {links.map((item) => {
+                                            const Icon = item.icon;
+                                            return (
+                                                <Link
+                                                    key={item.href}
+                                                    href={item.href}
+                                                    className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-background/60 px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                                                >
+                                                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                                                    {item.label}
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur-sm">
+                                    <p className="text-[11px] text-muted-foreground">Crafting</p>
+                                    <p className="mt-1 text-sm font-semibold leading-snug">Software, design &amp; creative experiences</p>
+                                </div>
+                            </div>
+
+                            {/* Right: large portrait image card */}
+                            <Link href="/gallery" className="group relative w-[52%] overflow-hidden rounded-2xl border border-border/50 bg-muted shadow-xl transition-shadow duration-300 hover:shadow-2xl">
+                                {!galleryLoading && recentGalleries[0] && getVersionedGalleryCoverUrl(recentGalleries[0]) ? (
+                                    <NextImage
+                                        src={getVersionedGalleryCoverUrl(recentGalleries[0])}
+                                        alt={recentGalleries[0].name}
+                                        fill
+                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                        unoptimized
+                                        priority
+                                    />
+                                ) : (
+                                    <div className="h-full w-full bg-[radial-gradient(circle_at_30%_30%,hsl(var(--primary)/0.4),transparent_60%),linear-gradient(145deg,hsl(var(--muted)),hsl(var(--card)))]" />
+                                )}
+
+                                {/* Albums count badge */}
+                                <div className="absolute left-3 top-3 rounded-full border border-white/20 bg-background/70 px-3 py-1 backdrop-blur-sm">
+                                    <span className="text-xs font-semibold">
+                                        {galleryLoading ? '…' : `${recentGalleries.length}+ Albums`}
+                                    </span>
+                                </div>
+
+                                {/* Bottom label — same style as gallery thumbs */}
+                                {!galleryLoading && recentGalleries[0] && (
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12">
+                                        <p className="mb-0.5 font-mono text-[10px] font-medium uppercase tracking-widest text-white/60">01</p>
+                                        <p className="line-clamp-1 text-sm font-semibold text-white">{recentGalleries[0].name}</p>
+                                    </div>
+                                )}
+                            </Link>
+                        </div>
+
+                        {/* Scroll indicator */}
                         <motion.div
                             variants={itemVariants}
                             className="pointer-events-none absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80 md:flex"
