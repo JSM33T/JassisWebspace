@@ -1,4 +1,3 @@
-import inkstone from "./inkstone.json";
 import slateClassic from "./slate-classic.json";
 import sunsetCopper from "./sunset-copper.json";
 import lilacSoft from "./lilac-soft.json";
@@ -8,7 +7,6 @@ import type { ThemeSet } from "./types";
 
 export const themeSets: ThemeSet[] = [
   slateClassic as ThemeSet,
-  inkstone as ThemeSet,
   ivoryTeal as ThemeSet,
   sunsetCopper as ThemeSet,
   lilacSoft as ThemeSet,
