@@ -7,6 +7,9 @@ import { likeService } from '@/lib/api/like.service';
 import { useUser } from '@/contexts/UserContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { buildAuthRequiredLoginHref } from '@/lib/auth-redirect';
 
 interface LikeButtonProps {
     contentId: string;
@@ -16,6 +19,7 @@ interface LikeButtonProps {
 
 export function LikeButton({ contentId, initialCount, initialLiked }: LikeButtonProps) {
     const { user, isAuthenticated } = useUser();
+    const pathname = usePathname();
     const [likeCount, setLikeCount] = useState(initialCount);
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +58,12 @@ export function LikeButton({ contentId, initialCount, initialLiked }: LikeButton
 
     const handleToggleLike = async () => {
         if (!isAuthenticated || !user?.login) {
-            toast.error('Login first to like or comment');
+            toast.error(
+                <span>
+                    <Link href={buildAuthRequiredLoginHref(pathname)} className="underline font-medium">Login</Link>
+                    {' '}first to like or comment
+                </span>
+            );
             return;
         }
 

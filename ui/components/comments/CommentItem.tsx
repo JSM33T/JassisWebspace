@@ -14,8 +14,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils'; // Assuming utils exists, otherwise I'll mock/check
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { buildAuthRequiredLoginHref } from '@/lib/auth-redirect';
 
 interface CommentItemProps {
     comment: CommentNode;
@@ -35,6 +38,7 @@ export function CommentItem({
     depth = 0
 }: CommentItemProps) {
     const { user, isAuthenticated } = useUser();
+    const pathname = usePathname();
     const [isReplying, setIsReplying] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -55,7 +59,12 @@ export function CommentItem({
 
     const handleStartReply = () => {
         if (!isAuthenticated || !user?.login) {
-            toast.error('Login first to like or comment');
+            toast.error(
+                <span>
+                    <Link href={buildAuthRequiredLoginHref(pathname)} className="underline font-medium">Login</Link>
+                    {' '}first to like or comment
+                </span>
+            );
             return;
         }
 

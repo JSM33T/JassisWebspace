@@ -22,6 +22,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { MessageSquare, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { buildAuthRequiredLoginHref } from '@/lib/auth-redirect';
 
 interface CommentSectionProps {
     contentId: string;
@@ -29,6 +32,7 @@ interface CommentSectionProps {
 
 export function CommentSection({ contentId }: CommentSectionProps) {
     const { user, isAuthenticated } = useUser();
+    const pathname = usePathname();
     const [comments, setComments] = useState<CommentResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -42,7 +46,12 @@ export function CommentSection({ contentId }: CommentSectionProps) {
 
     const ensureAuthenticated = () => {
         if (!isAuthenticated || !user?.login) {
-            toast.error('Login first to like or comment');
+            toast.error(
+                <span>
+                    <Link href={buildAuthRequiredLoginHref(pathname)} className="underline font-medium">Login</Link>
+                    {' '}first to like or comment
+                </span>
+            );
             return false;
         }
 
