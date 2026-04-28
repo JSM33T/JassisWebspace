@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Disc3, Music, Play } from 'lucide-react';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
@@ -227,7 +226,7 @@ export default function MusicPage() {
                             No tracks found.
                         </div>
                     ) : null}
-                    <div className="grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div className="grid max-w-6xl grid-cols-2 gap-4 md:grid-cols-3">
                         {filteredTracks.map((track, index) => (
                             <motion.div
                                 key={track.id}
@@ -235,60 +234,64 @@ export default function MusicPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.25, delay: index * 0.02 }}
                             >
-                                <Card
-                                    className={`h-full rounded-2xl border backdrop-blur-sm transition-all duration-300 ${
+                                <div
+                                    className={`group relative aspect-square overflow-hidden rounded-2xl border transition-all duration-300 ${
                                         track.hasPlayableSource
-                                            ? 'bg-card/50 hover:bg-card/80 hover:shadow-lg'
-                                            : 'bg-card/30 opacity-60 saturate-50'
+                                            ? 'hover:-translate-y-0.5 hover:shadow-xl'
+                                            : 'opacity-60 saturate-50'
                                     }`}
                                 >
-                                    <div className="px-4 py-0 flex items-center gap-3">
-                                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-primary/30 bg-muted sm:h-32 sm:w-32">
-                                            {track.cover ? (
-                                                <Image
-                                                    src={track.cover}
-                                                    alt={track.title}
-                                                    fill
-                                                    sizes="128px"
-                                                    className="object-cover"
-                                                />
-                                            ) : (
-                                                <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                                                    <Disc3 className="h-8 w-8" />
-                                                </div>
-                                            )}
+                                    {/* Background image */}
+                                    {track.cover ? (
+                                        <Image
+                                            src={track.cover}
+                                            alt={track.title}
+                                            fill
+                                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/30 via-muted to-secondary/30">
+                                            <Disc3 className="h-12 w-12 text-white/30" />
                                         </div>
+                                    )}
 
-                                        <div className="flex min-w-0 flex-1 flex-col">
-                                            <CardTitle className="text-lg font-semibold tracking-tight line-clamp-1">
-                                                {track.title}
-                                            </CardTitle>
-                                            <CardDescription className="text-sm pt-1 leading-relaxed line-clamp-2">
-                                                {track.description}
-                                            </CardDescription>
-                                            <p className="pt-2 text-xs text-muted-foreground line-clamp-1">
-                                                {track.authors.map((author) => author.displayName || author.username).join(', ')}
-                                            </p>
-                                            <div className="pt-3 flex items-center gap-2">
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    className="h-8 cursor-pointer rounded-full px-4"
-                                                    onClick={() => {
-                                                        void handlePlay(track);
-                                                    }}
-                                                    disabled={!track.hasPlayableSource || playingTrackId === track.id}
-                                                >
-                                                    <Play className="mr-1 h-3.5 w-3.5 fill-current" />
-                                                    {playingTrackId === track.id ? 'Loading...' : 'Play'}
-                                                </Button>
-                                                <Button asChild type="button" size="sm" variant="outline" className="rounded-full h-8 px-4">
-                                                    <Link href={`/music/${track.slug}`}>Open</Link>
-                                                </Button>
-                                            </div>
+                                    {/* Gradient overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+                                    {/* Category badge — top right */}
+                                    <div className="absolute right-3 top-3">
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/50 px-2.5 py-1 text-[10px] font-medium text-white/90 backdrop-blur-sm">
+                                            <Disc3 className="h-3 w-3" />
+                                            {formatCategory(track.category)}
+                                        </span>
+                                    </div>
+
+                                    {/* Bottom content */}
+                                    <div className="absolute inset-x-0 bottom-0 p-4">
+                                        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-white sm:text-base">
+                                            {track.title}
+                                        </h3>
+                                        <p className="mt-1 line-clamp-1 text-[11px] text-white/55">
+                                            {track.authors.map((author) => author.displayName || author.username).join(', ')}
+                                        </p>
+                                        <div className="mt-3 flex items-center gap-2">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="h-10 flex-1 cursor-pointer rounded-full text-sm font-semibold"
+                                                onClick={() => { void handlePlay(track); }}
+                                                disabled={!track.hasPlayableSource || playingTrackId === track.id}
+                                            >
+                                                <Play className="mr-1.5 h-3.5 w-3.5 fill-current" />
+                                                {playingTrackId === track.id ? 'Loading…' : 'Play'}
+                                            </Button>
+                                            <Button asChild type="button" size="sm" variant="outline" className="h-10 flex-1 rounded-full border-white/20 bg-white/10 text-sm font-semibold text-white hover:bg-white/20 hover:text-white">
+                                                <Link href={`/music/${track.slug}`}>Open</Link>
+                                            </Button>
                                         </div>
                                     </div>
-                                </Card>
+                                </div>
                             </motion.div>
                         ))}
                     </div>

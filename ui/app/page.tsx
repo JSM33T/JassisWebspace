@@ -119,7 +119,7 @@ export default function HomePage() {
             <main className="relative mx-auto max-w-6xl px-6">
                 <motion.div variants={containerVariants} initial="hidden" animate="visible">
                     <motion.section
-                        className="relative flex min-h-[100svh] w-full flex-col items-center justify-center gap-10 pb-8 pt-24 md:flex-row md:items-center md:gap-16 md:pb-10 md:pt-28"
+                        className="relative flex min-h-[calc(100svh-4.25rem)] w-full flex-col items-center justify-center gap-10 pb-8 pt-8 md:flex-row md:items-center md:gap-16 md:pb-10 md:pt-10"
                         variants={itemVariants}
                     >
                         {/* ── Left: text ── */}
