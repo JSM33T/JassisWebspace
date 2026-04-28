@@ -129,7 +129,7 @@ export default function HomePage() {
                                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                                     <ArrowUpRight className="h-3 w-3" />
                                 </span>
-                                Full-stack Developer &amp; Designer
+                                Software Engineer &amp; Wanderer
                             </div>
 
                             {/* Heading */}

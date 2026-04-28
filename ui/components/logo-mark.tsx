@@ -127,6 +127,18 @@ export function LogoMark({ className }: LogoMarkProps) {
                         animation: none;
                     }
                 }
+
+                @media (max-width: 1023px) {
+                    .logo-fill {
+                        opacity: 1;
+                        animation: none;
+                    }
+
+                    .logo-stroke {
+                        opacity: 0;
+                        animation: none;
+                    }
+                }
             `}</style>
         </>
     );

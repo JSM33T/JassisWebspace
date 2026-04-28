@@ -31,7 +31,7 @@ const socialLinks = [
 export function Footer() {
     return (
         <footer className="relative px-4 pb-0 pt-20 md:px-8 md:pt-24">
-            <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-7xl">
                 {/* Main card */}
                 <div className="rounded-3xl border border-border/50 bg-card/60 px-8 py-10 backdrop-blur-sm md:px-12 md:py-12">
                     <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
