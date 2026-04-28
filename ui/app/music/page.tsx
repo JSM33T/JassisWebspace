@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { PageIntroCard } from '@/components/page-intro-card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -150,58 +150,53 @@ export default function MusicPage() {
             transition={{ duration: 0.5, ease: "easeOut" }}
             className="flex flex-col min-h-screen bg-background/50"
         >
-            {/* Ambient Background Glow */}
-            <div className="fixed inset-0 z-[-1] pointer-events-none">
-                <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
+            <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
+                <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
+                <div className="mx-auto max-w-6xl relative">
+                    <Badge variant="secondary" className="w-fit gap-2 rounded-full border-border/50 bg-background/55 px-4 py-1.5 text-sm font-normal backdrop-blur-sm">
+                        <Music className="h-3.5 w-3.5 text-primary" />
+                        Audio Library
+                    </Badge>
+                    <h1 className="mt-5 text-5xl font-bold tracking-tight md:text-6xl">Music</h1>
+                    <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
+                        Explore all published tracks from the catalog.
+                    </p>
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-2">
+                            <Switch
+                                checked={playableOnly}
+                                onCheckedChange={setPlayableOnly}
+                                aria-label="Show playable tracks only"
+                            />
+                            <span className="text-sm text-foreground">Playable only</span>
+                        </div>
+                        <div className="flex gap-2 rounded-full border border-border/60 bg-background/60 p-1">
+                            {(
+                                [
+                                    { value: 'category', label: 'Category' },
+                                    { value: 'newest', label: 'Newest' },
+                                    { value: 'title', label: 'Title' },
+                                ] as const
+                            ).map((option) => (
+                                <Button
+                                    key={option.value}
+                                    type="button"
+                                    size="sm"
+                                    variant={sortOrder === option.value ? 'default' : 'ghost'}
+                                    className="h-8 rounded-full px-4"
+                                    onClick={() => setSortOrder(option.value)}
+                                >
+                                    {option.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <main className="flex-1 px-4 pb-14 pt-8 md:pb-16 md:pt-10">
-                <div className="container mx-auto max-w-6xl pt-12">
-                    <PageIntroCard
-                        badge="Audio Library"
-                        badgeIcon={Music}
-                        title="Music"
-                        description="Explore all published tracks from the catalog."
-                    >
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                            <p className="text-sm text-muted-foreground">
-                                Refine the list by category, sort order, or playable status.
-                            </p>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-2">
-                                    <Switch
-                                        checked={playableOnly}
-                                        onCheckedChange={setPlayableOnly}
-                                        aria-label="Show playable tracks only"
-                                    />
-                                    <span className="text-sm text-foreground">Playable only</span>
-                                </div>
-                                <div className="flex gap-2 rounded-full border border-border/60 bg-background/60 p-1">
-                                    {(
-                                        [
-                                            { value: 'category', label: 'Category' },
-                                            { value: 'newest', label: 'Newest' },
-                                            { value: 'title', label: 'Title' },
-                                        ] as const
-                                    ).map((option) => (
-                                        <Button
-                                            key={option.value}
-                                            type="button"
-                                            size="sm"
-                                            variant={sortOrder === option.value ? 'default' : 'ghost'}
-                                            className="h-8 rounded-full px-4"
-                                            onClick={() => setSortOrder(option.value)}
-                                        >
-                                            {option.label}
-                                        </Button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </PageIntroCard>
-
-                    <div className="mt-6 mb-6 flex max-w-6xl flex-wrap gap-2">
+            <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
+                <div className="mx-auto max-w-6xl pt-4">
+                    <div className="mb-6 flex flex-wrap gap-2">
                         {categories.map((category) => {
                             const isActive = selectedCategory === category;
                             const count = category === 'all'

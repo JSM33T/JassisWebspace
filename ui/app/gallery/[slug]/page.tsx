@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { LikeButton } from '@/components/likes/LikeButton';
-import { PageIntroCard } from '@/components/page-intro-card';
+import { Badge } from '@/components/ui/badge';
 import { toGalleryThumbUrl } from '@/lib/gallery-media';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
@@ -190,59 +190,64 @@ export default function AlbumDetailPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
-            <div className="fixed inset-0 z-[-1] pointer-events-none">
-                <div className="absolute top-[-10%] left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary/5 blur-[120px]" />
-                <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-secondary/8 blur-[120px]" />
+            <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
+                <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
+                <div className="mx-auto max-w-5xl relative">
+                    <div className="flex items-center gap-3 mb-5">
+                        <Button variant="ghost" size="sm" asChild className="rounded-full border border-border/60 bg-background/60 px-4 backdrop-blur-sm hover:bg-background/90">
+                            <Link href="/gallery">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Gallery
+                            </Link>
+                        </Button>
+                    </div>
+                    <Badge variant="secondary" className="w-fit gap-2 rounded-full border-border/50 bg-background/55 px-4 py-1.5 text-sm font-normal backdrop-blur-sm">
+                        <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                        Creative Showcase
+                    </Badge>
+                    <h1 className="mt-5 text-5xl font-bold tracking-tight md:text-6xl">{album.name}</h1>
+                    {album.description && (
+                        <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{album.description}</p>
+                    )}
+                    {album.authors.length > 0 && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            By {album.authors.map((a) => a.displayName || a.username).join(', ')}
+                        </p>
+                    )}
+                    <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                            <Calendar className="h-4 w-4" />
+                            <span>{formatDate(album.createdAt)}</span>
+                        </div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                            <ImageIcon className="h-4 w-4" />
+                            <span>{album.images.length} {album.images.length === 1 ? 'image' : 'images'}</span>
+                        </div>
+                        {album.contentId && (
+                            <div className="inline-flex items-center rounded-full border border-border/50 bg-background/55 px-1 py-1 backdrop-blur-sm">
+                                <LikeButton
+                                    contentId={album.contentId}
+                                    initialCount={album.likeCount}
+                                    initialLiked={album.isLiked}
+                                />
+                            </div>
+                        )}
+                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                            <MessageSquare className="h-4 w-4" />
+                            <span>{album.commentCount}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <main className="flex-1 px-4 pb-16 pt-8 md:pt-10">
+            <main className="flex-1 px-4 pb-16 pt-8 md:px-8 md:pt-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="container mx-auto max-w-5xl pt-12"
+                    className="mx-auto max-w-5xl pt-4"
                 >
-                    <PageIntroCard
-                        badge="Creative Showcase"
-                        badgeIcon={ImageIcon}
-                        title={album.name}
-                        description={album.description}
-                        showBackButton
-                        backHref="/gallery"
-                        backLabel="Back to Gallery"
-                    >
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
-                                <Calendar className="h-4 w-4" />
-                                <span>{formatDate(album.createdAt)}</span>
-                            </div>
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
-                                <ImageIcon className="h-4 w-4" />
-                                <span>{album.images.length} {album.images.length === 1 ? 'image' : 'images'}</span>
-                            </div>
-                            {album.contentId && (
-                                <div className="inline-flex items-center rounded-full border border-border/50 bg-background/55 px-1 py-1 backdrop-blur-sm">
-                                    <LikeButton
-                                        contentId={album.contentId}
-                                        initialCount={album.likeCount}
-                                        initialLiked={album.isLiked}
-                                    />
-                                </div>
-                            )}
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
-                                <MessageSquare className="h-4 w-4" />
-                                <span>{album.commentCount}</span>
-                            </div>
-                        </div>
-
-                        {album.authors.length > 0 && (
-                            <div className="mt-4 text-sm text-muted-foreground">
-                                By {album.authors.map((a) => a.displayName || a.username).join(', ')}
-                            </div>
-                        )}
-                    </PageIntroCard>
-
-                    <section className="mt-6">
+                    <section>
                     {/* Grid uses thumbs by default; Lightbox uses original `image.url` for full size. */}
                     {album.images.length === 0 ? (
                         <div className="text-center py-20 bg-muted/10 rounded-3xl border border-dashed">

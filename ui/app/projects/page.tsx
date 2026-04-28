@@ -7,7 +7,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { PageIntroCard } from '@/components/page-intro-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -100,16 +99,26 @@ export default function ProjectsPage() {
                 <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
             </div>
 
-            <main className="flex-1 px-4 pb-14 pt-8 md:pb-16 md:pt-10">
-                <div className="container mx-auto max-w-6xl pt-12">
-                    <PageIntroCard
-                        badge="Portfolio"
-                        badgeIcon={FolderCode}
-                        title="Projects"
-                        description="A showcase of my innovative projects and technical solutions."
-                    />
+            <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
+                <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
+                <div className="mx-auto max-w-6xl relative">
+                    <Badge
+                        variant="secondary"
+                        className="w-fit gap-2 rounded-full border-border/50 bg-background/55 px-4 py-1.5 text-sm font-normal backdrop-blur-sm"
+                    >
+                        <FolderCode className="h-3.5 w-3.5 text-primary" />
+                        Portfolio
+                    </Badge>
+                    <h1 className="mt-5 text-5xl font-bold tracking-tight md:text-6xl">Projects</h1>
+                    <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
+                        A showcase of my innovative projects and technical solutions.
+                    </p>
+                </div>
+            </div>
 
-                    <div className="mt-6 grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
+            <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
+                <div className="mx-auto max-w-6xl pt-4">
+                    <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
                         {projects.map((project, index) => (
                             <motion.div
                                 key={project.title}

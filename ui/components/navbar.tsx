@@ -32,7 +32,35 @@ import {
     SheetTrigger,
     SheetClose,
 } from '@/components/ui/sheet';
-import { Menu, LogOut, User, UserCircle, Settings, Shield, Sparkles, AtSign, BookOpen, FileText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Image, Music, LayoutDashboard, Briefcase, FolderCode, PanelRight, Pause, Play, SkipBack, SkipForward, Square, Library, Sun, Moon, Mail, House, Search } from 'lucide-react';
+import {
+    Menu,
+    LogOut,
+    User,
+    UserCircle,
+    Settings,
+    Shield,
+    AtSign,
+    BookOpen,
+    FileText,
+    ChevronDown,
+    Image,
+    Music,
+    LayoutDashboard,
+    Briefcase,
+    FolderCode,
+    PanelRight,
+    Pause,
+    Play,
+    SkipBack,
+    SkipForward,
+    Square,
+    Library,
+    Sun,
+    Moon,
+    Mail,
+    House,
+    Search,
+} from 'lucide-react';
 import { SearchModal } from '@/components/search-modal';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -43,7 +71,6 @@ import { cn } from '@/lib/utils';
 import { buildLoginHref } from '@/lib/auth-redirect';
 import { AudioSidebarVisualizer } from '@/components/audio-sidebar-visualizer';
 import { AnimatePresence, motion } from 'framer-motion';
-import { NAVBAR_EXPANDED_EVENT, NAVBAR_EXPANDED_STORAGE_KEY } from '@/lib/navbar-layout';
 
 const SIDEBAR_OPEN_EVENT = 'app-sidebar:set-open';
 
@@ -69,13 +96,9 @@ export function Navbar() {
     const searchParams = useSearchParams();
     const [menuOpen, setMenuOpen] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [isNavbarHidden, setIsNavbarHidden] = useState(false);
-    const [isRailExpanded, setIsRailExpanded] = useState(false);
-    const [showRailScrollUpHint, setShowRailScrollUpHint] = useState(false);
-    const [showRailScrollDownHint, setShowRailScrollDownHint] = useState(false);
 
     const handleLogout = async () => {
         setShowLogoutDialog(false);
@@ -83,94 +106,39 @@ export function Navbar() {
         router.push('/');
     };
 
-    // Liquid hover effect state
-    const [, setHoveredLink] = useState<string | null>(null);
-    const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
     const navRef = useRef<HTMLDivElement>(null);
-    const railRef = useRef<HTMLDivElement>(null);
-    const railScrollAreaRef = useRef<HTMLDivElement>(null);
-    const [railHoverStyle, setRailHoverStyle] = useState({
-        top: 0,
-        left: 0,
-        width: 0,
-        height: 0,
-        opacity: 0,
-    });
+    const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
 
-    // Navigation menu configuration - single source of truth
     const normalizedRole = (user?.role ?? '').toLowerCase();
 
-    const navigationLinks = [
-        { href: '/', label: 'Home', id: 'home' },
-    ];
-
     const studioMenuItems = [
-        {
-            href: '/blog',
-            label: 'Blog',
-            description: 'Read our latest posts and updates',
-            icon: FileText,
-        },
-        {
-            href: '/gallery',
-            label: 'Gallery',
-            description: 'View our creative gallery',
-            icon: Image,
-        },
-        {
-            href: '/music',
-            label: 'Music',
-            description: 'Explore our music collection',
-            icon: Music,
-        },
-        //   {
-        //     href: '/tools',
-        //     label: 'Tools',
-        //     description: 'Online Web Tools',
-        //     icon: Music,
-        // },
+        { href: '/blog', label: 'Blog', description: 'Read our latest posts and updates', icon: FileText },
+        { href: '/gallery', label: 'Gallery', description: 'View our creative gallery', icon: Image },
+        { href: '/music', label: 'Music', description: 'Explore our music collection', icon: Music },
     ];
 
     const workMenuItems = [
-        {
-            href: '/projects',
-            label: 'Projects',
-            description: 'View our completed projects',
-            icon: FolderCode,
-        },
-        {
-            href: '/services',
-            label: 'Services',
-            description: 'Explore the services we offer',
-            icon: Briefcase,
-        },
+        { href: '/projects', label: 'Projects', description: 'View our completed projects', icon: FolderCode },
+        { href: '/services', label: 'Services', description: 'Explore the services we offer', icon: Briefcase },
     ];
 
     const aboutMenuItems = [
+        { href: '/about', label: 'About', description: 'Learn about JassSpace and our mission', icon: UserCircle },
+        { href: '/contact', label: 'Contact', description: 'Get in touch with our team', icon: Mail },
+        { href: '/privacy', label: 'Privacy Policy', description: 'See how we handle your data', icon: Shield },
+        { href: '/faq', label: 'FAQ', description: 'Common questions and answers', icon: BookOpen },
+    ];
+
+    const mobileMenuSections = [
         {
-            href: '/about',
-            label: 'About',
-            description: 'Learn about JassSpace and our mission',
-            icon: UserCircle,
+            title: 'Explore',
+            items: [
+                { href: '/', label: 'Home', icon: House },
+                ...studioMenuItems,
+            ],
         },
-        {
-            href: '/contact',
-            label: 'Contact',
-            description: 'Get in touch with our team',
-            icon: Mail,
-        },
-        {
-            href: '/privacy',
-            label: 'Privacy Policy',
-            description: 'See how we handle your data',
-            icon: Shield,
-        },
-        {
-            href: '/faq',
-            label: 'FAQ',
-            description: 'Common questions and answers',
-            icon: BookOpen,
-        },
+        { title: 'Work', items: workMenuItems },
+        { title: 'About', items: aboutMenuItems },
     ];
 
     const isActivePath = (href: string) => {
@@ -182,7 +150,7 @@ export function Navbar() {
         items.some((item) => isActivePath(item.href));
 
     const navDropdownContentClassName =
-        "w-72 rounded-2xl border border-border/60 bg-background/70 p-2 text-foreground shadow-xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60";
+        'w-72 rounded-2xl border border-border/60 bg-background/70 p-2 text-foreground shadow-xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60';
 
     const formatAudioTime = (seconds: number) => {
         if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
@@ -205,24 +173,16 @@ export function Navbar() {
         : pathname;
     const loginHref = buildLoginHref(currentPathWithQuery);
 
-
     const roleDisplayName =
         normalizedRole === 'admin'
             ? 'Admin'
             : normalizedRole === 'mod'
-                ? 'Mod'
-                : normalizedRole === 'user'
-                    ? 'User'
-                    : normalizedRole
-                        ? normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1)
-                        : 'User';
-
-    useEffect(() => {
-        const savedState = window.localStorage.getItem(NAVBAR_EXPANDED_STORAGE_KEY);
-        if (savedState === 'true') {
-            setIsRailExpanded(true);
-        }
-    }, []);
+              ? 'Mod'
+              : normalizedRole === 'user'
+                ? 'User'
+                : normalizedRole
+                  ? normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1)
+                  : 'User';
 
     useEffect(() => {
         const handleGlobalKey = (e: KeyboardEvent) => {
@@ -234,38 +194,6 @@ export function Navbar() {
         window.addEventListener('keydown', handleGlobalKey);
         return () => window.removeEventListener('keydown', handleGlobalKey);
     }, []);
-
-    useEffect(() => {
-        window.localStorage.setItem(NAVBAR_EXPANDED_STORAGE_KEY, String(isRailExpanded));
-        window.dispatchEvent(new CustomEvent<boolean>(NAVBAR_EXPANDED_EVENT, { detail: isRailExpanded }));
-    }, [isRailExpanded]);
-
-    useEffect(() => {
-        const scrollArea = railScrollAreaRef.current;
-        if (!scrollArea) {
-            setShowRailScrollUpHint(false);
-            setShowRailScrollDownHint(false);
-            return;
-        }
-
-        const updateScrollHints = () => {
-            const { scrollTop, clientHeight, scrollHeight } = scrollArea;
-            const maxScrollTop = scrollHeight - clientHeight;
-            const hasOverflow = maxScrollTop > 4;
-
-            setShowRailScrollUpHint(hasOverflow && scrollTop > 8);
-            setShowRailScrollDownHint(hasOverflow && scrollTop < maxScrollTop - 8);
-        };
-
-        updateScrollHints();
-        scrollArea.addEventListener('scroll', updateScrollHints, { passive: true });
-        window.addEventListener('resize', updateScrollHints);
-
-        return () => {
-            scrollArea.removeEventListener('scroll', updateScrollHints);
-            window.removeEventListener('resize', updateScrollHints);
-        };
-    }, [isRailExpanded, sidebarOpen, pathname]);
 
     useEffect(() => {
         const topThreshold = 24;
@@ -283,19 +211,14 @@ export function Navbar() {
                 return;
             }
 
-            if (Math.abs(scrollDelta) < scrollDeltaThreshold) {
-                return;
-            }
+            if (Math.abs(scrollDelta) < scrollDeltaThreshold) return;
 
             setIsNavbarHidden(scrollDelta > 0);
             lastScrollY = currentScrollY;
         };
 
         const handleScroll = () => {
-            if (animationFrameId !== null) {
-                return;
-            }
-
+            if (animationFrameId !== null) return;
             animationFrameId = window.requestAnimationFrame(() => {
                 updateNavbarVisibility();
                 animationFrameId = null;
@@ -303,12 +226,9 @@ export function Navbar() {
         };
 
         updateNavbarVisibility();
-
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => {
-            if (animationFrameId !== null) {
-                window.cancelAnimationFrame(animationFrameId);
-            }
+            if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
             window.removeEventListener('scroll', handleScroll);
         };
     }, []);
@@ -316,15 +236,10 @@ export function Navbar() {
     useEffect(() => {
         const handleSidebarState = (event: Event) => {
             const detail = (event as CustomEvent<boolean>).detail;
-            if (typeof detail === 'boolean') {
-                setSidebarOpen(detail);
-            }
+            if (typeof detail === 'boolean') setSidebarOpen(detail);
         };
-
         window.addEventListener(SIDEBAR_OPEN_EVENT, handleSidebarState as EventListener);
-        return () => {
-            window.removeEventListener(SIDEBAR_OPEN_EVENT, handleSidebarState as EventListener);
-        };
+        return () => window.removeEventListener(SIDEBAR_OPEN_EVENT, handleSidebarState as EventListener);
     }, []);
 
     useEffect(() => {
@@ -333,10 +248,7 @@ export function Navbar() {
             window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: false }));
             setSidebarOpen(false);
         }, 0);
-
-        return () => {
-            window.clearTimeout(timeoutId);
-        };
+        return () => window.clearTimeout(timeoutId);
     }, [pathname]);
 
     const handleSidebarOpenChange = (open: boolean) => {
@@ -346,287 +258,153 @@ export function Navbar() {
         }
     };
 
-    const updateRailHoverStyle = (element: HTMLElement) => {
-        const rect = element.getBoundingClientRect();
-        const parentRect = railRef.current?.getBoundingClientRect();
-
-        if (!parentRect) return;
-
-        setRailHoverStyle({
-            top: rect.top - parentRect.top - 2,
-            left: rect.left - parentRect.left - 2,
-            width: rect.width + 4,
-            height: rect.height + 4,
-            opacity: 1,
-        });
+    const handleNavLinkHover = (e: React.MouseEvent<HTMLElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const parentRect = navRef.current?.getBoundingClientRect();
+        if (parentRect) {
+            setHoverStyle({ left: rect.left - parentRect.left, width: rect.width, opacity: 1 });
+        }
     };
 
-    const clearRailHoverStyle = () => {
-        setRailHoverStyle((prev) => ({ ...prev, opacity: 0 }));
-    };
+    const topNavLinkClass = (active: boolean) =>
+        cn(
+            'relative flex items-center gap-1 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-200 z-10 outline-none',
+            active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+        );
 
-    const desktopRailSections = [
-        {
-            title: 'Media',
-            items: studioMenuItems,
-        },
-        {
-            title: 'Work',
-            items: workMenuItems,
-        },
-        {
-            title: 'About',
-            items: aboutMenuItems.filter((item) => item.href === '/about' || item.href === '/contact'),
-        },
-    ];
-
-    const supportMenuItems = aboutMenuItems.filter(
-        (item) => item.href === '/privacy' || item.href === '/faq'
+    const accountDropdownContent = (
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                    <p className="truncate text-sm font-medium leading-none">{userHelpers.getFirstName(user)}</p>
+                    <div className="flex w-full items-center justify-between gap-2 pt-0.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1 truncate">
+                            <AtSign className="h-3 w-3 shrink-0 text-muted-foreground/80" />
+                            <span className="max-w-[10rem] truncate font-medium">
+                                {user?.username?.replace(/^@+/, '')}
+                            </span>
+                        </div>
+                        {user?.role && (
+                            <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground/70">
+                                {roleDisplayName}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {normalizedRole === 'admin' && (
+                <DropdownMenuItem asChild>
+                    <Link href="/admin" className="cursor-pointer">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Admin
+                    </Link>
+                </DropdownMenuItem>
+            )}
+            <DropdownMenuItem asChild>
+                <Link href="/account/profile" className="cursor-pointer">
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    Profile
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/account/preferences" className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/account/security" className="cursor-pointer">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Security
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+                onClick={() => setShowLogoutDialog(true)}
+                className="cursor-pointer text-red-600 focus:text-red-600"
+            >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+            </DropdownMenuItem>
+        </DropdownMenuContent>
     );
-
-    const mobileMenuSections = [
-        {
-            title: 'Explore',
-            items: [
-                { href: '/', label: 'Home', icon: House },
-                ...studioMenuItems,
-            ],
-        },
-        { title: 'Work', items: workMenuItems },
-        { title: 'About', items: aboutMenuItems },
-    ];
-
-    const railItemClassName =
-        'group relative flex h-11 cursor-pointer items-center rounded-2xl border border-transparent bg-background/35 text-muted-foreground outline-none transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
-
-    const railIconClassName = 'h-[18px] w-[18px]';
-    const railBubbleClassName =
-        'pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-xl border border-border/70 bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground opacity-0 shadow-lg shadow-black/10 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100';
-
 
     return (
         <>
-            <nav className="fixed inset-y-4 left-4 z-50 hidden lg:flex">
-                <div className="relative h-full">
-                    <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-primary/20 via-primary/8 to-primary/16 blur-2xl" />
-                    <div
-                        ref={railRef}
-                        className={cn(
-                            'relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-[2rem] border border-border/60 bg-background/85 px-3 py-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75',
-                            isRailExpanded ? 'w-64 items-stretch' : 'w-20 items-center'
-                        )}
-                        onMouseLeave={clearRailHoverStyle}
-                        onBlurCapture={(event) => {
-                            const nextTarget = event.relatedTarget;
-                            if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
-                                clearRailHoverStyle();
-                            }
-                        }}
+            {/* ── Desktop horizontal top navbar ── */}
+            <nav
+                className={cn(
+                    'fixed inset-x-0 top-0 z-50 hidden lg:block',
+                    'border-b border-border/60 bg-background/95 shadow-sm shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/88',
+                    'transition-transform duration-300',
+                    isNavbarHidden ? '-translate-y-full' : 'translate-y-0'
+                )}
+            >
+                <div className="mx-auto flex h-[4.25rem] max-w-screen-2xl items-center gap-6 px-6 lg:px-10">
+                    {/* Logo */}
+                    <Link
+                        href="/"
+                        className="flex shrink-0 items-center gap-2.5 text-foreground transition-colors hover:text-primary"
                     >
-                        <motion.span
-                            aria-hidden="true"
-                            className="pointer-events-none absolute rounded-[1.35rem] border border-border/70 bg-accent/70 shadow-lg shadow-primary/10 backdrop-blur-sm"
-                            animate={{
-                                top: railHoverStyle.top,
-                                left: railHoverStyle.left,
-                                width: railHoverStyle.width,
-                                height: railHoverStyle.height,
-                                opacity: railHoverStyle.opacity,
-                            }}
-                            transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.45 }}
-                        />
-                        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3 overflow-hidden">
+                        <LogoMark className="h-8 w-8" />
+                        <span className="hidden text-sm font-semibold tracking-tight xl:block">JassSpace</span>
+                    </Link>
+
+                    {/* Center nav links */}
+                    <div className="flex flex-1 items-center justify-center">
+                        <div
+                            ref={navRef}
+                            className="relative flex items-center"
+                            onMouseLeave={() => setHoverStyle((prev) => ({ ...prev, opacity: 0 }))}
+                        >
+                            {/* Sliding hover pill */}
+                            <div
+                                aria-hidden="true"
+                                className="pointer-events-none absolute h-8 rounded-full bg-accent/60 transition-all duration-200 ease-out"
+                                style={{
+                                    left: `${hoverStyle.left}px`,
+                                    width: `${hoverStyle.width}px`,
+                                    opacity: hoverStyle.opacity,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                }}
+                            />
+
+                            {/* Home */}
                             <Link
                                 href="/"
-                                className={cn(
-                                    'group relative flex h-12 items-center rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/18 to-background/80 text-primary transition-all duration-200 hover:-translate-y-0.5',
-                                    isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-12 justify-center'
-                                )}
-                                aria-label="Home"
-                                title="Home"
-                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
+                                aria-current={isActivePath('/') ? 'page' : undefined}
+                                className={topNavLinkClass(isActivePath('/'))}
+                                onMouseEnter={handleNavLinkHover}
                             >
-                                <House className="h-5 w-5" />
-                                {isRailExpanded ? (
-                                    <span className="truncate text-sm font-semibold text-foreground">Home</span>
-                                ) : (
-                                    <span className={railBubbleClassName}>Home</span>
+                                {isActivePath('/') && (
+                                    <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />
                                 )}
+                                Home
                             </Link>
 
-                            <button
-                                type="button"
-                                className={cn(
-                                    railItemClassName,
-                                    isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center'
-                                )}
-                                onClick={() => setSearchOpen(true)}
-                                aria-label="Search"
-                                title="Search (⌘K)"
-                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
-                            >
-                                <Search className={railIconClassName} />
-                                {isRailExpanded ? (
-                                    <span className="flex-1 truncate text-sm font-medium text-foreground">Search</span>
-                                ) : (
-                                    <span className={railBubbleClassName}>Search <kbd className="ml-1 font-mono text-[9px]">⌘K</kbd></span>
-                                )}
-                                {isRailExpanded ? (
-                                    <kbd className="rounded border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">⌘K</kbd>
-                                ) : null}
-                            </button>
-
-                            <button
-                                type="button"
-                                className={cn(
-                                    railItemClassName,
-                                    isRailExpanded ? 'w-full justify-between px-3' : 'w-11 justify-center'
-                                )}
-                                onClick={() => setIsRailExpanded((prev) => !prev)}
-                                aria-expanded={isRailExpanded}
-                                aria-label={isRailExpanded ? 'Collapse navigation' : 'Expand navigation'}
-                                title={isRailExpanded ? 'Collapse navigation' : 'Expand navigation'}
-                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
-                            >
-                                <span className={cn('flex items-center', isRailExpanded ? 'gap-3' : 'justify-center')}>
-                                    {isRailExpanded ? (
-                                        <ChevronLeft className={railIconClassName} />
-                                    ) : (
-                                        <ChevronRight className={railIconClassName} />
-                                    )}
-                                    {isRailExpanded ? (
-                                        <span className="truncate text-sm font-medium text-foreground">Collapse menu</span>
-                                    ) : null}
-                                </span>
-                                {!isRailExpanded ? <span className={railBubbleClassName}>Expand menu</span> : null}
-                            </button>
-
-                            <div className={cn('bg-gradient-to-r from-transparent via-border to-transparent', isRailExpanded ? 'h-px w-full' : 'h-px w-10')} />
-
-                            <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-                                {showRailScrollUpHint ? (
-                                    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
-                                        <div className="mt-1 flex items-center gap-1 rounded-full border border-border/70 bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-sm backdrop-blur-sm">
-                                            <ChevronUp className="h-3 w-3" />
-                                            <span>Scroll</span>
-                                        </div>
-                                    </div>
-                                ) : null}
-                                {showRailScrollDownHint ? (
-                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center">
-                                        <div className="mb-1 flex items-center gap-1 rounded-full border border-border/70 bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-sm backdrop-blur-sm">
-                                            <span>Scroll</span>
-                                            <ChevronDown className="h-3 w-3" />
-                                        </div>
-                                    </div>
-                                ) : null}
-                                <div
-                                    ref={railScrollAreaRef}
-                                    className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain pr-1"
-                                >
-                                <div className="flex w-full flex-col gap-3 pb-2">
-                                    {desktopRailSections.map((section, sectionIndex) => (
-                                        <ul
-                                            key={`rail-section-${sectionIndex}`}
-                                            role="group"
-                                            aria-label={section.title ?? 'Primary'}
-                                            className={cn('flex flex-col gap-2', isRailExpanded ? 'w-full items-stretch' : 'items-center')}
-                                        >
-                                            {isRailExpanded && section.title ? (
-                                                <li className="px-3 pt-1">
-                                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                                        {section.title}
-                                                    </p>
-                                                </li>
-                                            ) : null}
-                                            {section.items.map((item) => {
-                                                const Icon = item.icon;
-                                                const isActive = isActivePath(item.href);
-
-                                                return (
-                                                    <li key={item.href} className={cn(isRailExpanded ? 'w-full' : 'contents')}>
-                                                        <Link
-                                                            href={item.href}
-                                                            aria-current={isActive ? 'page' : undefined}
-                                                            aria-label={item.label}
-                                                            title={item.label}
-                                                            className={cn(
-                                                                railItemClassName,
-                                                                isRailExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center',
-                                                                isActive && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
-                                                            )}
-                                                            onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                                            onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
-                                                        >
-                                                            <Icon className={railIconClassName} />
-                                                            {isActive ? (
-                                                                <span className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
-                                                            ) : null}
-                                                            {isRailExpanded ? (
-                                                                <span className="truncate text-sm font-medium text-foreground">{item.label}</span>
-                                                            ) : (
-                                                                <span className={railBubbleClassName}>{item.label}</span>
-                                                            )}
-                                                        </Link>
-                                                    </li>
-                                                );
-                                            })}
-                                            {sectionIndex < desktopRailSections.length - 1 ? (
-                                                <li
-                                                    className={cn(
-                                                        'mt-1 h-px bg-gradient-to-r from-transparent via-border/80 to-transparent',
-                                                        isRailExpanded ? 'w-full' : 'w-8'
-                                                    )}
-                                                />
-                                            ) : null}
-                                        </ul>
-                                    ))}
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-
-                        <div className="flex w-full flex-col items-center gap-2 border-t border-border/70 pt-3">
-                            {isRailExpanded ? (
-                                <div className="w-full px-3">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                        Utilities
-                                    </p>
-                                </div>
-                            ) : null}
-                            <DropdownMenu open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
+                            {/* Work */}
+                            <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button
-                                        type="button"
-                                        className={cn(
-                                            railItemClassName,
-                                            isRailExpanded ? 'w-full justify-between border-border/60 bg-background/55 px-3' : 'w-11 justify-center border-border/60 bg-background/55'
-                                        )}
-                                        aria-haspopup="menu"
-                                        aria-expanded={moreMenuOpen}
-                                        aria-label="More links"
-                                        title="More links"
-                                        onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                        onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
+                                        className={topNavLinkClass(isSectionActive(workMenuItems))}
+                                        onMouseEnter={handleNavLinkHover}
                                     >
-                                        <span className={cn('flex items-center', isRailExpanded ? 'gap-3' : 'justify-center')}>
-                                            <Menu className={railIconClassName} />
-                                            {isRailExpanded ? (
-                                                <span className="truncate text-sm font-medium text-foreground">More</span>
-                                            ) : null}
-                                        </span>
-                                        {isRailExpanded ? (
-                                            <ChevronRight className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', moreMenuOpen && 'rotate-90 text-foreground')} />
-                                        ) : (
-                                            <span className={railBubbleClassName}>More</span>
+                                        {isSectionActive(workMenuItems) && (
+                                            <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />
                                         )}
+                                        Work
+                                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className={navDropdownContentClassName} side="right" align="end" sideOffset={16}>
-                                    {supportMenuItems.map((item) => {
+                                <DropdownMenuContent
+                                    className={navDropdownContentClassName}
+                                    align="center"
+                                    sideOffset={14}
+                                    collisionPadding={16}
+                                >
+                                    {workMenuItems.map((item) => {
                                         const Icon = item.icon;
                                         const isActive = isActivePath(item.href);
                                         return (
@@ -639,10 +417,17 @@ export function Navbar() {
                                                         isActive && 'border-border/70 bg-accent/70'
                                                     )}
                                                 >
-                                                    <Icon className={cn('h-5 w-5 shrink-0 text-primary', isActive && 'text-foreground')} />
+                                                    <Icon
+                                                        className={cn(
+                                                            'h-5 w-5 shrink-0 text-primary',
+                                                            isActive && 'text-foreground'
+                                                        )}
+                                                    />
                                                     <div className="flex flex-col">
                                                         <span className="font-medium">{item.label}</span>
-                                                        <span className="text-xs text-muted-foreground">{item.description}</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {item.description}
+                                                        </span>
                                                     </div>
                                                 </Link>
                                             </DropdownMenuItem>
@@ -651,134 +436,215 @@ export function Navbar() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
-                            {isAuthenticated ? (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button
-                                            type="button"
-                                            className={cn(
-                                                railItemClassName,
-                                                isRailExpanded ? 'w-full justify-start gap-3 overflow-hidden px-0' : 'w-11 justify-center overflow-hidden p-0'
-                                            )}
-                                            aria-label="Account"
-                                            title="Account"
-                                            onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                            onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
-                                        >
-                                            <Avatar
-                                                className={cn(
-                                                    'rounded-2xl border border-border/60',
-                                                    isRailExpanded ? 'h-11 w-11 shrink-0' : 'h-full w-full'
-                                                )}
-                                            >
-                                                <AvatarImage
-                                                    src={user?.avatarUrl || '/placeholder-avatar.jpg'}
-                                                    alt="User Avatar"
-                                                />
-                                                <AvatarFallback className="rounded-2xl text-xs">{userHelpers.getInitials(user)}</AvatarFallback>
-                                            </Avatar>
-                                            {isRailExpanded ? (
-                                                <span className="truncate pr-3 text-sm font-medium text-foreground">Account</span>
-                                            ) : (
-                                                <span className={railBubbleClassName}>Account</span>
-                                            )}
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-56" side="right" align="end" sideOffset={16} forceMount>
-                                        <DropdownMenuLabel className="font-normal">
-                                            <div className="flex flex-col space-y-1">
-                                                <p className="text-sm font-medium leading-none truncate">{userHelpers.getFirstName(user)}</p>
-                                                <div className="flex items-center justify-between w-full gap-2 pt-0.5 text-xs text-muted-foreground">
-                                                    <div className="flex items-center gap-1 truncate">
-                                                        <AtSign className="h-3 w-3 text-muted-foreground/80 flex-shrink-0" />
-                                                        <span className="font-medium truncate max-w-[10rem]">{user?.username?.replace(/^@+/, '')}</span>
-                                                    </div>
-                                                    {user?.role && (
-                                                        <div className="flex-shrink-0">
-                                                            <span className="text-xs text-muted-foreground/70 uppercase tracking-wide">{roleDisplayName}</span>
-                                                        </div>
+                            {/* Media */}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        className={topNavLinkClass(isSectionActive(studioMenuItems))}
+                                        onMouseEnter={handleNavLinkHover}
+                                    >
+                                        {isSectionActive(studioMenuItems) && (
+                                            <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />
+                                        )}
+                                        Media
+                                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    className={navDropdownContentClassName}
+                                    align="center"
+                                    sideOffset={14}
+                                    collisionPadding={16}
+                                >
+                                    {studioMenuItems.map((item) => {
+                                        const Icon = item.icon;
+                                        const isActive = isActivePath(item.href);
+                                        return (
+                                            <DropdownMenuItem key={item.href} asChild>
+                                                <Link
+                                                    href={item.href}
+                                                    className={cn(
+                                                        'flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors',
+                                                        'hover:border-border/50 hover:bg-accent/60',
+                                                        isActive && 'border-border/70 bg-accent/70'
                                                     )}
-                                                </div>
-                                            </div>
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        {normalizedRole === 'admin' && (
-                                            <DropdownMenuItem asChild>
-                                                <Link href="/admin" className="cursor-pointer">
-                                                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                                                    Admin
+                                                >
+                                                    <Icon
+                                                        className={cn(
+                                                            'h-5 w-5 shrink-0 text-primary',
+                                                            isActive && 'text-foreground'
+                                                        )}
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{item.label}</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {item.description}
+                                                        </span>
+                                                    </div>
                                                 </Link>
                                             </DropdownMenuItem>
-                                        )}
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/account/profile" className="cursor-pointer">
-                                                <UserCircle className="mr-2 h-4 w-4" />
-                                                Profile
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/account/preferences" className="cursor-pointer">
-                                                <Settings className="mr-2 h-4 w-4" />
-                                                Settings
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/account/security" className="cursor-pointer">
-                                                <Shield className="mr-2 h-4 w-4" />
-                                                Security
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => setShowLogoutDialog(true)} className="cursor-pointer text-red-600 focus:text-red-600">
-                                            <LogOut className="mr-2 h-4 w-4" />
-                                            Logout
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            ) : (
-                                <Link
-                                    href={loginHref}
-                                    className={cn(
-                                        railItemClassName,
-                                        isRailExpanded ? 'w-full justify-start gap-3 border-border/60 bg-background/55 px-3' : 'w-11 justify-center border-border/60 bg-background/55'
-                                    )}
-                                    aria-label="Login"
-                                    title="Login"
-                                >
-                                    <User className="h-4 w-4" />
-                                    {isRailExpanded ? (
-                                        <span className="truncate text-sm font-medium text-foreground">Login</span>
-                                    ) : (
-                                        <span className={railBubbleClassName}>Login</span>
-                                    )}
-                                </Link>
-                            )}
+                                        );
+                                    })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
 
-                            <button
-                                type="button"
-                                className={cn(
-                                    railItemClassName,
-                                    isRailExpanded ? 'w-full justify-start gap-3 border-border/60 bg-background/55 px-3' : 'w-11 justify-center border-border/60 bg-background/55',
-                                    sidebarOpen && 'border-primary/30 bg-primary/12 text-foreground shadow-sm shadow-primary/10'
-                                )}
-                                onClick={() => handleSidebarOpenChange(true)}
-                                aria-label="Player and theme"
-                                title="Player and theme"
-                                onMouseEnter={(event) => updateRailHoverStyle(event.currentTarget)}
-                                onFocus={(event) => updateRailHoverStyle(event.currentTarget)}
-                            >
-                                <Settings className={railIconClassName} />
-                                {isRailExpanded ? (
-                                    <span className="truncate text-sm font-medium text-foreground">Player and theme</span>
-                                ) : (
-                                    <span className={railBubbleClassName}>Player and theme</span>
-                                )}
-                            </button>
+                            {/* About */}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        className={topNavLinkClass(isSectionActive(aboutMenuItems))}
+                                        onMouseEnter={handleNavLinkHover}
+                                    >
+                                        {isSectionActive(aboutMenuItems) && (
+                                            <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />
+                                        )}
+                                        About
+                                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    className={navDropdownContentClassName}
+                                    align="center"
+                                    sideOffset={14}
+                                    collisionPadding={16}
+                                >
+                                    {aboutMenuItems.map((item) => {
+                                        const Icon = item.icon;
+                                        const isActive = isActivePath(item.href);
+                                        return (
+                                            <DropdownMenuItem key={item.href} asChild>
+                                                <Link
+                                                    href={item.href}
+                                                    className={cn(
+                                                        'flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors',
+                                                        'hover:border-border/50 hover:bg-accent/60',
+                                                        isActive && 'border-border/70 bg-accent/70'
+                                                    )}
+                                                >
+                                                    <Icon
+                                                        className={cn(
+                                                            'h-5 w-5 shrink-0 text-primary',
+                                                            isActive && 'text-foreground'
+                                                        )}
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{item.label}</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {item.description}
+                                                        </span>
+                                                    </div>
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        );
+                                    })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
+                    </div>
+
+                    {/* Right: search + actions + user */}
+                    <div className="flex shrink-0 items-center gap-2">
+                        {/* Search */}
+                        <button
+                            type="button"
+                            onClick={() => setSearchOpen(true)}
+                            className="flex h-9 items-center gap-2 rounded-full border border-border/60 bg-muted/20 px-3.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                        >
+                            <Search className="h-3.5 w-3.5 shrink-0" />
+                            <span className="hidden text-xs xl:block">Search here</span>
+                            <kbd className="hidden rounded border border-border/60 bg-background/80 px-1.5 py-0.5 text-[10px] font-medium xl:block">
+                                ⌘K
+                            </kbd>
+                        </button>
+
+                        {/* Light / dark toggle */}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="relative h-9 w-9 rounded-full hover:bg-accent/50"
+                            onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
+                            aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                            title={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                        >
+                            <AnimatePresence mode="wait" initial={false}>
+                                <motion.span
+                                    key={activeMode}
+                                    initial={{ rotate: -90, scale: 0.7, opacity: 0 }}
+                                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                                    exit={{ rotate: 90, scale: 0.7, opacity: 0 }}
+                                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                                    className="absolute inset-0 flex items-center justify-center"
+                                >
+                                    {activeMode === 'dark' ? (
+                                        <Sun className="h-4 w-4" />
+                                    ) : (
+                                        <Moon className="h-4 w-4" />
+                                    )}
+                                </motion.span>
+                            </AnimatePresence>
+                        </Button>
+
+                        {/* Player / theme sidebar */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                'h-9 w-9 rounded-full hover:bg-accent/50',
+                                sidebarOpen && 'text-primary'
+                            )}
+                            onClick={() => handleSidebarOpenChange(true)}
+                            title="Player and theme"
+                        >
+                            <PanelRight className="h-4 w-4" />
+                        </Button>
+
+                        {/* User */}
+                        {isAuthenticated ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="flex h-10 items-center gap-2.5 rounded-full border border-border/60 bg-muted/20 pl-1 pr-3 transition-colors hover:bg-muted/40"
+                                    >
+                                        <Avatar className="h-8 w-8 border border-border/60">
+                                            <AvatarImage
+                                                src={user?.avatarUrl || '/placeholder-avatar.jpg'}
+                                                alt="User Avatar"
+                                            />
+                                            <AvatarFallback className="text-xs">
+                                                {userHelpers.getInitials(user)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="hidden flex-col items-start xl:flex">
+                                            <span className="text-xs font-semibold leading-none">
+                                                {userHelpers.getFirstName(user)}
+                                            </span>
+                                            <span className="mt-0.5 text-[10px] leading-none text-muted-foreground">
+                                                {roleDisplayName}
+                                            </span>
+                                        </div>
+                                        <ChevronDown className="hidden h-3 w-3 shrink-0 text-muted-foreground xl:block" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                {accountDropdownContent}
+                            </DropdownMenu>
+                        ) : (
+                            <Link href={loginHref}>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 rounded-full px-5 text-[11px] font-semibold uppercase tracking-[0.08em]"
+                                >
+                                    Login
+                                </Button>
+                            </Link>
+                        )}
                     </div>
                 </div>
             </nav>
 
+            {/* ── Mobile top bar ── */}
             <nav
                 className={cn(
                     'fixed inset-x-0 top-0 z-50 px-4 pt-4 transition-all duration-300 lg:hidden',
@@ -802,7 +668,6 @@ export function Navbar() {
                             className="relative h-9 w-9 rounded-full hover:bg-accent/50"
                             onClick={() => setSearchOpen(true)}
                             aria-label="Search"
-                            title="Search"
                         >
                             <Search className="h-4 w-4" />
                         </Button>
@@ -814,7 +679,6 @@ export function Navbar() {
                             className="relative h-9 w-9 rounded-full hover:bg-accent/50"
                             onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
                             aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                            title={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                         >
                             <AnimatePresence mode="wait" initial={false}>
                                 <motion.span
@@ -850,7 +714,10 @@ export function Navbar() {
                                     <Menu className="h-4 w-4" />
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[340px] sm:max-w-[340px]">
+                            <SheetContent
+                                side="right"
+                                className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[340px] sm:max-w-[340px]"
+                            >
                                 <SheetHeader>
                                     <SheetTitle>Navigation</SheetTitle>
                                     <SheetDescription>Browse the site and open quick controls.</SheetDescription>
@@ -867,10 +734,18 @@ export function Navbar() {
                                                     <AvatarFallback>{userHelpers.getInitials(user)}</AvatarFallback>
                                                 </Avatar>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-sm font-medium">{userHelpers.getFirstName(user)}</p>
-                                                    <p className="truncate text-xs text-muted-foreground">@{user?.username?.replace(/^@+/, '')}</p>
+                                                    <p className="truncate text-sm font-medium">
+                                                        {userHelpers.getFirstName(user)}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        @{user?.username?.replace(/^@+/, '')}
+                                                    </p>
                                                 </div>
-                                                {user?.role ? <Badge variant="secondary" className="rounded-full">{roleDisplayName}</Badge> : null}
+                                                {user?.role ? (
+                                                    <Badge variant="secondary" className="rounded-full">
+                                                        {roleDisplayName}
+                                                    </Badge>
+                                                ) : null}
                                             </div>
                                         </div>
                                     ) : (
@@ -911,7 +786,10 @@ export function Navbar() {
                                     </Button>
 
                                     {mobileMenuSections.map((section) => (
-                                        <div key={section.title} className="rounded-3xl border border-border/60 bg-card/60 p-3">
+                                        <div
+                                            key={section.title}
+                                            className="rounded-3xl border border-border/60 bg-card/60 p-3"
+                                        >
                                             <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                                                 {section.title}
                                             </p>
@@ -926,7 +804,9 @@ export function Navbar() {
                                                                 href={item.href}
                                                                 className={cn(
                                                                     'flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors',
-                                                                    isActive ? 'bg-primary/12 text-foreground' : 'hover:bg-accent/70'
+                                                                    isActive
+                                                                        ? 'bg-primary/12 text-foreground'
+                                                                        : 'hover:bg-accent/70'
                                                                 )}
                                                             >
                                                                 <Icon
@@ -953,26 +833,38 @@ export function Navbar() {
                                             <div className="space-y-1">
                                                 {normalizedRole === 'admin' && (
                                                     <SheetClose asChild>
-                                                        <Link href="/admin" className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70">
+                                                        <Link
+                                                            href="/admin"
+                                                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
+                                                        >
                                                             <LayoutDashboard className="h-4 w-4 text-primary" />
                                                             <span>Admin</span>
                                                         </Link>
                                                     </SheetClose>
                                                 )}
                                                 <SheetClose asChild>
-                                                    <Link href="/account/profile" className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70">
+                                                    <Link
+                                                        href="/account/profile"
+                                                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
+                                                    >
                                                         <UserCircle className="h-4 w-4 text-primary" />
                                                         <span>Profile</span>
                                                     </Link>
                                                 </SheetClose>
                                                 <SheetClose asChild>
-                                                    <Link href="/account/preferences" className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70">
+                                                    <Link
+                                                        href="/account/preferences"
+                                                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
+                                                    >
                                                         <Settings className="h-4 w-4 text-primary" />
                                                         <span>Settings</span>
                                                     </Link>
                                                 </SheetClose>
                                                 <SheetClose asChild>
-                                                    <Link href="/account/security" className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70">
+                                                    <Link
+                                                        href="/account/security"
+                                                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
+                                                    >
                                                         <Shield className="h-4 w-4 text-primary" />
                                                         <span>Security</span>
                                                     </Link>
@@ -997,516 +889,13 @@ export function Navbar() {
                     </div>
                 </div>
             </nav>
-            {false ? (
-            <nav className={`fixed top-4 left-1/2 z-50 w-full max-w-5xl px-4 transition-transform duration-300 ${isNavbarHidden ? "-translate-x-1/2 -translate-y-28" : "-translate-x-1/2 translate-y-0"}`}>
-                {/* Gradient border wrapper */}
-                <div className="p-[1px] rounded-full bg-gradient-to-br from-primary/15 via-primary/10 to-primary/12">
-                    <div className="bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/65 rounded-full shadow-lg shadow-black/5 px-6 lg:px-8">
-                        <div className="flex h-14 items-center justify-between">
-                            {/* Logo - Icon Style */}
-                            <div className="flex-shrink-0">
-                                <Link href="/" className="flex items-center gap-2 group">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 group-hover:border-primary/40 transition-all duration-200">
-                                        <Sparkles className="h-4 w-4 text-primary" />
-                                    </div>
-                                </Link>
-                            </div>
 
-                            {/* Desktop Navigation - Centered */}
-                            <div ref={navRef} className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-1" onMouseLeave={() => {
-                                setHoverStyle(prev => ({ ...prev, opacity: 0 }));
-                                setHoveredLink(null);
-                            }}>
-                                {/* Animated background */}
-                                <div
-                                    className="absolute bg-accent/50 rounded-full transition-all duration-300 ease-out pointer-events-none"
-                                    style={{
-                                        left: `${hoverStyle.left}px`,
-                                        width: `${hoverStyle.width}px`,
-                                        height: '32px',
-                                        opacity: hoverStyle.opacity,
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                    }}
-                                />
-                                {navigationLinks.map((link) => (
-                                    <Link
-                                        key={link.id}
-                                        href={link.href}
-                                        className="relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                        onMouseEnter={(e) => {
-                                            const rect = e.currentTarget.getBoundingClientRect();
-                                            const parentRect = navRef.current?.getBoundingClientRect();
-                                            if (parentRect) {
-                                                setHoverStyle({
-                                                    left: rect.left - parentRect.left,
-                                                    width: rect.width,
-                                                    opacity: 1,
-                                                });
-                                            }
-                                            setHoveredLink(link.id);
-                                        }}
-                                    >
-                                        {link.label}
-                                    </Link>
-                                ))}
-
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button
-                                            className="group relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                            onMouseEnter={(e) => {
-                                                const rect = e.currentTarget.getBoundingClientRect();
-                                                const parentRect = navRef.current?.getBoundingClientRect();
-                                                if (parentRect) {
-                                                    setHoverStyle({
-                                                        left: rect.left - parentRect.left,
-                                                        width: rect.width,
-                                                        opacity: 1,
-                                                    });
-                                                }
-                                                setHoveredLink('work');
-                                            }}
-                                        >
-                                            Work <ChevronDown className="ml-1 inline h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        className={navDropdownContentClassName}
-                                        align="center"
-                                        sideOffset={12}
-                                        collisionPadding={16}
-                                    >
-                                        {workMenuItems.map((item) => {
-                                            const Icon = item.icon;
-                                            const isActive = isActivePath(item.href);
-                                            return (
-                                                <DropdownMenuItem key={item.href} asChild>
-                                                    <Link
-                                                        href={item.href}
-                                                        className={cn(
-                                                            "flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors",
-                                                            "hover:border-border/50 hover:bg-accent/60",
-                                                            isActive && "border-border/70 bg-accent/70"
-                                                        )}
-                                                    >
-                                                        <Icon className={cn("h-5 w-5 shrink-0 text-primary", isActive && "text-foreground")} />
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">{item.label}</span>
-                                                            <span className="text-xs text-muted-foreground">{item.description}</span>
-                                                        </div>
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            );
-                                        })}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-
-
-
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button
-                                            className="group relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                            onMouseEnter={(e) => {
-                                                const rect = e.currentTarget.getBoundingClientRect();
-                                                const parentRect = navRef.current?.getBoundingClientRect();
-                                                if (parentRect) {
-                                                    setHoverStyle({
-                                                        left: rect.left - parentRect.left,
-                                                        width: rect.width,
-                                                        opacity: 1,
-                                                    });
-                                                }
-                                                setHoveredLink('resources');
-                                            }}
-                                        >
-                                            Media <ChevronDown className="ml-1 inline h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        className={navDropdownContentClassName}
-                                        align="center"
-                                        sideOffset={12}
-                                        collisionPadding={16}
-                                    >
-                                        {studioMenuItems.map((item) => {
-                                            const Icon = item.icon;
-                                            const isActive = isActivePath(item.href);
-                                            return (
-                                                <DropdownMenuItem key={item.href} asChild>
-                                                    <Link
-                                                        href={item.href}
-                                                        className={cn(
-                                                            "flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors",
-                                                            "hover:border-border/50 hover:bg-accent/60",
-                                                            isActive && "border-border/70 bg-accent/70"
-                                                        )}
-                                                    >
-                                                        <Icon className={cn("h-5 w-5 shrink-0 text-primary", isActive && "text-foreground")} />
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">{item.label}</span>
-                                                            <span className="text-xs text-muted-foreground">{item.description}</span>
-                                                        </div>
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            );
-                                        })}
-                                        {/* <DropdownMenuSeparator /> */}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button
-                                            className="group relative px-4 py-1.5 text-sm font-medium text-center text-foreground/80 hover:text-foreground transition-colors duration-200 z-10"
-                                            onMouseEnter={(e) => {
-                                                const rect = e.currentTarget.getBoundingClientRect();
-                                                const parentRect = navRef.current?.getBoundingClientRect();
-                                                if (parentRect) {
-                                                    setHoverStyle({
-                                                        left: rect.left - parentRect.left,
-                                                        width: rect.width,
-                                                        opacity: 1,
-                                                    });
-                                                }
-                                                setHoveredLink('about');
-                                            }}
-                                        >
-                                            About <ChevronDown className="ml-1 inline h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        className={navDropdownContentClassName}
-                                        align="center"
-                                        sideOffset={12}
-                                        collisionPadding={16}
-                                    >
-                                        {aboutMenuItems.map((item) => {
-                                            const Icon = item.icon;
-                                            const isActive = isActivePath(item.href);
-                                            return (
-                                                <DropdownMenuItem key={item.href} asChild>
-                                                    <Link
-                                                        href={item.href}
-                                                        className={cn(
-                                                            "flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors",
-                                                            "hover:border-border/50 hover:bg-accent/60",
-                                                            isActive && "border-border/70 bg-accent/70"
-                                                        )}
-                                                    >
-                                                        <Icon className={cn("h-5 w-5 shrink-0 text-primary", isActive && "text-foreground")} />
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">{item.label}</span>
-                                                            <span className="text-xs text-muted-foreground">{item.description}</span>
-                                                        </div>
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            );
-                                        })}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-
-                            {/* Right Side - Icons */}
-                            <div className="hidden md:flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 px-2 hover:bg-accent/50"
-                                    onClick={() => handleSidebarOpenChange(true)}
-                                    title="Open sidebar"
-                                >
-                                    <PanelRight className={`h-4 w-4 ${sidebarOpen ? 'text-primary' : ''}`} />
-                                </Button>
-                                {isAuthenticated ? (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-accent/50">
-                                                <Avatar className="h-8 w-8 border border-border/40">
-                                                    <AvatarImage
-                                                        src={user?.avatarUrl || '/placeholder-avatar.jpg'}
-                                                        alt="User Avatar"
-                                                    />
-                                                    <AvatarFallback className="text-xs">{userHelpers.getInitials(user)}</AvatarFallback>
-                                                </Avatar>
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="w-56" align="end" forceMount>
-                                            <DropdownMenuLabel className="font-normal">
-                                                <div className="flex flex-col space-y-1">
-                                                    <p className="text-sm font-medium leading-none truncate">{userHelpers.getFirstName(user)}</p>
-                                                    <div className="flex items-center justify-between w-full gap-2 pt-0.5 text-xs text-muted-foreground">
-                                                        <div className="flex items-center gap-1 truncate">
-                                                            <AtSign className="h-3 w-3 text-muted-foreground/80 flex-shrink-0" />
-                                                            <span className="font-medium truncate max-w-[10rem]">{user?.username?.replace(/^@+/, '')}</span>
-                                                        </div>
-                                                        {user?.role && (
-                                                            <div className="flex-shrink-0">
-                                                                <span className="text-xs text-muted-foreground/70 uppercase tracking-wide">{roleDisplayName}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            {normalizedRole === 'admin' && (
-                                                <DropdownMenuItem asChild>
-                                                    <Link href="/admin" className="cursor-pointer">
-                                                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                                                        Admin
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            )}
-                                            <DropdownMenuItem asChild>
-                                                <Link href="/account/profile" className="cursor-pointer">
-                                                    <UserCircle className="mr-2 h-4 w-4" />
-                                                    Profile
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                                <Link href="/account/preferences" className="cursor-pointer">
-                                                    <Settings className="mr-2 h-4 w-4" />
-                                                    Settings
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                                <Link href="/account/security" className="cursor-pointer">
-                                                    <Shield className="mr-2 h-4 w-4" />
-                                                    Security
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => setShowLogoutDialog(true)} className="cursor-pointer text-red-600 focus:text-red-600">
-                                                <LogOut className="mr-2 h-4 w-4" />
-                                                Logout
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                ) : (
-                                    <Link href={loginHref}>
-                                        <Button variant="ghost" size="sm" className="h-8 hover:bg-accent/50">
-                                            <User className="h-4 w-4" />
-                                        </Button>
-                                    </Link>
-                                )}
-                            </div>
-
-                            {/* Mobile Menu */}
-                            <div className="md:hidden flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 px-2 hover:bg-accent/50"
-                                    onClick={() => handleSidebarOpenChange(true)}
-                                    title="Open sidebar"
-                                >
-                                    <PanelRight className={`h-4 w-4 ${sidebarOpen ? 'text-primary' : ''}`} />
-                                </Button>
-                                <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-                                    <SheetTrigger asChild>
-                                        <Button variant="outline" size="icon">
-                                            <Menu className="h-4 w-4" />
-                                        </Button>
-                                    </SheetTrigger>
-                                    <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[300px] sm:max-w-[300px]">
-                                        <SheetHeader>
-                                            <SheetTitle>Menu</SheetTitle>
-                                            <SheetDescription>Navigate through the app</SheetDescription>
-                                        </SheetHeader>
-                                        <div className="mt-6 space-y-4 px-4 pb-6">
-                                            {!isAuthenticated && (
-                                                <SheetClose asChild>
-                                                    <Link href={loginHref} className="block border-b pb-4">
-                                                        <Button variant="default" className="h-11 w-full text-base font-semibold">
-                                                            <User className="h-4 w-4 mr-2" />
-                                                            Login
-                                                        </Button>
-                                                    </Link>
-                                                </SheetClose>
-                                            )}
-
-                                            {isAuthenticated && user && (
-                                                <div className="flex items-center gap-3 pb-4 border-b">
-                                                    <Avatar>
-                                                        <AvatarImage
-                                                            src={user?.avatarUrl || '/placeholder-avatar.jpg'}
-                                                            alt="User Avatar"
-                                                        />
-                                                        <AvatarFallback>{userHelpers.getInitials(user)}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium truncate">{userHelpers.getFirstName(user)}</p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="space-y-5">
-                                                <div className="space-y-2">
-                                                    {navigationLinks.map((link) => (
-                                                        <SheetClose key={link.id} asChild>
-                                                            <Link
-                                                                href={link.href}
-                                                                className={cn(
-                                                                    "block rounded-md px-3 py-2 text-base font-medium transition-colors",
-                                                                    "hover:bg-muted",
-                                                                    isActivePath(link.href) && "bg-accent text-foreground"
-                                                                )}
-                                                            >
-                                                                {link.label}
-                                                            </Link>
-                                                        </SheetClose>
-                                                    ))}
-                                                </div>
-
-                                                <ul role="group" aria-label="Work" className="space-y-2 border-l border-border/60 pl-3">
-                                                    <p className={cn(
-                                                        "pb-1 text-xs font-semibold uppercase tracking-wider",
-                                                        isSectionActive(workMenuItems) ? "text-primary" : "text-muted-foreground"
-                                                    )}>
-                                                        Work
-                                                    </p>
-                                                    {workMenuItems.map((item) => {
-                                                        const Icon = item.icon;
-                                                        const isActive = isActivePath(item.href);
-                                                        return (
-                                                            <li key={item.href}>
-                                                                <SheetClose asChild>
-                                                                    <Link
-                                                                        href={item.href}
-                                                                        className={cn(
-                                                                            "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
-                                                                            "hover:bg-muted",
-                                                                            isActive && "bg-accent text-foreground"
-                                                                        )}
-                                                                    >
-                                                                        <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
-                                                                        {item.label}
-                                                                    </Link>
-                                                                </SheetClose>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-
-                                                <ul role="group" aria-label="Media" className="space-y-2 border-l border-border/60 pl-3">
-                                                    <p className={cn(
-                                                        "pb-1 text-xs font-semibold uppercase tracking-wider",
-                                                        isSectionActive(studioMenuItems) ? "text-primary" : "text-muted-foreground"
-                                                    )}>
-                                                        Media
-                                                    </p>
-                                                    {studioMenuItems.map((item) => {
-                                                        const Icon = item.icon;
-                                                        const isActive = isActivePath(item.href);
-                                                        return (
-                                                            <li key={item.href}>
-                                                                <SheetClose asChild>
-                                                                    <Link
-                                                                        href={item.href}
-                                                                        className={cn(
-                                                                            "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
-                                                                            "hover:bg-muted",
-                                                                            isActive && "bg-accent text-foreground"
-                                                                        )}
-                                                                    >
-                                                                        <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
-                                                                        {item.label}
-                                                                    </Link>
-                                                                </SheetClose>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-
-                                                <ul role="group" aria-label="About" className="space-y-2 border-l border-border/60 pl-3">
-                                                    <p className={cn(
-                                                        "pb-1 text-xs font-semibold uppercase tracking-wider",
-                                                        isSectionActive(aboutMenuItems) ? "text-primary" : "text-muted-foreground"
-                                                    )}>
-                                                        About
-                                                    </p>
-                                                    {aboutMenuItems.map((item) => {
-                                                        const Icon = item.icon;
-                                                        const isActive = isActivePath(item.href);
-                                                        return (
-                                                            <li key={item.href}>
-                                                                <SheetClose asChild>
-                                                                    <Link
-                                                                        href={item.href}
-                                                                        className={cn(
-                                                                            "flex items-center rounded-md px-3 py-2 text-base font-medium transition-colors",
-                                                                            "hover:bg-muted",
-                                                                            isActive && "bg-accent text-foreground"
-                                                                        )}
-                                                                    >
-                                                                        <Icon className={cn("mr-2 h-4 w-4 text-primary", isActive && "text-foreground")} />
-                                                                        {item.label}
-                                                                    </Link>
-                                                                </SheetClose>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-                                            </div>
-
-                                            {isAuthenticated ? (
-                                                <>
-                                                    <div className="border-t pt-4 space-y-2">
-                                                        {normalizedRole === 'admin' && (
-                                                            <SheetClose asChild>
-                                                                <Link href="/admin" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                                    <LayoutDashboard className="h-4 w-4 inline mr-2" />
-                                                                    Admin
-                                                                </Link>
-                                                            </SheetClose>
-                                                        )}
-                                                        <SheetClose asChild>
-
-                                                            <Link href="/account/profile" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                                <UserCircle className="h-4 w-4 inline mr-2" />
-                                                                Profile
-                                                            </Link>
-                                                        </SheetClose>
-                                                        <SheetClose asChild>
-                                                            <Link href="/account/preferences" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                                <Settings className="h-4 w-4 inline mr-2" />
-                                                                Settings
-                                                            </Link>
-                                                        </SheetClose>
-                                                        <SheetClose asChild>
-                                                            <Link href="/account/security" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-muted">
-                                                                <Shield className="h-4 w-4 inline mr-2" />
-                                                                Security
-                                                            </Link>
-                                                        </SheetClose>
-                                                    </div>
-                                                    <SheetClose asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            className="w-full justify-start text-red-600 hover:text-red-700"
-                                                            onClick={() => {
-                                                                setMenuOpen(false);
-                                                                setTimeout(() => setShowLogoutDialog(true), 250);
-                                                            }}
-                                                        >
-                                                            <LogOut className="h-3 w-3 mr-2" />
-                                                            Logout
-                                                        </Button>
-                                                    </SheetClose>
-                                                </>
-                                            ) : null}
-                                        </div>
-                                    </SheetContent>
-                                </Sheet>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-            ) : null}
-
+            {/* ── Sidebar: player + theme ── */}
             <Sheet open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
-                <SheetContent side="right" className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:max-w-sm">
+                <SheetContent
+                    side="right"
+                    className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:max-w-sm"
+                >
                     <SheetHeader>
                         <SheetTitle>Sidebar</SheetTitle>
                         <SheetDescription>Appearance settings and quick controls</SheetDescription>
@@ -1530,7 +919,9 @@ export function Navbar() {
                                 <div className="space-y-3">
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-semibold">{currentTitle || 'Untitled Track'}</p>
-                                        <p className="truncate text-xs text-muted-foreground">{currentArtist || 'Unknown Artist'}</p>
+                                        <p className="truncate text-xs text-muted-foreground">
+                                            {currentArtist || 'Unknown Artist'}
+                                        </p>
                                     </div>
                                     {sidebarOpen ? (
                                         <AudioSidebarVisualizer
@@ -1553,22 +944,50 @@ export function Navbar() {
                                         </div>
                                     </div>
                                     <div className="flex items-center justify-center gap-2">
-                                        <Button type="button" size="icon" variant="outline" className="rounded-full" onClick={() => seekBy(-10)}>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="outline"
+                                            className="rounded-full"
+                                            onClick={() => seekBy(-10)}
+                                        >
                                             <SkipBack className="h-4 w-4" />
                                         </Button>
-                                        <Button type="button" size="icon" className="h-10 w-10 rounded-full" onClick={playPause}>
-                                            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            className="h-10 w-10 rounded-full"
+                                            onClick={playPause}
+                                        >
+                                            {isPlaying ? (
+                                                <Pause className="h-4 w-4" />
+                                            ) : (
+                                                <Play className="h-4 w-4" />
+                                            )}
                                         </Button>
-                                        <Button type="button" size="icon" variant="outline" className="rounded-full" onClick={stop}>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="outline"
+                                            className="rounded-full"
+                                            onClick={stop}
+                                        >
                                             <Square className="h-4 w-4" />
                                         </Button>
-                                        <Button type="button" size="icon" variant="outline" className="rounded-full" onClick={() => seekBy(10)}>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="outline"
+                                            className="rounded-full"
+                                            onClick={() => seekBy(10)}
+                                        >
                                             <SkipForward className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>
                             ) : null}
                         </div>
+
                         <div className="space-y-3 rounded-xl border bg-card/60 p-3">
                             <div className="space-y-0.5">
                                 <p className="text-sm font-medium">Mode</p>
@@ -1590,7 +1009,9 @@ export function Navbar() {
                                                 onClick={() => setTheme(mode)}
                                                 className={cn(
                                                     'relative flex h-9 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors',
-                                                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                                                    isActive
+                                                        ? 'text-foreground'
+                                                        : 'text-muted-foreground hover:text-foreground'
                                                 )}
                                             >
                                                 {isActive ? (
@@ -1628,6 +1049,7 @@ export function Navbar() {
                                 </AnimatePresence>
                             </div>
                         </div>
+
                         <div className="space-y-3 rounded-xl border bg-card/60 p-3">
                             <div className="space-y-0.5">
                                 <p className="text-sm font-medium">Theme Set</p>
@@ -1642,13 +1064,13 @@ export function Navbar() {
                                             variant="ghost"
                                             size="sm"
                                             className={cn(
-                                                'h-auto w-full justify-start rounded-lg border px-2.5 py-2 text-left whitespace-normal shadow-none overflow-hidden',
-                                                'border-border/60 bg-background/40 hover:bg-accent/50 hover:border-border',
+                                                'h-auto w-full justify-start overflow-hidden whitespace-normal rounded-lg border px-2.5 py-2 text-left shadow-none',
+                                                'border-border/60 bg-background/40 hover:border-border hover:bg-accent/50',
                                                 isActiveTheme && 'border-primary/40 bg-accent/60 ring-1 ring-primary/20'
                                             )}
                                             onClick={() => setActiveThemeSetId(themeSet.id)}
                                         >
-                                            <span className="relative isolate mr-3 block h-10 w-14 shrink-0 overflow-hidden rounded-md border border-border/70 transition-transform duration-200 group-hover/button:-rotate-2">
+                                            <span className="relative isolate mr-3 block h-10 w-14 shrink-0 overflow-hidden rounded-md border border-border/70">
                                                 <span
                                                     className="block h-full w-full"
                                                     style={{ background: getThemePreviewBackground(themeSet) }}
@@ -1677,8 +1099,15 @@ export function Navbar() {
                                                 </AnimatePresence>
                                             </span>
                                             <span className="min-w-0 flex-1 text-left">
-                                                <span className="block truncate text-sm font-medium leading-none">{themeSet.name}</span>
-                                                <span className={cn('mt-1 block text-xs leading-4 text-muted-foreground whitespace-normal break-words', isActiveTheme && 'text-foreground/75')}>
+                                                <span className="block truncate text-sm font-medium leading-none">
+                                                    {themeSet.name}
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        'mt-1 block break-words text-xs leading-4 text-muted-foreground',
+                                                        isActiveTheme && 'text-foreground/75'
+                                                    )}
+                                                >
                                                     {themeSet.description ?? 'A balanced theme preset.'}
                                                 </span>
                                             </span>
@@ -1693,17 +1122,14 @@ export function Navbar() {
 
             <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
 
-            {/* Logout Confirmation Dialog */}
             <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center">
-                            <LogOut className="h-5 w-5 mr-2 text-red-600" />
+                            <LogOut className="mr-2 h-5 w-5 text-red-600" />
                             Confirm Logout
                         </DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to logout?
-                        </DialogDescription>
+                        <DialogDescription>Are you sure you want to logout?</DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
@@ -1718,4 +1144,3 @@ export function Navbar() {
         </>
     );
 }
-

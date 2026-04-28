@@ -27,7 +27,6 @@ import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
 import { AuthorModal } from '@/components/blog/AuthorModal';
 import { LikeButton } from '@/components/likes/LikeButton';
-import { PageIntroCard } from '@/components/page-intro-card';
 import { useUser } from '@/contexts/UserContext';
 
 export default function BlogViewPage() {
@@ -132,102 +131,93 @@ export default function BlogViewPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <div className="fixed inset-0 z-[-1] pointer-events-none">
-                <div className="absolute top-[-10%] left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary/5 blur-[120px]" />
-                <div className="absolute bottom-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-secondary/8 blur-[120px]" />
+            <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
+                <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
+                <div className="mx-auto max-w-6xl relative">
+                    <div className="mb-5 flex items-center gap-3">
+                        <Button variant="ghost" size="sm" asChild className="rounded-full border border-border/60 bg-background/60 px-4 backdrop-blur-sm hover:bg-background/90">
+                            <Link href="/blog">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Blog
+                            </Link>
+                        </Button>
+                    </div>
+                    <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                            <Calendar className="h-4 w-4" />
+                            <span>{formatDate(blog.publishedAt)}</span>
+                        </div>
+                        {blog.authors.length > 0 && (
+                            <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                                <Users className="h-4 w-4" />
+                                <span className="flex flex-wrap items-center gap-1">
+                                    {blog.authors.map((a, i) => (
+                                        <span key={a.userId}>
+                                            <button
+                                                onClick={() => openAuthor(a.userId, a.username)}
+                                                className="underline underline-offset-4 transition-colors hover:text-primary"
+                                            >
+                                                {a.displayName || a.username}
+                                            </button>
+                                            {i < blog.authors.length - 1 && ', '}
+                                        </span>
+                                    ))}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    <h1 className="text-5xl font-bold tracking-tight md:text-6xl">{blog.title}</h1>
+                    <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                        {blog.category && (
+                            <Badge variant="secondary" className="rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                                {blog.category.name}
+                            </Badge>
+                        )}
+                        {!blog.isPublished && (
+                            <Badge variant="outline" className="rounded-full border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-amber-600">
+                                Draft (Unpublished)
+                            </Badge>
+                        )}
+                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                            <Clock className="h-4 w-4" />
+                            <span>{estimateReadingTime(blog.content)} min read</span>
+                        </div>
+                        {isInteractivityDisabled ? (
+                            <div
+                                className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 text-muted-foreground/70 backdrop-blur-sm"
+                                title="Interactivity is disabled because this blog is unpublished."
+                            >
+                                <Heart className="h-4 w-4" />
+                                <span>{blog.likeCount}</span>
+                                <span className="text-xs uppercase tracking-wide">Likes disabled</span>
+                            </div>
+                        ) : (
+                            <div className="inline-flex items-center rounded-full border border-border/50 bg-background/55 px-1 py-1 backdrop-blur-sm">
+                                <LikeButton
+                                    contentId={blog.contentId}
+                                    initialCount={blog.likeCount}
+                                    initialLiked={blog.isLiked}
+                                />
+                            </div>
+                        )}
+                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                            <MessageSquare className="h-4 w-4" />
+                            <span>{blog.commentCount}</span>
+                        </div>
+                        {canEditBlog && (
+                            <Button variant="outline" size="sm" asChild className="rounded-full">
+                                <Link href={`/blog/${blog.slug}/edit`}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit Post
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            <main className="flex-1 px-4 pb-16 pt-8 md:pt-10">
-                <div className="container mx-auto max-w-6xl pt-12">
-                    <PageIntroCard
-                        title={blog.title}
-                        topContent={
-                            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
-                                    <Calendar className="h-4 w-4" />
-                                    <span>{formatDate(blog.publishedAt)}</span>
-                                </div>
-                                {blog.authors.length > 0 && (
-                                    <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
-                                        <Users className="h-4 w-4" />
-                                        <span className="flex flex-wrap items-center gap-1">
-                                            {blog.authors.map((a, i) => (
-                                                <span key={a.userId}>
-                                                    <button
-                                                        onClick={() => openAuthor(a.userId, a.username)}
-                                                        className="underline underline-offset-4 transition-colors hover:text-primary"
-                                                    >
-                                                        {a.displayName || a.username}
-                                                    </button>
-                                                    {i < blog.authors.length - 1 && ', '}
-                                                </span>
-                                            ))}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        }
-                        showBackButton
-                        backHref="/blog"
-                        backLabel="Back to Blog"
-                        className="px-6 py-7 sm:px-10 sm:py-9 md:px-12 md:py-11"
-                    >
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                            {blog.category && (
-                                <Badge
-                                    variant="secondary"
-                                    className="rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm"
-                                >
-                                    {blog.category.name}
-                                </Badge>
-                            )}
-                            {!blog.isPublished && (
-                                <Badge
-                                    variant="outline"
-                                    className="rounded-full border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-amber-600"
-                                >
-                                    Draft (Unpublished)
-                                </Badge>
-                            )}
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
-                                <Clock className="h-4 w-4" />
-                                <span>{estimateReadingTime(blog.content)} min read</span>
-                            </div>
-                            {isInteractivityDisabled ? (
-                                <div
-                                    className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 text-muted-foreground/70 backdrop-blur-sm"
-                                    title="Interactivity is disabled because this blog is unpublished."
-                                >
-                                    <Heart className="h-4 w-4" />
-                                    <span>{blog.likeCount}</span>
-                                    <span className="text-xs uppercase tracking-wide">Likes disabled</span>
-                                </div>
-                            ) : (
-                                <div className="inline-flex items-center rounded-full border border-border/50 bg-background/55 px-1 py-1 backdrop-blur-sm">
-                                    <LikeButton
-                                        contentId={blog.contentId}
-                                        initialCount={blog.likeCount}
-                                        initialLiked={blog.isLiked}
-                                    />
-                                </div>
-                            )}
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
-                                <MessageSquare className="h-4 w-4" />
-                                <span>{blog.commentCount}</span>
-                            </div>
-                            {canEditBlog && (
-                                <Button variant="outline" size="sm" asChild className="rounded-full">
-                                    <Link href={`/blog/${blog.slug}/edit`}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Edit Post
-                                    </Link>
-                                </Button>
-                            )}
-                        </div>
-                    </PageIntroCard>
-                </div>
-
-                <div className="container mx-auto mt-6 max-w-4xl">
+            <main className="flex-1 px-4 pb-16 pt-8 md:px-8 md:pt-10">
+                <div className="mx-auto mt-6 max-w-4xl">
                     <div>
                         <Separator className="mb-8" />
 
