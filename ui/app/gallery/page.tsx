@@ -14,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
+import { PageBanner } from '@/components/page-banner';
 import { Image as ImageIcon } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
 import { Album } from '@/lib/api/gallery.types';
@@ -64,33 +65,25 @@ export default function GalleryPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background/50">
-            <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
-                <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
-                <div className="mx-auto max-w-7xl relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <Badge variant="secondary" className="w-fit gap-2 rounded-full border-border/50 bg-background/55 px-4 py-1.5 text-sm font-normal backdrop-blur-sm">
-                            <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                            Creative Showcase
-                        </Badge>
-                        <h1 className="mt-5 text-5xl font-bold tracking-tight md:text-6xl">Gallery</h1>
-                        <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-                            Explore my curated collection of albums and creative works.
-                        </p>
-                    </div>
-                    <div className="w-full sm:w-[200px] shrink-0">
-                        <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as typeof sortOrder)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sort albums" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="newest">Newest first</SelectItem>
-                                <SelectItem value="oldest">Oldest first</SelectItem>
-                                <SelectItem value="title">Title A-Z</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            </div>
+            <PageBanner
+                badge="Creative Showcase"
+                badgeIcon={ImageIcon}
+                title="Gallery"
+                description="Explore my curated collection of albums and creative works."
+                maxWidth="max-w-7xl"
+                rightContent={
+                    <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as typeof sortOrder)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Sort albums" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="newest">Newest first</SelectItem>
+                            <SelectItem value="oldest">Oldest first</SelectItem>
+                            <SelectItem value="title">Title A-Z</SelectItem>
+                        </SelectContent>
+                    </Select>
+                }
+            />
 
             <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
                 <div className="mx-auto max-w-7xl pt-4">

@@ -26,16 +26,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { AuthorModal } from '@/components/blog/AuthorModal';
+import { PageBanner } from '@/components/page-banner';
 
 const CARD_COLORS = [
-    'bg-[#d8e8c8]',
-    'bg-[#e8d0e8]',
-    'bg-[#d0d0f0]',
-    'bg-[#e8e0c8]',
-    'bg-[#d8d8f0]',
-    'bg-[#c8e0e0]',
-    'bg-[#f0d8d8]',
-    'bg-[#d0e8d8]',
+    'bg-primary/8',
+    'bg-accent/12',
+    'bg-secondary/15',
+    'bg-muted/20',
+    'bg-primary/6',
+    'bg-accent/8',
+    'bg-secondary/10',
+    'bg-muted/15',
 ];
 
 function getInitials(name: string) {
@@ -174,19 +175,13 @@ export default function BlogHomePage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background/50">
-            <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
-                <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
-                <div className="mx-auto max-w-7xl relative">
-                    <Badge variant="secondary" className="w-fit gap-2 rounded-full border-border/50 bg-background/55 px-4 py-1.5 text-sm font-normal backdrop-blur-sm">
-                        <BookOpen className="h-3.5 w-3.5 text-primary" />
-                        Blogs
-                    </Badge>
-                    <h1 className="mt-5 text-5xl font-bold tracking-tight md:text-6xl">Blog</h1>
-                    <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-                        Explore my latest articles, tutorials, and insights.
-                    </p>
-                </div>
-            </div>
+            <PageBanner
+                badge="Blogs"
+                badgeIcon={BookOpen}
+                title="Blog"
+                description="Explore my latest articles, tutorials, and insights."
+                maxWidth="max-w-7xl"
+            />
 
             <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
                 <div className="mx-auto max-w-7xl pt-4">

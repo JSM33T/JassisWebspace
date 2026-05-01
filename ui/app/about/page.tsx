@@ -151,7 +151,7 @@ export default function PortfolioPage() {
                 <div className="absolute left-1/2 top-[-18%] h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-primary/12 blur-[120px]" />
                 <div className="absolute right-[-12%] top-[26%] h-80 w-80 rounded-full bg-accent/20 blur-[120px]" />
                 <div className="absolute left-[-10%] bottom-[10%] h-72 w-72 rounded-full bg-secondary/20 blur-[110px]" />
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_center,white,transparent_74%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--border)_12%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--border)_12%,transparent)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_center,white,transparent_74%)]" />
             </div>
 
             <section className="px-4 pb-10 pt-24 md:pt-28">
@@ -170,17 +170,17 @@ export default function PortfolioPage() {
                                     content experiences, and platform workflows.
                                 </CardDescription>
                                 <div className="flex flex-wrap gap-3 pt-2">
-                                    <Button asChild size="sm" className="rounded-full px-6 h-10">
+                                    <Button asChild size="lg" className="rounded-full px-7">
                                         <Link href="/contact">
                                             Work with me
                                             <ArrowRight className="ml-2 h-4 w-4" />
                                         </Link>
                                     </Button>
-                                    <Button asChild size="sm" variant="outline" className="rounded-full px-6 h-10">
+                                    <Button asChild size="lg" variant="outline" className="rounded-full px-7">
                                         <Link href="/projects">View projects</Link>
                                     </Button>
                                     {resumeUrl ? (
-                                        <Button asChild size="sm" variant="outline" className="rounded-full px-6 h-10">
+                                        <Button asChild size="lg" variant="outline" className="rounded-full px-7">
                                             <Link
                                                 href={resumeUrl}
                                                 target="_blank"

@@ -110,10 +110,10 @@ export default function HomePage() {
                 <div className="absolute -top-28 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-primary/12 blur-3xl" />
                 <div className="absolute top-[24%] -left-32 h-80 w-80 rounded-full bg-accent/14 blur-3xl" />
                 <div className="absolute top-[34%] -right-28 h-72 w-72 rounded-full bg-secondary/18 blur-3xl" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,hsl(var(--primary)/0.1),transparent_62%)]" />
-                <div className="absolute inset-0 bg-[linear-gradient(to_bottom,hsl(var(--background)/0.08),hsl(var(--background))_82%)]" />
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.1)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.1)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,white,transparent_76%)]" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_54%,hsl(var(--background)/0.88)_97%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_62%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_bottom,color-mix(in_oklch,var(--background)_8%,transparent),color-mix(in_oklch,var(--background)_100%,transparent)_82%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--border)_10%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--border)_10%,transparent)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,white,transparent_76%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_54%,color-mix(in_oklch,var(--background)_88%,transparent)_97%)]" />
             </div>
 
             <main className="relative mx-auto max-w-6xl px-6">
@@ -218,7 +218,7 @@ export default function HomePage() {
                                         priority
                                     />
                                 ) : (
-                                    <div className="h-full w-full bg-[radial-gradient(circle_at_30%_30%,hsl(var(--primary)/0.4),transparent_60%),linear-gradient(145deg,hsl(var(--muted)),hsl(var(--card)))]" />
+                                    <div className="h-full w-full bg-[radial-gradient(circle_at_30%_30%,color-mix(in_oklch,var(--primary)_40%,transparent),transparent_60%),linear-gradient(145deg,var(--muted),var(--card))]" />
                                 )}
 
                                 {/* Albums count badge */}
@@ -262,9 +262,9 @@ export default function HomePage() {
                     <motion.section variants={itemVariants} className="pb-16 md:pb-24">
                         <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
                             <div className="pointer-events-none absolute inset-0">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,hsl(var(--primary)/0.18),transparent_42%),radial-gradient(circle_at_86%_72%,hsl(var(--secondary)/0.14),transparent_50%)]" />
-                                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-[size:24px_24px] opacity-45" />
-                                <div className="absolute inset-0 bg-[linear-gradient(145deg,hsl(var(--background)/0.12),transparent_62%)]" />
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,color-mix(in_oklch,var(--primary)_18%,transparent),transparent_42%),radial-gradient(circle_at_86%_72%,color-mix(in_oklch,var(--secondary)_14%,transparent),transparent_50%)]" />
+                                <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--border)_12%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--border)_12%,transparent)_1px,transparent_1px)] bg-[size:24px_24px] opacity-45" />
+                                <div className="absolute inset-0 bg-[linear-gradient(145deg,color-mix(in_oklch,var(--background)_12%,transparent),transparent_62%)]" />
                             </div>
 
                             <div className="relative">
@@ -340,7 +340,7 @@ export default function HomePage() {
                                                                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                                                             />
                                                         ) : (
-                                                            <div className="relative h-full w-full bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.42),transparent_54%),radial-gradient(circle_at_82%_76%,hsl(var(--secondary)/0.36),transparent_58%),linear-gradient(140deg,hsl(var(--muted)/0.8),hsl(var(--card)))]" />
+                                                            <div className="relative h-full w-full bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklch,var(--primary)_42%,transparent),transparent_54%),radial-gradient(circle_at_82%_76%,color-mix(in_oklch,var(--secondary)_36%,transparent),transparent_58%),linear-gradient(140deg,color-mix(in_oklch,var(--muted)_80%,transparent),var(--card))]" />
                                                         )}
                                                     </div>
 
@@ -364,9 +364,9 @@ export default function HomePage() {
                     <motion.section variants={itemVariants} className="pb-16 md:pb-24">
                         <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
                             <div className="pointer-events-none absolute inset-0">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,hsl(var(--primary)/0.16),transparent_44%),radial-gradient(circle_at_84%_74%,hsl(var(--secondary)/0.12),transparent_52%)]" />
-                                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-[size:24px_24px] opacity-45" />
-                                <div className="absolute inset-0 bg-[linear-gradient(140deg,hsl(var(--background)/0.1),transparent_62%)]" />
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,color-mix(in_oklch,var(--primary)_16%,transparent),transparent_44%),radial-gradient(circle_at_84%_74%,color-mix(in_oklch,var(--secondary)_12%,transparent),transparent_52%)]" />
+                                <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--border)_12%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--border)_12%,transparent)_1px,transparent_1px)] bg-[size:24px_24px] opacity-45" />
+                                <div className="absolute inset-0 bg-[linear-gradient(140deg,color-mix(in_oklch,var(--background)_10%,transparent),transparent_62%)]" />
                             </div>
 
                             <div className="relative">
@@ -434,7 +434,7 @@ export default function HomePage() {
                                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                                                         />
                                                     ) : (
-                                                        <div className="relative flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.42),transparent_54%),radial-gradient(circle_at_82%_76%,hsl(var(--secondary)/0.36),transparent_58%),linear-gradient(140deg,hsl(var(--muted)/0.8),hsl(var(--card)))]">
+                                                        <div className="relative flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklch,var(--primary)_42%,transparent),transparent_54%),radial-gradient(circle_at_82%_76%,color-mix(in_oklch,var(--secondary)_36%,transparent),transparent_58%),linear-gradient(140deg,color-mix(in_oklch,var(--muted)_80%,transparent),var(--card))]">
                                                             <BookOpen className="h-8 w-8 text-white/80" />
                                                         </div>
                                                     )}
@@ -460,9 +460,9 @@ export default function HomePage() {
                     <motion.section variants={itemVariants} className="pb-16 md:pb-24">
                         <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
                             <div className="pointer-events-none absolute inset-0">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,hsl(var(--primary)/0.2),transparent_42%),radial-gradient(circle_at_86%_78%,hsl(var(--secondary)/0.14),transparent_56%)]" />
-                                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.14)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.14)_1px,transparent_1px)] bg-[size:22px_22px] opacity-40" />
-                                <div className="absolute inset-0 bg-[linear-gradient(145deg,hsl(var(--background)/0.12),transparent_58%)]" />
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,color-mix(in_oklch,var(--primary)_20%,transparent),transparent_42%),radial-gradient(circle_at_86%_78%,color-mix(in_oklch,var(--secondary)_14%,transparent),transparent_56%)]" />
+                                <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--border)_14%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--border)_14%,transparent)_1px,transparent_1px)] bg-[size:22px_22px] opacity-40" />
+                                <div className="absolute inset-0 bg-[linear-gradient(145deg,color-mix(in_oklch,var(--background)_12%,transparent),transparent_58%)]" />
                             </div>
 
                             <div className="relative grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-center">
@@ -513,9 +513,9 @@ export default function HomePage() {
                     <motion.section variants={itemVariants} className="pb-16 md:pb-24">
                         <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
                             <div className="pointer-events-none absolute inset-0">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_22%,hsl(var(--primary)/0.18),transparent_44%),radial-gradient(circle_at_85%_70%,hsl(var(--secondary)/0.16),transparent_54%)]" />
-                                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.18)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.18)_1px,transparent_1px)] bg-[size:20px_20px] opacity-35" />
-                                <div className="absolute inset-0 bg-[linear-gradient(145deg,hsl(var(--background)/0.14),transparent_60%)]" />
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_22%,color-mix(in_oklch,var(--primary)_18%,transparent),transparent_44%),radial-gradient(circle_at_85%_70%,color-mix(in_oklch,var(--secondary)_16%,transparent),transparent_54%)]" />
+                                <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--border)_18%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--border)_18%,transparent)_1px,transparent_1px)] bg-[size:20px_20px] opacity-35" />
+                                <div className="absolute inset-0 bg-[linear-gradient(145deg,color-mix(in_oklch,var(--background)_14%,transparent),transparent_60%)]" />
                             </div>
 
                             <div className="relative grid gap-7 md:grid-cols-[1.08fr_0.92fr] md:items-center">

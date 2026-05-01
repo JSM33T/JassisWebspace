@@ -331,7 +331,7 @@ export default function ContactPage() {
                 {/* Ambient Background Glow */}
                 <div className="fixed inset-0 z-[-1] pointer-events-none">
                     <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
-                    <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-accent/5 blur-[120px]" />
                 </div>
 
                 <Card className="max-w-md w-full rounded-3xl border bg-card/50 backdrop-blur-sm shadow-xl text-center p-8">
@@ -368,7 +368,7 @@ export default function ContactPage() {
             {/* Ambient Background Glow */}
             <div className="fixed inset-0 z-[-1] pointer-events-none">
                 <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/5 blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-accent/5 blur-[120px]" />
             </div>
 
             <section className="flex-1 px-4 py-6 md:py-8">

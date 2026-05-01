@@ -14,6 +14,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Briefcase, Send, Info } from 'lucide-react';
+import { PageBanner } from '@/components/page-banner';
 
 const services = [
     {
@@ -135,19 +136,13 @@ export default function ServicesPage() {
             transition={{ duration: 0.5, ease: "easeOut" }}
             className="flex flex-col min-h-screen bg-background/50"
         >
-            <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
-                <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
-                <div className="mx-auto max-w-7xl relative">
-                    <Badge variant="secondary" className="w-fit gap-2 rounded-full border-border/50 bg-background/55 px-4 py-1.5 text-sm font-normal backdrop-blur-sm">
-                        <Briefcase className="h-3.5 w-3.5 text-primary" />
-                        Our Solutions
-                    </Badge>
-                    <h1 className="mt-5 text-5xl font-bold tracking-tight md:text-6xl">Services</h1>
-                    <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-                        Explore my technical expertise and professional offerings.
-                    </p>
-                </div>
-            </div>
+            <PageBanner
+                badge="Our Solutions"
+                badgeIcon={Briefcase}
+                title="Services"
+                description="Explore my technical expertise and professional offerings."
+                maxWidth="max-w-7xl"
+            />
 
             <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
                 <div className="mx-auto max-w-7xl pt-4">
