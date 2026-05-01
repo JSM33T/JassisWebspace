@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -33,7 +33,7 @@ const projects: ProjectCard[] = projectsData.map((project) => ({
     id: makeProjectId(project.title),
 }));
 
-export default function ProjectsPage() {
+function ProjectsPageContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -305,5 +305,13 @@ export default function ProjectsPage() {
                 </DialogContent>
             </Dialog>
         </motion.div>
+    );
+}
+
+export default function ProjectsPage() {
+    return (
+        <Suspense>
+            <ProjectsPageContent />
+        </Suspense>
     );
 }

@@ -268,7 +268,7 @@ export function Navbar() {
 
     const topNavLinkClass = (active: boolean) =>
         cn(
-            'relative flex items-center gap-1 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-200 z-10 outline-none',
+            'relative flex cursor-pointer items-center gap-1 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-200 z-10 outline-none',
             active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
         );
 
