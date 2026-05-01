@@ -18,7 +18,7 @@ export function AppShell({ children }: AppShellProps) {
             <div className="relative z-10 flex flex-col flex-1">
                 <RouteProgressBar />
                 <Navbar />
-                <div className="flex-1 pt-[4.25rem]">
+                <div className="flex-1 pt-14 lg:pt-[4.25rem]">
                     {children}
                 </div>
                 {!isAdmin && <Footer />}

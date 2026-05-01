@@ -330,6 +330,23 @@ export function Navbar() {
         </DropdownMenuContent>
     );
 
+    const themeToggleIcon = (
+        <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+                key={activeMode}
+                initial={{ rotate: -90, scale: 0.7, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                exit={{ rotate: 90, scale: 0.7, opacity: 0 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="absolute inset-0 flex items-center justify-center"
+            >
+                {activeMode === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </motion.span>
+        </AnimatePresence>
+    );
+
+    const activeUnderline = <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />;
+
     return (
         <>
             {/* ── Desktop horizontal top navbar ── */}
@@ -378,9 +395,7 @@ export function Navbar() {
                                 className={topNavLinkClass(isActivePath('/'))}
                                 onMouseEnter={handleNavLinkHover}
                             >
-                                {isActivePath('/') && (
-                                    <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />
-                                )}
+                                {isActivePath('/') && activeUnderline}
                                 Home
                             </Link>
 
@@ -391,9 +406,7 @@ export function Navbar() {
                                         className={topNavLinkClass(isSectionActive(workMenuItems))}
                                         onMouseEnter={handleNavLinkHover}
                                     >
-                                        {isSectionActive(workMenuItems) && (
-                                            <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />
-                                        )}
+                                        {isSectionActive(workMenuItems) && activeUnderline}
                                         Work
                                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </button>
@@ -443,9 +456,7 @@ export function Navbar() {
                                         className={topNavLinkClass(isSectionActive(studioMenuItems))}
                                         onMouseEnter={handleNavLinkHover}
                                     >
-                                        {isSectionActive(studioMenuItems) && (
-                                            <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />
-                                        )}
+                                        {isSectionActive(studioMenuItems) && activeUnderline}
                                         Media
                                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </button>
@@ -495,9 +506,7 @@ export function Navbar() {
                                         className={topNavLinkClass(isSectionActive(aboutMenuItems))}
                                         onMouseEnter={handleNavLinkHover}
                                     >
-                                        {isSectionActive(aboutMenuItems) && (
-                                            <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />
-                                        )}
+                                        {isSectionActive(aboutMenuItems) && activeUnderline}
                                         About
                                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </button>
@@ -567,22 +576,7 @@ export function Navbar() {
                             aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                             title={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                         >
-                            <AnimatePresence mode="wait" initial={false}>
-                                <motion.span
-                                    key={activeMode}
-                                    initial={{ rotate: -90, scale: 0.7, opacity: 0 }}
-                                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                                    exit={{ rotate: 90, scale: 0.7, opacity: 0 }}
-                                    transition={{ duration: 0.22, ease: 'easeOut' }}
-                                    className="absolute inset-0 flex items-center justify-center"
-                                >
-                                    {activeMode === 'dark' ? (
-                                        <Sun className="h-4 w-4" />
-                                    ) : (
-                                        <Moon className="h-4 w-4" />
-                                    )}
-                                </motion.span>
-                            </AnimatePresence>
+                            {themeToggleIcon}
                         </Button>
 
                         {/* Player / theme sidebar */}
@@ -647,11 +641,12 @@ export function Navbar() {
             {/* ── Mobile top bar ── */}
             <nav
                 className={cn(
-                    'fixed inset-x-0 top-0 z-50 px-4 pt-4 transition-all duration-300 lg:hidden',
-                    isNavbarHidden ? 'pointer-events-none -translate-y-24 opacity-0' : 'translate-y-0 opacity-100'
+                    'fixed inset-x-0 top-0 z-50 transition-all duration-300 lg:hidden',
+                    'border-b border-border/60 bg-background/95 shadow-sm shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/88',
+                    isNavbarHidden ? 'pointer-events-none -translate-y-14 opacity-0' : 'translate-y-0 opacity-100'
                 )}
             >
-                <div className="mx-auto flex h-14 max-w-md items-center justify-between rounded-[1.75rem] border border-border/60 bg-background/90 px-4 shadow-2xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
+                <div className="flex h-14 items-center justify-between px-4">
                     <Link
                         href="/"
                         aria-current={isActivePath('/') ? 'page' : undefined}
@@ -680,32 +675,17 @@ export function Navbar() {
                             onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
                             aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                         >
-                            <AnimatePresence mode="wait" initial={false}>
-                                <motion.span
-                                    key={activeMode}
-                                    initial={{ rotate: -90, scale: 0.7, opacity: 0 }}
-                                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                                    exit={{ rotate: 90, scale: 0.7, opacity: 0 }}
-                                    transition={{ duration: 0.22, ease: 'easeOut' }}
-                                    className="absolute inset-0 flex items-center justify-center"
-                                >
-                                    {activeMode === 'dark' ? (
-                                        <Sun className="h-4 w-4" />
-                                    ) : (
-                                        <Moon className="h-4 w-4" />
-                                    )}
-                                </motion.span>
-                            </AnimatePresence>
+                            {themeToggleIcon}
                         </Button>
 
                         <Button
                             variant="ghost"
-                            size="sm"
-                            className="h-9 px-2 hover:bg-accent/50"
+                            size="icon"
+                            className={cn('h-9 w-9 rounded-full hover:bg-accent/50', sidebarOpen && 'text-primary')}
                             onClick={() => handleSidebarOpenChange(true)}
                             title="Open sidebar"
                         >
-                            <PanelRight className={`h-4 w-4 ${sidebarOpen ? 'text-primary' : ''}`} />
+                            <PanelRight className="h-4 w-4" />
                         </Button>
 
                         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
@@ -750,12 +730,12 @@ export function Navbar() {
                                         </div>
                                     ) : (
                                         <SheetClose asChild>
-                                            <Link href={loginHref}>
-                                                <Button className="h-12 w-full cursor-pointer rounded-2xl">
+                                            <Button asChild className="h-12 w-full rounded-2xl">
+                                                <Link href={loginHref}>
                                                     <User className="mr-2 h-4 w-4" />
                                                     Login
-                                                </Button>
-                                            </Link>
+                                                </Link>
+                                            </Button>
                                         </SheetClose>
                                     )}
 
@@ -797,7 +777,6 @@ export function Navbar() {
                                                 {section.items.map((item) => {
                                                     const Icon = item.icon;
                                                     const isActive = isActivePath(item.href);
-                                                    const isHomeItem = item.href === '/';
                                                     return (
                                                         <SheetClose key={item.href} asChild>
                                                             <Link
@@ -811,8 +790,7 @@ export function Navbar() {
                                                             >
                                                                 <Icon
                                                                     className={cn(
-                                                                        isHomeItem ? 'h-6 w-6' : 'h-4 w-4',
-                                                                        'text-primary',
+                                                                        'h-4 w-4 text-primary',
                                                                         isActive && 'text-foreground'
                                                                     )}
                                                                 />
@@ -871,7 +849,7 @@ export function Navbar() {
                                                 </SheetClose>
                                                 <Button
                                                     variant="ghost"
-                                                    className="h-12 w-full cursor-pointer justify-start rounded-2xl px-3 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                                    className="w-full cursor-pointer justify-start rounded-2xl px-3 py-3 text-red-600 hover:bg-red-500/10 hover:text-red-700"
                                                     onClick={() => {
                                                         setMenuOpen(false);
                                                         setTimeout(() => setShowLogoutDialog(true), 180);
@@ -1064,7 +1042,7 @@ export function Navbar() {
                                             variant="ghost"
                                             size="sm"
                                             className={cn(
-                                                'h-auto w-full justify-start overflow-hidden whitespace-normal rounded-lg border px-2.5 py-2 text-left shadow-none',
+                                                'h-auto w-full justify-start overflow-hidden whitespace-normal rounded-xl border px-2.5 py-2 text-left shadow-none',
                                                 'border-border/60 bg-background/40 hover:border-border hover:bg-accent/50',
                                                 isActiveTheme && 'border-primary/40 bg-accent/60 ring-1 ring-primary/20'
                                             )}
