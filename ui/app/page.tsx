@@ -1,20 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { useSearchParams } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
-import { ArrowUpRight, BookOpen, Folder, Image as GalleryIcon, Info, Layers, Mail, Music } from "lucide-react";
+import { ArrowUpRight, BookOpen, Clock3, Disc3, Folder, Headphones, Image as GalleryIcon, Info, Layers, Mail, Music, Play, Radio, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTrackPlayer } from "@/hooks/use-audio-player";
+import projects from "@/data/projects";
 import blogService from "@/lib/api/blog.service";
 import { type BlogListItem } from "@/lib/api/blog.types";
 import galleryService from "@/lib/api/gallery.service";
 import { type Album } from "@/lib/api/gallery.types";
+import { musicService } from "@/lib/api/music.service";
+import { type MusicTrack } from "@/lib/api/music.types";
 import { getVersionedGalleryCoverUrl } from "@/lib/gallery-media";
+import { type MusicContentPayload } from "@/lib/music-content.types";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -48,16 +53,45 @@ export default function HomePage() {
     const searchParams = useSearchParams();
     const isResumeRef = searchParams.get("ref") === "resume";
     const links = isResumeRef ? resumeLinks : defaultLinks;
+    const { playTrack } = useTrackPlayer();
     const [recentGalleries, setRecentGalleries] = useState<Album[]>([]);
+    const [galleryTotal, setGalleryTotal] = useState(0);
     const [galleryLoading, setGalleryLoading] = useState(true);
     const [galleryError, setGalleryError] = useState<string | null>(null);
     const [recentBlogs, setRecentBlogs] = useState<BlogListItem[]>([]);
+    const [blogTotal, setBlogTotal] = useState(0);
     const [blogLoading, setBlogLoading] = useState(true);
     const [blogError, setBlogError] = useState<string | null>(null);
+    const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
+    const [musicLoading, setMusicLoading] = useState(true);
+    const [musicError, setMusicError] = useState<string | null>(null);
+    const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+
+    const latestBlog = recentBlogs[0] ?? null;
+    const latestGallery = recentGalleries[0] ?? null;
+    const latestGalleryCover = latestGallery ? getVersionedGalleryCoverUrl(latestGallery) : null;
+    const featuredTrack = useMemo(() => {
+        const playableTracks = musicTracks.filter((track) => track.hasPlayableSource);
+        const candidates = playableTracks.length > 0 ? playableTracks : musicTracks;
+
+        return [...candidates]
+            .sort((a, b) => {
+                const featuredSort = Number(b.featured) - Number(a.featured);
+                if (featuredSort !== 0) return featuredSort;
+                return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+            })[0] ?? null;
+    }, [musicTracks]);
+    const contentStats = [
+        { label: "Albums", value: galleryLoading ? "..." : galleryTotal, icon: GalleryIcon },
+        { label: "Tracks", value: musicLoading ? "..." : musicTracks.length, icon: Headphones },
+        { label: "Projects", value: projects.length, icon: Folder },
+        { label: "Posts", value: blogLoading ? "..." : blogTotal, icon: BookOpen },
+    ];
 
     useEffect(() => {
         void loadRecentGalleries();
         void loadRecentBlogs();
+        void loadRecentMusic();
     }, []);
 
     const loadRecentGalleries = async () => {
@@ -65,6 +99,7 @@ export default function HomePage() {
             setGalleryLoading(true);
             setGalleryError(null);
             const albums = await galleryService.getAllAlbums();
+            setGalleryTotal(albums.length);
             const sortedAlbums = [...albums]
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .slice(0, 5);
@@ -84,7 +119,8 @@ export default function HomePage() {
         try {
             setBlogLoading(true);
             setBlogError(null);
-            const blogs = await blogService.getBlogs({ page: 1, pageSize: 4 });
+            const blogs = await blogService.getBlogs({ page: 1, pageSize: 100 });
+            setBlogTotal(blogs.length);
             const sortedBlogs = [...blogs]
                 .sort((a, b) => {
                     const left = new Date(a.publishedAt ?? a.createdAt).getTime();
@@ -101,6 +137,64 @@ export default function HomePage() {
             console.error("Failed to load recent blogs:", error);
         } finally {
             setBlogLoading(false);
+        }
+    };
+
+    const loadRecentMusic = async () => {
+        try {
+            setMusicLoading(true);
+            setMusicError(null);
+            const response = await fetch('/api/music-content', {
+                method: 'GET',
+                cache: 'no-store',
+            });
+            if (!response.ok) {
+                throw new Error('Failed to load music content.');
+            }
+
+            const payload = (await response.json()) as MusicContentPayload;
+            setMusicTracks(payload.tracks);
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.message
+                : "Unable to load music right now.";
+            setMusicError(message);
+            console.error("Failed to load recent music:", error);
+        } finally {
+            setMusicLoading(false);
+        }
+    };
+
+    const formatArtists = (track: MusicTrack) => {
+        const artists = track.authors
+            .map((author) => author.displayName || author.username)
+            .filter(Boolean);
+
+        return artists.length > 0 ? artists.join(", ") : "JSM33T";
+    };
+
+    const formatCategory = (category: string) => category
+        .replace(/[-/]+/g, " ")
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+
+    const handlePlayTrack = async (track: MusicTrack) => {
+        if (!track.hasPlayableSource) return;
+
+        try {
+            setPlayingTrackId(track.id);
+            const playLink = await musicService.createPlayLink(track.id);
+            playTrack({
+                title: track.title,
+                artist: formatArtists(track),
+                playFile: playLink.streamUrl,
+            });
+        } catch (error) {
+            console.error("Failed to generate play link:", error);
+        } finally {
+            setPlayingTrackId(null);
         }
     };
 
@@ -178,63 +272,85 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        {/* ── Right: structured two-column panel — desktop only ── */}
-                        <div className="hidden h-[460px] flex-1 gap-3 md:flex">
-                            {/* Left stack: nav + tagline */}
-                            <div className="flex flex-1 flex-col gap-3">
-                                <div className="flex-1 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm backdrop-blur-sm">
-                                    <p className="mb-4 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Navigate</p>
-                                    <div className="space-y-2">
-                                        {links.map((item) => {
-                                            const Icon = item.icon;
-                                            return (
-                                                <Link
-                                                    key={item.href}
-                                                    href={item.href}
-                                                    className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-background/60 px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                                                >
-                                                    <Icon className="h-3.5 w-3.5 shrink-0" />
-                                                    {item.label}
-                                                </Link>
-                                            );
-                                        })}
-                                    </div>
+                        {/* ── Right: live content bento — desktop only ── */}
+                        <div className="hidden h-[460px] flex-1 grid-cols-2 grid-rows-[1fr_1.08fr] gap-3 md:grid">
+                            <Link
+                                href={latestBlog ? `/blog/${latestBlog.slug}` : "/blog"}
+                                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+                            >
+                                {latestBlog?.featuredImage ? (
+                                    <NextImage
+                                        src={latestBlog.featuredImage}
+                                        alt={latestBlog.title}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 25vw"
+                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                        priority
+                                    />
+                                ) : (
+                                    <div className="h-full w-full bg-[radial-gradient(circle_at_22%_18%,color-mix(in_oklch,var(--primary)_34%,transparent),transparent_54%),radial-gradient(circle_at_82%_76%,color-mix(in_oklch,var(--secondary)_28%,transparent),transparent_58%),linear-gradient(145deg,var(--muted),var(--card))]" />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/25 to-black/5" />
+                                <div className="absolute inset-x-0 bottom-0 p-4">
+                                    <p className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-widest text-white/65">
+                                        <BookOpen className="h-3 w-3" />
+                                        Latest Note
+                                    </p>
+                                    <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-white">
+                                        {blogLoading ? "Loading the newest post" : latestBlog?.title ?? "Writing lives here"}
+                                    </h2>
                                 </div>
-                                <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur-sm">
-                                    <p className="text-[11px] text-muted-foreground">Crafting</p>
-                                    <p className="mt-1 text-sm font-semibold leading-snug">Software, design &amp; creative experiences</p>
+                            </Link>
+
+                            <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm backdrop-blur-sm">
+                                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,color-mix(in_oklch,var(--primary)_20%,transparent),transparent_42%),radial-gradient(circle_at_82%_76%,color-mix(in_oklch,var(--accent)_14%,transparent),transparent_48%)]" />
+                                <div className="relative flex h-full flex-col justify-between">
+                                    <div className="flex items-center justify-between">
+                                        <span className="rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                                            Scale
+                                        </span>
+                                        <Sparkles className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div>
+                                        <div className="text-5xl font-semibold tracking-tight text-primary">
+                                            {galleryLoading ? "..." : galleryTotal}
+                                        </div>
+                                        <p className="mt-1 text-sm font-medium">visual albums</p>
+                                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                                            plus {musicLoading ? "..." : musicTracks.length} tracks, {projects.length} projects, and {blogLoading ? "..." : blogTotal} posts.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Right: large portrait image card */}
-                            <Link href="/gallery" className="group relative w-[52%] overflow-hidden rounded-2xl border border-border/50 bg-muted shadow-xl transition-shadow duration-300 hover:shadow-2xl">
-                                {!galleryLoading && recentGalleries[0] && getVersionedGalleryCoverUrl(recentGalleries[0]) ? (
+                            <Link
+                                href={latestGallery ? `/gallery/${latestGallery.slug}` : "/gallery"}
+                                className="group relative col-span-2 overflow-hidden rounded-2xl border border-border/50 bg-muted shadow-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
+                            >
+                                {!galleryLoading && latestGallery && latestGalleryCover ? (
                                     <NextImage
-                                        src={getVersionedGalleryCoverUrl(recentGalleries[0]) as string}
-                                        alt={recentGalleries[0].name}
+                                        src={latestGalleryCover}
+                                        alt={latestGallery.name}
                                         fill
-                                        sizes="(max-width: 768px) 100vw, 52vw"
+                                        sizes="(max-width: 768px) 100vw, 50vw"
                                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         priority
                                     />
                                 ) : (
                                     <div className="h-full w-full bg-[radial-gradient(circle_at_30%_30%,color-mix(in_oklch,var(--primary)_40%,transparent),transparent_60%),linear-gradient(145deg,var(--muted),var(--card))]" />
                                 )}
-
-                                {/* Albums count badge */}
-                                <div className="absolute left-3 top-3 rounded-full border border-white/20 bg-background/70 px-3 py-1 backdrop-blur-sm">
-                                    <span className="text-xs font-semibold">
-                                        {galleryLoading ? '…' : `${recentGalleries.length}+ Albums`}
-                                    </span>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/18 to-transparent" />
+                                <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                                    Gallery cover
                                 </div>
-
-                                {/* Bottom label — same style as gallery thumbs */}
-                                {!galleryLoading && recentGalleries[0] && (
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12">
-                                        <p className="mb-0.5 font-mono text-[10px] font-medium uppercase tracking-widest text-white/60">01</p>
-                                        <p className="line-clamp-1 text-sm font-semibold text-white">{recentGalleries[0].name}</p>
-                                    </div>
-                                )}
+                                <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-12">
+                                    <p className="mb-1 font-mono text-[10px] font-medium uppercase tracking-widest text-white/60">
+                                        {galleryLoading ? "Loading" : `${latestGallery?.imageCount ?? 0} images`}
+                                    </p>
+                                    <p className="line-clamp-1 text-lg font-semibold text-white">
+                                        {latestGallery?.name ?? "Recent visual work"}
+                                    </p>
+                                </div>
                             </Link>
                         </div>
 
@@ -257,6 +373,37 @@ export default function HomePage() {
                                 />
                             </div>
                         </motion.div>
+                    </motion.section>
+
+                    <motion.section variants={itemVariants} className="pb-8 md:pb-10">
+                        <div className="grid overflow-hidden rounded-2xl border border-border/60 bg-card/55 backdrop-blur-sm sm:grid-cols-4">
+                            {contentStats.map((stat) => {
+                                const Icon = stat.icon;
+                                return (
+                                    <Link
+                                        key={stat.label}
+                                        href={
+                                            stat.label === "Albums"
+                                                ? "/gallery"
+                                                : stat.label === "Tracks"
+                                                    ? "/music"
+                                                    : stat.label === "Projects"
+                                                        ? "/projects"
+                                                        : "/blog"
+                                        }
+                                        className="group flex min-h-28 items-center gap-4 border-b border-border/60 px-5 py-6 transition-colors hover:bg-background/50 sm:border-b-0 sm:border-r sm:last:border-r-0 md:min-h-32 md:px-6"
+                                    >
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/65 text-muted-foreground transition-colors group-hover:text-foreground">
+                                            <Icon className="h-5 w-5" />
+                                        </span>
+                                        <span className="min-w-0">
+                                            <span className="block text-2xl font-semibold leading-none">{stat.value}</span>
+                                            <span className="mt-2 block text-xs uppercase tracking-wide text-muted-foreground">{stat.label}</span>
+                                        </span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
                     </motion.section>
 
                     <motion.section variants={itemVariants} className="pb-16 md:pb-24">
@@ -357,6 +504,89 @@ export default function HomePage() {
                                         })}
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </motion.section>
+
+                    <motion.section variants={itemVariants} className="pb-16 md:pb-24">
+                        <div className="relative overflow-hidden rounded-3xl border bg-card/70 p-4 shadow-sm backdrop-blur-sm md:p-5">
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,color-mix(in_oklch,var(--primary)_18%,transparent),transparent_38%),radial-gradient(circle_at_86%_70%,color-mix(in_oklch,var(--secondary)_16%,transparent),transparent_48%)]" />
+                            <div className="relative grid gap-4 md:grid-cols-[auto_1fr_auto] md:items-center">
+                                <Link
+                                    href={featuredTrack ? `/music/${featuredTrack.slug}` : "/music"}
+                                    className="group relative aspect-square w-full overflow-hidden rounded-2xl border bg-background/65 md:h-28 md:w-28"
+                                >
+                                    {musicLoading ? (
+                                        <Skeleton className="h-full w-full rounded-none" />
+                                    ) : featuredTrack?.cover ? (
+                                        <NextImage
+                                            src={featuredTrack.cover}
+                                            alt={featuredTrack.title}
+                                            fill
+                                            sizes="112px"
+                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_24%,color-mix(in_oklch,var(--primary)_38%,transparent),transparent_54%),linear-gradient(145deg,var(--muted),var(--card))]">
+                                            <Disc3 className="h-8 w-8 text-white/70" />
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+                                </Link>
+
+                                <div className="min-w-0 space-y-3">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Badge variant="secondary" className="w-fit rounded-full px-3 py-1">
+                                            <Radio className="mr-1.5 h-3.5 w-3.5" />
+                                            Now Playing
+                                        </Badge>
+                                        {featuredTrack?.category && (
+                                            <span className="rounded-full border border-border/60 bg-background/55 px-3 py-1 text-xs text-muted-foreground">
+                                                {formatCategory(featuredTrack.category)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h2 className="line-clamp-1 text-2xl font-semibold tracking-tight md:text-3xl">
+                                            {musicLoading ? "Loading the music shelf" : featuredTrack?.title ?? "Music shelf"}
+                                        </h2>
+                                        <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
+                                            {musicError ?? (featuredTrack ? `${formatArtists(featuredTrack)}${featuredTrack.duration ? ` · ${featuredTrack.duration}` : ""}` : "Tracks, remixes, and small audio experiments.")}
+                                        </p>
+                                    </div>
+                                    <div className="flex h-8 items-end gap-1.5" aria-hidden="true">
+                                        {[44, 70, 38, 82, 56, 92, 48, 74, 36, 64, 88, 52, 76, 42, 68, 58].map((height, index) => (
+                                            <span
+                                                key={`${height}-${index}`}
+                                                className="w-1.5 rounded-full bg-primary/55"
+                                                style={{ height: `${height}%` }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 md:justify-end">
+                                    <Button
+                                        type="button"
+                                        size="lg"
+                                        className="rounded-full px-6"
+                                        disabled={!featuredTrack?.hasPlayableSource || playingTrackId === featuredTrack?.id}
+                                        onClick={() => {
+                                            if (featuredTrack) {
+                                                void handlePlayTrack(featuredTrack);
+                                            }
+                                        }}
+                                    >
+                                        <Play className="mr-2 h-4 w-4 fill-current" />
+                                        {playingTrackId === featuredTrack?.id ? "Loading..." : "Play"}
+                                    </Button>
+                                    <Button asChild size="lg" variant="secondary" className="rounded-full px-6">
+                                        <Link href="/music">
+                                            Open Music
+                                            <ArrowUpRight className="ml-2 h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </motion.section>
@@ -539,12 +769,43 @@ export default function HomePage() {
                                     </Button>
                                 </div>
 
-                                <div className="relative h-44 rounded-2xl border bg-background/50 p-5 md:h-56">
-                                    <div className="absolute -left-8 top-6 h-24 w-24 rounded-full border bg-primary/15 blur-[2px]" />
-                                    <div className="absolute right-6 top-6 h-14 w-14 rounded-full border bg-secondary/20" />
-                                    <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/40 bg-background/65" />
-                                    <div className="absolute bottom-6 left-8 right-8 h-12 rounded-xl border bg-card/70" />
-                                    <div className="absolute bottom-10 left-1/2 h-2 w-24 -translate-x-1/2 rounded-full bg-primary/35" />
+                                <div className="rounded-2xl border bg-background/55 p-4 md:p-5">
+                                    <div className="grid gap-3">
+                                        <div className="flex items-center justify-between gap-4 rounded-xl border bg-card/70 px-4 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <span className="flex h-9 w-9 items-center justify-center rounded-full border bg-background/70 text-muted-foreground">
+                                                    <Clock3 className="h-4 w-4" />
+                                                </span>
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Timezone</p>
+                                                    <p className="text-sm font-semibold">IST, UTC+05:30</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4 rounded-xl border bg-card/70 px-4 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <span className="flex h-9 w-9 items-center justify-center rounded-full border bg-background/70 text-muted-foreground">
+                                                    <Mail className="h-4 w-4" />
+                                                </span>
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Response</p>
+                                                    <p className="text-sm font-semibold">Usually within 24h</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4 rounded-xl border bg-card/70 px-4 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <span className="relative flex h-9 w-9 items-center justify-center rounded-full border bg-background/70">
+                                                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_6px_color-mix(in_oklch,var(--primary)_12%,transparent)]" />
+                                                </span>
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Availability</p>
+                                                    <p className="text-sm font-semibold">Open to thoughtful work</p>
+                                                </div>
+                                            </div>
+                                            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
