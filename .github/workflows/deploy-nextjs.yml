@@ -9,6 +9,7 @@ on:
 
 jobs:
   deploy-nextjs:
+    if: false
     runs-on: ubuntu-latest
 
     steps:
