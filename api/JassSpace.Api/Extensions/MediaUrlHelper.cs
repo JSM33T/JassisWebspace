@@ -1,11 +1,10 @@
 using System.Text;
-using Microsoft.AspNetCore.Http;
 
 namespace JassSpace.Api.Extensions;
 
 public static class MediaUrlHelper
 {
-    public static string GetBaseUrl(HttpRequest request)
+    private static string GetBaseUrl(HttpRequest request)
         => $"{request.Scheme}://{request.Host}";
 
     public static string BuildMediaUrl(HttpRequest request, string blobName)

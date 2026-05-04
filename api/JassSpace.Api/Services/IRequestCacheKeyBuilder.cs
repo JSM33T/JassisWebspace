@@ -9,5 +9,6 @@ public interface IRequestCacheKeyBuilder
 
 public readonly record struct CacheKeyContext(
     string BaseKey,
+    // ReSharper disable once NotAccessedPositionalProperty.Global
     string SubjectKey,
     string CacheKey);

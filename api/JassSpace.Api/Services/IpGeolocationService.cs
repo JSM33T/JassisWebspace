@@ -2,7 +2,6 @@ using System.Net;
 using System.Text.Json;
 using JassSpace.Api.Configuration;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace JassSpace.Api.Services;

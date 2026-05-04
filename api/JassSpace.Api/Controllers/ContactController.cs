@@ -23,8 +23,8 @@ public sealed class ContactController(
     [ProducesResponseType(typeof(ApiResponse<TurnstileSiteKeyResponse>), StatusCodes.Status200OK)]
     public IActionResult GetTurnstileSiteKey()
     {
-        var options = turnstileOptions.Value ?? new TurnstileOptions();
-        var siteKey = options.Enabled ? options.SiteKey?.Trim() ?? string.Empty : string.Empty;
+        var options = turnstileOptions.Value;
+        var siteKey = options.Enabled ? options.SiteKey.Trim() : string.Empty;
         return OkEnvelope(new TurnstileSiteKeyResponse(options.Enabled, siteKey));
     }
 

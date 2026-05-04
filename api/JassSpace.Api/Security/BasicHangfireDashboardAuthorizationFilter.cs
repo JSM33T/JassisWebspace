@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using Hangfire.Dashboard;
-using Microsoft.AspNetCore.Http;
 
 namespace JassSpace.Api.Security;
 

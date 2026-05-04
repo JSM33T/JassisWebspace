@@ -1,7 +1,4 @@
 using System.Net;
-using System.Linq;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 
 namespace JassSpace.Api.Services;
 

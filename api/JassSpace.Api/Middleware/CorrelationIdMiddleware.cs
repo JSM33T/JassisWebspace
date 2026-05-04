@@ -1,19 +1,11 @@
 using JassSpace.Api.Logging;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Serilog.Context;
 
 namespace JassSpace.Api.Middleware;
 
-public sealed class CorrelationIdMiddleware
+public sealed class CorrelationIdMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public CorrelationIdMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public async Task Invoke(HttpContext context)
     {
         string correlationId;
@@ -47,7 +39,7 @@ public sealed class CorrelationIdMiddleware
         using (LogContext.PushProperty(RequestLoggingContext.CorrelationIdPropertyName, correlationId))
         using (LogContext.PushProperty(RequestLoggingContext.RequestIdPropertyName, correlationId))
         {
-            await _next(context);
+            await next(context);
         }
     }
 }

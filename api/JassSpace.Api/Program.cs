@@ -16,9 +16,7 @@ using JassSpace.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Options;
 using Serilog;
-using Serilog.Events;
 using Serilog.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -121,17 +119,17 @@ builder.Services.AddScoped<ICommentNotificationJob, CommentNotificationJob>();
 builder.Services.AddHttpClient();
 
 // Email Service Configuration
-builder.Services.Configure<JassSpace.Infra.Configuration.SmtpSettings>(
+builder.Services.Configure<SmtpSettings>(
     builder.Configuration.GetSection("Email:Smtp"));
-builder.Services.AddScoped<JassSpace.Infra.IEmailService, JassSpace.Infra.EmailService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Azure Blob Storage Service Configuration
-builder.Services.Configure<JassSpace.Infra.Configuration.AzureBlobStorageSettings>(
+builder.Services.Configure<AzureBlobStorageSettings>(
     builder.Configuration.GetSection("AzureBlobStorage"));
-builder.Services.AddScoped<JassSpace.Infra.IAzureBlobStorageService, JassSpace.Infra.AzureBlobStorageService>();
+builder.Services.AddScoped<IAzureBlobStorageService, AzureBlobStorageService>();
 
 // Image Processing Service
-builder.Services.AddScoped<JassSpace.Infra.IImageProcessingService, JassSpace.Infra.ImageProcessingService>();
+builder.Services.AddScoped<IImageProcessingService, ImageProcessingService>();
 
 // Repository Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();

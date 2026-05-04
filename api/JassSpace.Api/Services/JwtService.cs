@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,16 +9,10 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace JassSpace.Api.Services;
 
-public class JwtService : IJwtService
+public class JwtService(IOptions<JwtSettings> jwtSettings, ILogger<JwtService> logger)
+    : IJwtService
 {
-    private readonly JwtSettings _jwtSettings;
-    private readonly ILogger<JwtService> _logger;
-
-    public JwtService(IOptions<JwtSettings> jwtSettings, ILogger<JwtService> logger)
-    {
-        _jwtSettings = jwtSettings.Value;
-        _logger = logger;
-    }
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
     public string GenerateToken(User user, Guid? sessionId = null)
     {
@@ -50,17 +42,14 @@ public class JwtService : IJwtService
             claims.Add(new Claim("display_name", user.DisplayName));
         }
 
-        if (user.UserRoles is not null && user.UserRoles.Count > 0)
+        if (user.UserRoles.Count > 0)
         {
             var roleNames = user.UserRoles
-                .Where(ur => ur.Role != null && !string.IsNullOrWhiteSpace(ur.Role.Name))
+                .Where(ur => !string.IsNullOrWhiteSpace(ur.Role.Name))
                 .Select(ur => ur.Role.Name)
                 .Distinct(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var roleName in roleNames)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, roleName));
-            }
+            claims.AddRange(roleNames.Select(roleName => new Claim(ClaimTypes.Role, roleName)));
         }
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -77,7 +66,7 @@ public class JwtService : IJwtService
         var token = tokenHandler.CreateToken(tokenDescriptor);
         var tokenString = tokenHandler.WriteToken(token);
 
-        _logger.LogDebug(
+        logger.LogDebug(
             "Issued JWT for user {UserId} with session {SessionId}. IssuedAt: {IssuedAt}, NotBefore: {NotBefore}, Expires: {Expires}",
             user.Id,
             sessionId,
@@ -119,7 +108,7 @@ public class JwtService : IJwtService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "JWT token validation failed");
+            logger.LogWarning(ex, "JWT token validation failed");
             return null;
         }
     }

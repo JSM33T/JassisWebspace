@@ -1,17 +1,10 @@
 ﻿using JassSpace.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Data;
-using System.Reflection.Emit;
 
 namespace JassSpace.Data;
 
-public class JassSpaceDbContext : DbContext
+public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : DbContext(options)
 {
-    public JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : base(options)
-    {
-    }
-
     // DbSets for all entities
     public DbSet<User> Users { get; set; }
     public DbSet<Role> Roles { get; set; }

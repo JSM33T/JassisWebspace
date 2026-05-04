@@ -1,7 +1,5 @@
 using System.Globalization;
-using JassSpace.Contracts.Responses;
 using JassSpace.Infra;
-using Microsoft.AspNetCore.Http;
 
 namespace JassSpace.Api.Extensions;
 

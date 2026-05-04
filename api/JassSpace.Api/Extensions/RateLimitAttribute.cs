@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Security.Claims;
-using JassSpace.Contracts.Interfaces;
-using JassSpace.Contracts.Responses;
 using JassSpace.Infra;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -9,14 +7,9 @@ using Microsoft.AspNetCore.Mvc.Filters;
 namespace JassSpace.Api.Extensions;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public sealed class RateLimitAttribute : Attribute, IAsyncActionFilter
+public sealed class RateLimitAttribute(string policyName) : Attribute, IAsyncActionFilter
 {
-    public RateLimitAttribute(string policyName)
-    {
-        PolicyName = policyName ?? throw new ArgumentNullException(nameof(policyName));
-    }
-
-    public string PolicyName { get; }
+    private string PolicyName { get; } = policyName ?? throw new ArgumentNullException(nameof(policyName));
 
     public RateLimitPartitionStrategy Partition { get; init; } = RateLimitPartitionStrategy.IpAddress;
 
@@ -28,7 +21,7 @@ public sealed class RateLimitAttribute : Attribute, IAsyncActionFilter
 
     public string? RouteValueKey { get; init; }
 
-    public bool FallbackToIp { get; init; } = true;
+    private bool FallbackToIp { get; init; } = true;
 
     public bool RequireAuthenticatedUser { get; init; }
 
@@ -97,7 +90,7 @@ public sealed class RateLimitAttribute : Attribute, IAsyncActionFilter
     private static string? ResolveClaim(HttpContext context, string? claimType)
     {
         var principal = context.User;
-        if (principal?.Identity?.IsAuthenticated != true)
+        if (principal.Identity?.IsAuthenticated != true)
         {
             return null;
         }
@@ -112,7 +105,7 @@ public sealed class RateLimitAttribute : Attribute, IAsyncActionFilter
 
     private static string? ResolveUserIdentifier(HttpContext context, bool requireAuthenticated)
     {
-        if (context.User?.Identity?.IsAuthenticated != true)
+        if (context.User.Identity?.IsAuthenticated != true)
         {
             return requireAuthenticated ? null : context.Connection.RemoteIpAddress?.ToString();
         }
@@ -147,14 +140,16 @@ public sealed class RateLimitAttribute : Attribute, IAsyncActionFilter
             Status = StatusCodes.Status429TooManyRequests,
             Detail = detail,
             Type = "https://datatracker.ietf.org/doc/html/rfc6585#section-4",
-            Instance = null
+            Instance = null,
+            Extensions =
+            {
+                ["policy"] = decision.PolicyName,
+                ["limit"] = decision.Limit,
+                ["windowStart"] = decision.WindowStart,
+                ["windowEnd"] = decision.WindowEnd,
+                ["retryAfterUtc"] = decision.RetryAfterUtc
+            }
         };
-
-        problem.Extensions["policy"] = decision.PolicyName;
-        problem.Extensions["limit"] = decision.Limit;
-        problem.Extensions["windowStart"] = decision.WindowStart;
-        problem.Extensions["windowEnd"] = decision.WindowEnd;
-        problem.Extensions["retryAfterUtc"] = decision.RetryAfterUtc;
 
         return new ObjectResult(problem)
         {

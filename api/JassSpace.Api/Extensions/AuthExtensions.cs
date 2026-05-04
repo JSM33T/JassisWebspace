@@ -1,8 +1,6 @@
 using JassSpace.Api.Configuration;
 using JassSpace.Api.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;

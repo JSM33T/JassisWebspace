@@ -1,6 +1,5 @@
 using JassSpace.Api.Configuration;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace JassSpace.Api.Filters;
 

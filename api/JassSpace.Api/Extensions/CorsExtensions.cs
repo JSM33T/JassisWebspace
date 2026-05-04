@@ -1,7 +1,3 @@
-using System;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace JassSpace.Api.Extensions
 {
     /// <summary>
@@ -12,7 +8,7 @@ namespace JassSpace.Api.Extensions
         /// <summary>
         /// The name of the CORS policy that allows requests from the frontend.
         /// </summary>
-        public const string AllowFrontendPolicy = "AllowFrontend";
+        private const string AllowFrontendPolicy = "AllowFrontend";
 
         /// <summary>
         /// Adds a custom CORS policy named <see cref="AllowFrontendPolicy"/> that allows
