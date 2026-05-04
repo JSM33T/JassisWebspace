@@ -60,6 +60,7 @@ import {
     Mail,
     House,
     Search,
+    Users,
 } from 'lucide-react';
 import { SearchModal } from '@/components/search-modal';
 import { useUser, userHelpers } from '@/contexts/UserContext';
@@ -121,6 +122,8 @@ export function Navbar() {
         { href: '/projects', label: 'Projects', description: 'View our completed projects', icon: FolderCode },
         { href: '/services', label: 'Services', description: 'Explore the services we offer', icon: Briefcase },
     ];
+
+    const miscMenuItems = [] as typeof workMenuItems;
 
     const aboutMenuItems = [
         { href: '/about', label: 'About', description: 'Learn about JassSpace and our mission', icon: UserCircle },
@@ -548,6 +551,56 @@ export function Navbar() {
                                     })}
                                 </DropdownMenuContent>
                             </DropdownMenu>
+
+                            {/* Misc */}
+                            {miscMenuItems.length > 0 && <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        className={topNavLinkClass(isSectionActive(miscMenuItems))}
+                                        onMouseEnter={handleNavLinkHover}
+                                    >
+                                        {isSectionActive(miscMenuItems) && activeUnderline}
+                                        Misc
+                                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    className={navDropdownContentClassName}
+                                    align="center"
+                                    sideOffset={14}
+                                    collisionPadding={16}
+                                >
+                                    {miscMenuItems.map((item) => {
+                                        const Icon = item.icon;
+                                        const isActive = isActivePath(item.href);
+                                        return (
+                                            <DropdownMenuItem key={item.href} asChild>
+                                                <Link
+                                                    href={item.href}
+                                                    className={cn(
+                                                        'flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors',
+                                                        'hover:border-border/50 hover:bg-accent/60',
+                                                        isActive && 'border-border/70 bg-accent/70'
+                                                    )}
+                                                >
+                                                    <Icon
+                                                        className={cn(
+                                                            'h-5 w-5 shrink-0 text-primary',
+                                                            isActive && 'text-foreground'
+                                                        )}
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{item.label}</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {item.description}
+                                                        </span>
+                                                    </div>
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        );
+                                    })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>}
                         </div>
                     </div>
 
