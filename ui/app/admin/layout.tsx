@@ -45,11 +45,11 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="relative min-h-screen lg:flex">
-            <aside className="hidden h-screen w-72 shrink-0 border-r border-sidebar-border/80 bg-sidebar/95 shadow-[18px_0_45px_-38px_var(--foreground)] backdrop-blur-xl lg:sticky lg:top-0 lg:flex lg:flex-col">
+        <div className="flex h-screen overflow-hidden">
+            <aside className="hidden w-72 shrink-0 border-r border-sidebar-border/80 bg-sidebar/95 shadow-[18px_0_45px_-38px_var(--foreground)] backdrop-blur-xl lg:flex lg:flex-col">
                 <AdminSidebar />
             </aside>
-            <main className="min-w-0 flex-1 bg-background/55">
+            <main className="min-w-0 flex-1 overflow-y-auto bg-background/55">
                 {children}
             </main>
         </div>

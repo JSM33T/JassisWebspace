@@ -116,6 +116,7 @@ builder.Services.AddScoped<ICacheSubjectResolver, CacheSubjectResolver>();
 builder.Services.AddScoped<IRequestCacheKeyBuilder, RequestCacheKeyBuilder>();
 builder.Services.AddScoped<IHttpResponseCacheStore, HttpResponseCacheStore>();
 builder.Services.AddScoped<ICommentNotificationJob, CommentNotificationJob>();
+builder.Services.AddScoped<IEmailBroadcastJob, EmailBroadcastJob>();
 builder.Services.AddHttpClient();
 
 // Email Service Configuration
@@ -142,6 +143,7 @@ builder.Services.AddScoped<IAdminContentService, AdminContentService>();
 builder.Services.AddScoped<IAdminBlogService, AdminBlogService>();
 builder.Services.AddScoped<IAdminGalleryService, AdminGalleryService>();
 builder.Services.AddScoped<IAdminMusicService, AdminMusicService>();
+builder.Services.AddScoped<IAdminEmailService, AdminEmailService>();
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IGalleryService, GalleryService>();
 builder.Services.AddScoped<IMusicService, MusicService>();

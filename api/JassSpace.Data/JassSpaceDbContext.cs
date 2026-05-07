@@ -31,6 +31,7 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
     public DbSet<Like> Likes => Set<Like>();
     public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<UiProperties> UiProperties => Set<UiProperties>();
+    public DbSet<EmailTemplate> EmailTemplates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,6 +66,7 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         ConfigureLikeEntity(modelBuilder);
         ConfigureContactEntity(modelBuilder);
         ConfigureUiPropertiesEntity(modelBuilder);
+        ConfigureEmailTemplateEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
@@ -628,5 +630,16 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
             .IsUnique();
 
         entity.HasIndex(e => e.UpdatedAt);
+    }
+
+    private void ConfigureEmailTemplateEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<EmailTemplate>();
+
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+        entity.Property(e => e.Subject).HasMaxLength(500).IsRequired();
+        entity.HasIndex(e => e.Name).IsUnique();
+        entity.HasIndex(e => e.CreatedAt);
     }
 }

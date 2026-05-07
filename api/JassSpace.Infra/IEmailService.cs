@@ -13,7 +13,7 @@
         /// <param name="body">The body content of the email message.</param>
         /// <param name="isHtml">Indicates whether the body content is in HTML format. Defaults to <c>true</c>.</param>
         /// <returns>A task representing the asynchronous send operation.</returns>
-        Task SendEmailAsync(string to, string subject, string body, bool isHtml = true);
+        Task SendEmailAsync(string to, string subject, string body, bool isHtml = true, string[]? bcc = null);
 
         /// <summary>
         /// Sends a verification email to a user containing a verification code.

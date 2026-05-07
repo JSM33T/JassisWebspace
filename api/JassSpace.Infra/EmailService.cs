@@ -12,7 +12,7 @@ namespace JassSpace.Infra
         private readonly SmtpSettings _smtpSettings = smtpSettings.Value;
         private readonly ILogger<EmailService> _logger = logger;
 
-        public async Task SendEmailAsync(string to, string subject, string body, bool isHtml = true)
+        public async Task SendEmailAsync(string to, string subject, string body, bool isHtml = true, string[]? bcc = null)
         {
             try
             {
@@ -24,6 +24,16 @@ namespace JassSpace.Infra
                 using var message = new MailMessage();
                 message.From = new MailAddress(_smtpSettings.FromEmail, _smtpSettings.FromName);
                 message.To.Add(to);
+
+                if (bcc is { Length: > 0 })
+                {
+                    foreach (var addr in bcc)
+                    {
+                        if (!string.IsNullOrWhiteSpace(addr))
+                            message.Bcc.Add(addr.Trim());
+                    }
+                }
+
                 message.Subject = subject;
                 message.Body = body;
                 message.IsBodyHtml = isHtml;
