@@ -8,6 +8,7 @@ using JassSpace.Data;
 using JassSpace.Entities;
 using JassSpace.Infra;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace JassSpace.Services;
@@ -16,12 +17,17 @@ public sealed class AdminEmailService(
     JassSpaceDbContext dbContext,
     IEmailService emailService,
     IBackgroundJobClient backgroundJobClient,
+    IUnsubscribeTokenService tokenService,
+    IConfiguration configuration,
     ILogger<AdminEmailService> logger) : IAdminEmailService
 {
     private readonly JassSpaceDbContext _dbContext = dbContext;
     private readonly IEmailService _emailService = emailService;
     private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
+    private readonly IUnsubscribeTokenService _tokenService = tokenService;
     private readonly ILogger<AdminEmailService> _logger = logger;
+    private string AppUrl => configuration["AppUrl"] ?? "http://localhost:3001";
+    private string ApiUrl => configuration["ApiUrl"] ?? "http://localhost:5001";
 
     private static readonly HashSet<string> AutoVars = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -164,7 +170,8 @@ public sealed class AdminEmailService(
             };
 
             var subject = $"[TEST] {Substitute(template.Subject, vars)}";
-            var body = Substitute(template.HtmlBody, vars);
+            var unsubUrl = UnsubscribeUrl(user.Id);
+            var body = AppendFooter(Substitute(template.HtmlBody, vars), unsubUrl);
             try
             {
                 await _emailService.SendEmailAsync(user.Email, subject, body, isHtml: true);
@@ -205,7 +212,9 @@ public sealed class AdminEmailService(
         {
             var vars = BuildVarsWithAutoPlaceholders(request.Variables);
             var subject = Substitute(template.Subject, vars);
-            var body = Substitute(template.HtmlBody, vars);
+            // BCC: everyone gets the same body — link to preferences page instead of per-user token
+            var prefsUrl = $"{AppUrl}/account/preferences";
+            var body = AppendFooter(Substitute(template.HtmlBody, vars), prefsUrl);
 
             var emails = users.Select(u => u.Email).ToArray();
             try
@@ -222,7 +231,7 @@ public sealed class AdminEmailService(
         }
         else
         {
-            // Separate mode — enqueue Hangfire job
+            // Separate mode — enqueue Hangfire job (footer injected per-user inside the job)
             var recipientIds = users.Select(u => u.Id).ToList();
             var jobId = _backgroundJobClient.Create(
                 Hangfire.Common.Job.FromExpression<IEmailBroadcastJob>(
@@ -241,12 +250,20 @@ public sealed class AdminEmailService(
         BroadcastRecipientFilter filter,
         CancellationToken cancellationToken)
     {
-        // Explicit user IDs override everything
+        // Exclude users who have opted out of broadcast emails
+        var optedOutIds = await _dbContext.UserEmailPreferences
+            .AsNoTracking()
+            .Where(p => !p.ReceiveBroadcastEmails)
+            .Select(p => p.UserId)
+            .ToListAsync(cancellationToken);
+
         if (filter.UserIds is { Count: > 0 })
         {
             var rows = await _dbContext.Users
                 .AsNoTracking()
-                .Where(u => filter.UserIds.Contains(u.Id) && u.EmailVerified && u.IsActive && u.DeletedAt == null)
+                .Where(u => filter.UserIds.Contains(u.Id)
+                         && u.EmailVerified && u.IsActive && u.DeletedAt == null
+                         && !optedOutIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.Email })
                 .ToListAsync(cancellationToken);
             return rows.Select(u => (u.Id, u.Email)).ToList();
@@ -254,7 +271,8 @@ public sealed class AdminEmailService(
 
         var query = _dbContext.Users
             .AsNoTracking()
-            .Where(u => u.EmailVerified && u.IsActive && u.DeletedAt == null);
+            .Where(u => u.EmailVerified && u.IsActive && u.DeletedAt == null
+                     && !optedOutIds.Contains(u.Id));
 
         if (filter.Roles is { Count: > 0 })
         {
@@ -266,6 +284,29 @@ public sealed class AdminEmailService(
             .Select(u => new { u.Id, u.Email })
             .ToListAsync(cancellationToken);
         return results.Select(u => (u.Id, u.Email)).ToList();
+    }
+
+    private string UnsubscribeUrl(Guid userId)
+        => $"{ApiUrl}/account/email-preferences/unsubscribe?token={_tokenService.GenerateToken(userId)}";
+
+    public static string AppendFooter(string htmlBody, string unsubscribeUrl)
+    {
+        const string footer = """
+            <div style="margin-top:40px;padding-top:20px;border-top:1px solid #2a2a2a;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+              <p style="margin:0 0 6px;font-size:12px;color:#71717a;">JassSpace &bull; All rights reserved &copy; 2026</p>
+              <p style="margin:0;font-size:12px;color:#71717a;">
+                Don&apos;t want these? <a href="{unsubUrl}" style="color:#818cf8;text-decoration:none;">Unsubscribe</a>
+              </p>
+            </div>
+            """;
+
+        var footerHtml = footer.Replace("{unsubUrl}", unsubscribeUrl);
+
+        // Inject before </body> if present, otherwise append
+        var idx = htmlBody.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+        return idx >= 0
+            ? htmlBody.Insert(idx, footerHtml)
+            : htmlBody + footerHtml;
     }
 
     private static EmailTemplateResponse ToResponse(EmailTemplate t)

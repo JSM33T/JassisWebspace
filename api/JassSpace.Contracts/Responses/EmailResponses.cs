@@ -1,5 +1,7 @@
 namespace JassSpace.Contracts.Responses;
 
+public record UserEmailPreferencesResponse(bool ReceiveBroadcastEmails);
+
 public record EmailTemplateResponse(
     Guid Id,
     string Name,

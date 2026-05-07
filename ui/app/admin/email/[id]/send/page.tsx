@@ -54,6 +54,15 @@ export default function SendEmailPage() {
     // Broadcast filter
     const [selectedRoles, setSelectedRoles] = useState<string[]>(["admin", "mod", "user"]);
 
+    // Opted-out user IDs (cannot be selected as test recipients)
+    const [optedOutIds, setOptedOutIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        adminEmailService.getOptedOutUserIds()
+            .then(ids => setOptedOutIds(new Set(ids)))
+            .catch(() => {});
+    }, []);
+
     useEffect(() => {
         adminEmailService.getTemplate(id)
             .then(t => {
@@ -284,24 +293,35 @@ export default function SendEmailPage() {
                                             ) : searchResults.length === 0 ? (
                                                 <div className="px-3 py-2 text-xs text-muted-foreground">No users found.</div>
                                             ) : (
-                                                searchResults.map(u => (
-                                                    <button
-                                                        key={u.id}
-                                                        type="button"
-                                                        onMouseDown={e => { e.preventDefault(); selectUser(u); }}
-                                                        className="flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-accent text-left"
-                                                    >
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="font-medium truncate">{userDisplayName(u)}</div>
-                                                            <div className="text-xs text-muted-foreground truncate">{u.email}</div>
-                                                        </div>
-                                                        {u.roles.length > 0 && (
-                                                            <Badge variant="outline" className="text-xs shrink-0">
-                                                                {u.roles[0]}
-                                                            </Badge>
-                                                        )}
-                                                    </button>
-                                                ))
+                                                searchResults.map(u => {
+                                                    const optedOut = optedOutIds.has(u.id);
+                                                    return (
+                                                        <button
+                                                            key={u.id}
+                                                            type="button"
+                                                            disabled={optedOut}
+                                                            onMouseDown={e => { if (optedOut) return; e.preventDefault(); selectUser(u); }}
+                                                            className={`flex w-full items-center gap-3 px-3 py-2 text-sm text-left ${optedOut ? "opacity-50 cursor-not-allowed" : "hover:bg-accent"}`}
+                                                        >
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="font-medium truncate">{userDisplayName(u)}</div>
+                                                                <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                {optedOut && (
+                                                                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                                                                        unsubscribed
+                                                                    </Badge>
+                                                                )}
+                                                                {u.roles.length > 0 && (
+                                                                    <Badge variant="outline" className="text-xs">
+                                                                        {u.roles[0]}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })
                                             )}
                                         </div>
                                     )}

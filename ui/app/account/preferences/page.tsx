@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
-import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
+import { ArrowLeft, Settings as SettingsIcon, Mail } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -21,6 +21,7 @@ import {
 import { useThemeSet } from "@/components/theme-provider";
 import { useUser } from "@/contexts/UserContext";
 import { buildAuthRequiredLoginHref, persistLoginRedirectTarget } from "@/lib/auth-redirect";
+import { emailPrefsService } from "@/lib/api/email-prefs.service";
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -50,16 +51,41 @@ export default function PreferencesPage() {
     ? `${pathname}?${searchParams.toString()}`
     : pathname;
 
-  useEffect(() => {
-    if (!isInitialized) {
-      return;
-    }
+  const [receiveBroadcast, setReceiveBroadcast] = useState(true);
+  const [prefsSaving, setPrefsSaving] = useState(false);
 
+  useEffect(() => {
+    if (!isInitialized) return;
     if (!user) {
       persistLoginRedirectTarget(currentPathWithQuery);
       router.replace(buildAuthRequiredLoginHref(currentPathWithQuery));
+      return;
     }
+    emailPrefsService.getPrefs()
+      .then(p => setReceiveBroadcast(p.receiveBroadcastEmails))
+      .catch(() => {});
   }, [currentPathWithQuery, isInitialized, router, user]);
+
+  // Show confirmation when arriving via unsubscribe redirect
+  useEffect(() => {
+    if (searchParams.get("unsubscribed") === "1") {
+      toast.success("You've been unsubscribed from broadcast emails.");
+    }
+  }, [searchParams]);
+
+  async function handleToggleBroadcast(checked: boolean) {
+    setReceiveBroadcast(checked);
+    setPrefsSaving(true);
+    try {
+      await emailPrefsService.updatePrefs({ receiveBroadcastEmails: checked });
+      toast.success(checked ? "You're subscribed to broadcast emails." : "You've unsubscribed from broadcast emails.");
+    } catch {
+      toast.error("Failed to save preference.");
+      setReceiveBroadcast(!checked);
+    } finally {
+      setPrefsSaving(false);
+    }
+  }
 
   const handleSaveSettings = () => {
     toast.success("Settings saved successfully!");
@@ -144,6 +170,34 @@ export default function PreferencesPage() {
                   <p className="text-xs text-muted-foreground">
                     Active set: {themeSets.find((themeSet) => themeSet.id === activeThemeSetId)?.description}
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Mail className="mr-2 h-5 w-5" />
+                  Email Notifications
+                </CardTitle>
+                <CardDescription>Control which emails you receive from JassSpace</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Broadcast emails</p>
+                    <p className="text-xs text-muted-foreground">
+                      Newsletters, announcements, and other messages sent to all users.
+                      System emails (password reset, verification) are always sent.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={receiveBroadcast}
+                    onCheckedChange={handleToggleBroadcast}
+                    disabled={prefsSaving}
+                  />
                 </div>
               </CardContent>
             </Card>

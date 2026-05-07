@@ -2,15 +2,31 @@ using JassSpace.Contracts;
 using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
+using JassSpace.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace JassSpace.Api.Controllers.Admin;
 
 [Route("admin/email")]
 [Authorize(Roles = "admin")]
-public sealed class AdminEmailController(IAdminEmailService adminEmailService) : BaseApiController
+public sealed class AdminEmailController(
+    IAdminEmailService adminEmailService,
+    JassSpaceDbContext dbContext) : BaseApiController
 {
+    [HttpGet("opted-out-user-ids")]
+    [ProducesResponseType(typeof(ApiResponse<List<Guid>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOptedOutUserIds(CancellationToken cancellationToken = default)
+    {
+        var ids = await dbContext.UserEmailPreferences
+            .AsNoTracking()
+            .Where(p => !p.ReceiveBroadcastEmails)
+            .Select(p => p.UserId)
+            .ToListAsync(cancellationToken);
+        return OkEnvelope(ids);
+    }
+
     [HttpGet("templates")]
     [ProducesResponseType(typeof(ApiResponse<List<EmailTemplateResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTemplates(CancellationToken cancellationToken = default)

@@ -117,6 +117,7 @@ builder.Services.AddScoped<IRequestCacheKeyBuilder, RequestCacheKeyBuilder>();
 builder.Services.AddScoped<IHttpResponseCacheStore, HttpResponseCacheStore>();
 builder.Services.AddScoped<ICommentNotificationJob, CommentNotificationJob>();
 builder.Services.AddScoped<IEmailBroadcastJob, EmailBroadcastJob>();
+builder.Services.AddSingleton<IUnsubscribeTokenService, UnsubscribeTokenService>();
 builder.Services.AddHttpClient();
 
 // Email Service Configuration

@@ -32,6 +32,7 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
     public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<UiProperties> UiProperties => Set<UiProperties>();
     public DbSet<EmailTemplate> EmailTemplates { get; set; }
+    public DbSet<UserEmailPreference> UserEmailPreferences { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +68,7 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         ConfigureContactEntity(modelBuilder);
         ConfigureUiPropertiesEntity(modelBuilder);
         ConfigureEmailTemplateEntity(modelBuilder);
+        ConfigureUserEmailPreferenceEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
@@ -641,5 +643,16 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         entity.Property(e => e.Subject).HasMaxLength(500).IsRequired();
         entity.HasIndex(e => e.Name).IsUnique();
         entity.HasIndex(e => e.CreatedAt);
+    }
+
+    private void ConfigureUserEmailPreferenceEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<UserEmailPreference>();
+
+        entity.HasKey(p => p.UserId);
+        entity.HasOne(p => p.User)
+              .WithOne()
+              .HasForeignKey<UserEmailPreference>(p => p.UserId)
+              .OnDelete(DeleteBehavior.Cascade);
     }
 }

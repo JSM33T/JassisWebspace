@@ -21,6 +21,8 @@ public record BroadcastEmailRequest(
     string Mode,
     BroadcastRecipientFilter Filter);
 
+public record UpdateEmailPreferencesRequest(bool ReceiveBroadcastEmails);
+
 public record BroadcastRecipientFilter(
     List<string>? Roles = null,
     List<Guid>? UserIds = null);
