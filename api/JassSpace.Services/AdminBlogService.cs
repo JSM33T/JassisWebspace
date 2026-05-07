@@ -128,7 +128,7 @@ public sealed class AdminBlogService(
                 category.UpdatedAt));
     }
 
-    public Task<List<BlogAuthorResponse>> GetAuthorsAsync(
+    public Task<List<ContentAuthorResponse>> GetAuthorsAsync(
         string? search = null,
         int take = 100,
         CancellationToken cancellationToken = default)
@@ -153,10 +153,11 @@ public sealed class AdminBlogService(
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .Take(take)
-            .Select(u => new BlogAuthorResponse(
+            .Select(u => new ContentAuthorResponse(
                 u.Id,
                 u.Username,
                 u.DisplayName ?? $"{u.FirstName} {u.LastName}".Trim(),
+                null,
                 0))
             .ToListAsync(cancellationToken);
     }
@@ -171,8 +172,6 @@ public sealed class AdminBlogService(
         var blogQuery = _dbContext.Blogs
             .AsNoTracking()
             .Include(b => b.Category)
-            .Include(b => b.Authors)
-                .ThenInclude(ba => ba.User)
             .AsQueryable();
 
         if (query.IsPublished.HasValue)
@@ -206,20 +205,24 @@ public sealed class AdminBlogService(
 
         if (!string.IsNullOrWhiteSpace(query.AuthorUsername))
         {
-            blogQuery = blogQuery.Where(b => b.Authors.Any(ba => ba.User.Username == query.AuthorUsername));
+            var normalizedUsername = query.AuthorUsername.Trim();
+            blogQuery = blogQuery.Where(b => _dbContext.Contents
+                .Any(c => c.ContentType == ContentType.Blog && c.ContentRefId == b.Id &&
+                          c.Authors.Any(ca => ca.User.Username == normalizedUsername)));
         }
 
-        var blogs = await blogQuery
+        var blogRows = await blogQuery
             .OrderByDescending(b => b.UpdatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(b => new BlogListItemResponse(
+            .Select(b => new
+            {
                 b.Id,
                 b.Title,
                 b.Slug,
                 b.Excerpt,
                 b.FeaturedImage,
-                b.Category != null
+                Category = b.Category != null
                     ? new BlogCategoryResponse(
                         b.Category.Id,
                         b.Category.Name,
@@ -228,23 +231,28 @@ public sealed class AdminBlogService(
                         b.Category.CreatedAt,
                         b.Category.UpdatedAt)
                     : null,
-                b.Authors
-                    .OrderBy(ba => ba.Order)
-                    .Select(ba => new BlogAuthorResponse(
-                        ba.UserId,
-                        ba.User.Username,
-                        ba.User.DisplayName,
-                        ba.Order))
-                    .ToList(),
                 b.IsPublished,
                 b.PublishedAt,
                 b.CreatedAt,
-                b.UpdatedAt))
+                b.UpdatedAt
+            })
             .ToListAsync(cancellationToken);
 
-        return blogs
-            .Select(b => b with { FeaturedImage = NormalizeBlogMediaUrl(b.FeaturedImage) })
-            .ToList();
+        var blogIds = blogRows.Select(b => b.Id).ToList();
+        var authorsByBlogId = await LoadAuthorsByBlogIdsAsync(blogIds, cancellationToken);
+
+        return blogRows.Select(b => new BlogListItemResponse(
+            b.Id,
+            b.Title,
+            b.Slug,
+            b.Excerpt,
+            NormalizeBlogMediaUrl(b.FeaturedImage),
+            b.Category,
+            authorsByBlogId.TryGetValue(b.Id, out var authors) ? authors : [],
+            b.IsPublished,
+            b.PublishedAt,
+            b.CreatedAt,
+            b.UpdatedAt)).ToList();
     }
 
     public async Task<AdminBlogMutationResult> GetBlogAsync(
@@ -269,6 +277,7 @@ public sealed class AdminBlogService(
         }
 
         return new AdminBlogMutationResult(AdminBlogMutationStatus.Success, blog);
+
     }
 
     public async Task<MediaUploadResponse> UploadBlogImageAsync(
@@ -315,6 +324,7 @@ public sealed class AdminBlogService(
         }
 
         var blogId = request.Id ?? Guid.NewGuid();
+        var contentId = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
 
         var blog = new Blog
@@ -334,42 +344,20 @@ public sealed class AdminBlogService(
 
         _dbContext.Blogs.Add(blog);
 
-        if (request.AuthorIds is { Count: > 0 })
-        {
-            var existingUserIds = await _dbContext.Users
-                .Where(u => request.AuthorIds.Contains(u.Id))
-                .Select(u => u.Id)
-                .ToListAsync(cancellationToken);
-
-            _dbContext.BlogAuthors.AddRange(
-                request.AuthorIds
-                    .Where(existingUserIds.Contains)
-                    .Select((userId, i) => new BlogAuthor
-                    {
-                        Id = Guid.NewGuid(),
-                        BlogId = blogId,
-                        UserId = userId,
-                        Order = i,
-                        CreatedAt = now
-                    }));
-        }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
         var contentSlug = slug;
         var existingContentSlug = await _dbContext.Contents
             .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
 
         if (existingContentSlug)
         {
-            contentSlug = $"{slug}-{blog.Id.ToString()[..8]}";
+            contentSlug = $"{slug}-{blogId.ToString()[..8]}";
         }
 
-        var content = new Content
+        _dbContext.Contents.Add(new Content
         {
-            Id = Guid.NewGuid(),
+            Id = contentId,
             ContentType = ContentType.Blog,
-            ContentRefId = blog.Id,
+            ContentRefId = blogId,
             Title = blog.Title,
             Slug = contentSlug,
             Description = blog.Excerpt,
@@ -379,9 +367,28 @@ public sealed class AdminBlogService(
             SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content),
             CreatedAt = now,
             UpdatedAt = now
-        };
+        });
 
-        _dbContext.Contents.Add(content);
+        if (request.AuthorIds is { Count: > 0 })
+        {
+            var existingUserIds = await _dbContext.Users
+                .Where(u => request.AuthorIds.Contains(u.Id))
+                .Select(u => u.Id)
+                .ToListAsync(cancellationToken);
+
+            _dbContext.ContentAuthors.AddRange(
+                request.AuthorIds
+                    .Where(existingUserIds.Contains)
+                    .Select((userId, i) => new ContentAuthor
+                    {
+                        Id = Guid.NewGuid(),
+                        ContentId = contentId,
+                        UserId = userId,
+                        Order = i,
+                        CreatedAt = now
+                    }));
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var createdBlog = await GetBlogWithDetailsAsync(blogId, cancellationToken)
@@ -398,7 +405,6 @@ public sealed class AdminBlogService(
         CancellationToken cancellationToken = default)
     {
         var blog = await _dbContext.Blogs
-            .Include(b => b.Authors)
             .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
 
         if (blog is null)
@@ -408,7 +414,17 @@ public sealed class AdminBlogService(
                 ErrorMessage: $"No blog found with ID '{id}'.");
         }
 
-        if (!CanEditBlog(blog.Authors.Select(a => a.UserId), currentUserId, canEditAll))
+        var contentId = await _dbContext.Contents
+            .Where(c => c.ContentType == ContentType.Blog && c.ContentRefId == id)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var existingAuthorUserIds = await _dbContext.ContentAuthors
+            .Where(ca => ca.ContentId == contentId)
+            .Select(ca => ca.UserId)
+            .ToListAsync(cancellationToken);
+
+        if (!CanEditBlog(existingAuthorUserIds, currentUserId, canEditAll))
         {
             return new AdminBlogMutationResult(
                 AdminBlogMutationStatus.Forbidden,
@@ -462,7 +478,7 @@ public sealed class AdminBlogService(
         blog.UpdatedAt = DateTimeOffset.UtcNow;
 
         await UpsertContentAsync(blog, id, cancellationToken);
-        await UpdateAuthorsAsync(blog, request.AuthorIds, id, canEditAll, cancellationToken);
+        await UpdateAuthorsAsync(contentId, existingAuthorUserIds, request.AuthorIds, canEditAll, cancellationToken);
         await CleanupOrphanedContentImagesAsync(id, request.Content, cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -580,43 +596,43 @@ public sealed class AdminBlogService(
     }
 
     private async Task UpdateAuthorsAsync(
-        Blog blog,
+        Guid contentId,
+        List<Guid> existingAuthorUserIds,
         List<Guid>? requestedAuthorIds,
-        Guid blogId,
         bool canEditAll,
         CancellationToken cancellationToken)
     {
         var requestAuthorIds = canEditAll
             ? requestedAuthorIds ?? []
-            : blog.Authors.Select(a => a.UserId).ToList();
+            : existingAuthorUserIds;
 
-        var authorsToRemove = blog.Authors.Where(a => !requestAuthorIds.Contains(a.UserId)).ToList();
-        _dbContext.BlogAuthors.RemoveRange(authorsToRemove);
+        await _dbContext.ContentAuthors
+            .Where(ca => ca.ContentId == contentId && !requestAuthorIds.Contains(ca.UserId))
+            .ExecuteDeleteAsync(cancellationToken);
 
-        var existingAuthorUserIds = blog.Authors.Select(a => a.UserId).ToList();
         var newAuthorUserIds = requestAuthorIds.Where(uid => !existingAuthorUserIds.Contains(uid)).ToList();
-
         if (newAuthorUserIds.Count == 0)
         {
             return;
         }
 
-        var existingUsers = await _dbContext.Users
+        var validUserIds = await _dbContext.Users
             .Where(u => newAuthorUserIds.Contains(u.Id))
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 
-        var currentMaxOrder = blog.Authors.Any() ? blog.Authors.Max(a => a.Order) + 1 : 0;
-        _dbContext.BlogAuthors.AddRange(
+        var currentMaxOrder = existingAuthorUserIds.Count;
+        var now = DateTimeOffset.UtcNow;
+        _dbContext.ContentAuthors.AddRange(
             requestAuthorIds
-                .Where(uid => existingUsers.Contains(uid) && !existingAuthorUserIds.Contains(uid))
-                .Select((userId, i) => new BlogAuthor
+                .Where(uid => validUserIds.Contains(uid) && !existingAuthorUserIds.Contains(uid))
+                .Select((userId, i) => new ContentAuthor
                 {
                     Id = Guid.NewGuid(),
-                    BlogId = blogId,
+                    ContentId = contentId,
                     UserId = userId,
                     Order = currentMaxOrder + i,
-                    CreatedAt = DateTimeOffset.UtcNow
+                    CreatedAt = now
                 }));
     }
 
@@ -662,46 +678,99 @@ public sealed class AdminBlogService(
         Guid blogId,
         CancellationToken cancellationToken)
     {
-        var response = await _dbContext.Blogs
+        var blog = await _dbContext.Blogs
             .AsNoTracking()
+            .Include(b => b.Category)
             .Where(b => b.Id == blogId)
-            .Select(b => new BlogDetailResponse(
-                b.Id,
-                _dbContext.Contents.FirstOrDefault(c => c.ContentRefId == b.Id && c.ContentType == ContentType.Blog)!.Id,
-                b.Title,
-                b.Slug,
-                b.Excerpt,
-                b.Content,
-                b.FeaturedImage,
-                b.Category == null
-                    ? null
-                    : new BlogCategoryResponse(
-                        b.Category.Id,
-                        b.Category.Name,
-                        b.Category.Slug,
-                        b.Category.Description,
-                        b.Category.CreatedAt,
-                        b.Category.UpdatedAt),
-                b.Authors
-                    .OrderBy(a => a.Order)
-                    .Select(a => new BlogAuthorResponse(
-                        a.UserId,
-                        a.User.Username,
-                        a.User.DisplayName,
-                        a.Order))
-                    .ToList(),
-                b.IsPublished,
-                b.PublishedAt,
-                b.CreatedAt,
-                b.UpdatedAt,
-                0,
-                false,
-                0))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return response is null
-            ? null
-            : response with { FeaturedImage = NormalizeBlogMediaUrl(response.FeaturedImage) };
+        if (blog is null)
+        {
+            return null;
+        }
+
+        var content = await _dbContext.Contents
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.ContentType == ContentType.Blog && c.ContentRefId == blogId, cancellationToken);
+
+        var authors = content is null
+            ? []
+            : await _dbContext.ContentAuthors
+                .AsNoTracking()
+                .Where(ca => ca.ContentId == content.Id)
+                .OrderBy(ca => ca.Order)
+                .Select(ca => new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order))
+                .ToListAsync(cancellationToken);
+
+        return new BlogDetailResponse(
+            blog.Id,
+            content?.Id ?? Guid.Empty,
+            blog.Title,
+            blog.Slug,
+            blog.Excerpt,
+            blog.Content,
+            NormalizeBlogMediaUrl(blog.FeaturedImage),
+            blog.Category == null
+                ? null
+                : new BlogCategoryResponse(
+                    blog.Category.Id,
+                    blog.Category.Name,
+                    blog.Category.Slug,
+                    blog.Category.Description,
+                    blog.Category.CreatedAt,
+                    blog.Category.UpdatedAt),
+            authors,
+            blog.IsPublished,
+            blog.PublishedAt,
+            blog.CreatedAt,
+            blog.UpdatedAt,
+            0,
+            false,
+            0);
+    }
+
+    private async Task<Dictionary<Guid, List<ContentAuthorResponse>>> LoadAuthorsByBlogIdsAsync(
+        List<Guid> blogIds,
+        CancellationToken cancellationToken)
+    {
+        if (blogIds.Count == 0)
+        {
+            return new Dictionary<Guid, List<ContentAuthorResponse>>();
+        }
+
+        var contentMap = await _dbContext.Contents
+            .AsNoTracking()
+            .Where(c => c.ContentType == ContentType.Blog && blogIds.Contains(c.ContentRefId))
+            .Select(c => new { c.Id, c.ContentRefId })
+            .ToListAsync(cancellationToken);
+
+        var contentIds = contentMap.Select(c => c.Id).ToList();
+        var refIdByContentId = contentMap.ToDictionary(c => c.Id, c => c.ContentRefId);
+
+        var authorRows = await _dbContext.ContentAuthors
+            .AsNoTracking()
+            .Where(ca => contentIds.Contains(ca.ContentId))
+            .OrderBy(ca => ca.Order)
+            .Select(ca => new
+            {
+                ca.ContentId,
+                Response = new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order)
+            })
+            .ToListAsync(cancellationToken);
+
+        return authorRows
+            .GroupBy(x => refIdByContentId[x.ContentId])
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Response).ToList());
     }
 
     private async Task<BlobUploadResult> UploadBlogFileAsync(

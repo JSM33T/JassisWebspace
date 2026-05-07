@@ -22,7 +22,7 @@ public sealed class AdminMusicController(
     private readonly BootlegStreamingSettings _streamingSettings = streamingSettings.Value;
 
     [HttpGet("authors")]
-    [ProducesResponseType(typeof(ApiResponse<List<TrackAuthorResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<ContentAuthorResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuthors(
         [FromQuery] string? search = null,
         [FromQuery] int take = 100,

@@ -21,13 +21,11 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
     public DbSet<Album> Albums { get; set; }
     public DbSet<Image> Images { get; set; }
     public DbSet<Content> Contents { get; set; }
+    public DbSet<ContentAuthor> ContentAuthors { get; set; }
     public DbSet<Blog> Blogs { get; set; }
     public DbSet<BlogCategory> BlogCategories { get; set; }
-    public DbSet<BlogAuthor> BlogAuthors { get; set; }
-    public DbSet<GalleryAuthor> GalleryAuthors { get; set; }
     public DbSet<BootlegAsset> BootlegAssets { get; set; }
     public DbSet<Track> Tracks { get; set; }
-    public DbSet<TrackAuthor> TrackAuthors { get; set; }
     public DbSet<TrackLink> TrackLinks { get; set; }
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
@@ -57,13 +55,11 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         ConfigureAlbumEntity(modelBuilder);
         ConfigureImageEntity(modelBuilder);
         ConfigureContentEntity(modelBuilder);
+        ConfigureContentAuthorEntity(modelBuilder);
         ConfigureBlogEntity(modelBuilder);
         ConfigureBlogCategoryEntity(modelBuilder);
-        ConfigureBlogAuthorEntity(modelBuilder);
-        ConfigureGalleryAuthorEntity(modelBuilder);
         ConfigureBootlegAssetEntity(modelBuilder);
         ConfigureTrackEntity(modelBuilder);
-        ConfigureTrackAuthorEntity(modelBuilder);
         ConfigureTrackLinkEntity(modelBuilder);
         ConfigureCommentEntity(modelBuilder);
         ConfigureLikeEntity(modelBuilder);
@@ -327,11 +323,6 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
               .WithOne(i => i.Album)
               .HasForeignKey(i => i.AlbumId)
               .OnDelete(DeleteBehavior.Cascade);
-
-        entity.HasMany(a => a.Authors)
-              .WithOne(ga => ga.Album)
-              .HasForeignKey(ga => ga.AlbumId)
-              .OnDelete(DeleteBehavior.Cascade);
     }
 
     private void ConfigureImageEntity(ModelBuilder modelBuilder)
@@ -370,6 +361,30 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
 
         entity.HasIndex(e => e.SearchVector)
               .HasMethod("GIN");
+
+        entity.HasMany(c => c.Authors)
+              .WithOne(ca => ca.Content)
+              .HasForeignKey(ca => ca.ContentId)
+              .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureContentAuthorEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<ContentAuthor>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Role)
+            .HasMaxLength(64);
+
+        entity.HasIndex(e => new { e.ContentId, e.UserId }).IsUnique();
+        entity.HasIndex(e => new { e.ContentId, e.Order });
+        entity.HasIndex(e => e.UserId);
+
+        entity.HasOne(e => e.User)
+            .WithMany()
+            .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private void ConfigureBlogEntity(ModelBuilder modelBuilder)
@@ -394,11 +409,6 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
               .WithMany(c => c.Blogs)
               .HasForeignKey(b => b.CategoryId)
               .OnDelete(DeleteBehavior.SetNull);
-
-        entity.HasMany(b => b.Authors)
-              .WithOne(ba => ba.Blog)
-              .HasForeignKey(ba => ba.BlogId)
-              .OnDelete(DeleteBehavior.Cascade);
     }
 
     private void ConfigureBlogCategoryEntity(ModelBuilder modelBuilder)
@@ -416,41 +426,6 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         entity.HasIndex(e => e.CreatedAt);
     }
 
-    private void ConfigureBlogAuthorEntity(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<BlogAuthor>();
-
-        // Primary key
-        entity.HasKey(e => e.Id);
-
-        // Composite index for unique blog-user combination
-        entity.HasIndex(e => new { e.BlogId, e.UserId }).IsUnique();
-
-        // Index for ordering
-        entity.HasIndex(e => new { e.BlogId, e.Order });
-
-        // Relationships
-        entity.HasOne(ba => ba.User)
-              .WithMany()
-              .HasForeignKey(ba => ba.UserId)
-              .OnDelete(DeleteBehavior.Cascade);
-    }
-
-    private void ConfigureGalleryAuthorEntity(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<GalleryAuthor>();
-
-        entity.HasKey(e => e.Id);
-
-        entity.HasIndex(e => new { e.AlbumId, e.UserId }).IsUnique();
-
-        entity.HasIndex(e => new { e.AlbumId, e.Order });
-
-        entity.HasOne(ga => ga.User)
-              .WithMany()
-              .HasForeignKey(ga => ga.UserId)
-              .OnDelete(DeleteBehavior.Cascade);
-    }
 
     private void ConfigureBootlegAssetEntity(ModelBuilder modelBuilder)
     {
@@ -523,32 +498,9 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
             .HasForeignKey(e => e.BootlegAssetId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        entity.HasMany(e => e.Authors)
-            .WithOne(a => a.Track)
-            .HasForeignKey(a => a.TrackId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         entity.HasMany(e => e.Links)
             .WithOne(l => l.Track)
             .HasForeignKey(l => l.TrackId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-
-    private void ConfigureTrackAuthorEntity(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<TrackAuthor>();
-
-        entity.HasKey(e => e.Id);
-
-        entity.Property(e => e.Role)
-            .HasMaxLength(64);
-
-        entity.HasIndex(e => new { e.TrackId, e.UserId }).IsUnique();
-        entity.HasIndex(e => new { e.TrackId, e.Order });
-
-        entity.HasOne(e => e.User)
-            .WithMany()
-            .HasForeignKey(e => e.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 

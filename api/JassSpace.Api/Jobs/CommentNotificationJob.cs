@@ -198,29 +198,18 @@ public sealed class CommentNotificationJob(
 
     private async Task<List<Guid>> ResolveContentAuthorIdsAsync(Content content)
     {
+        if (content.ContentType is ContentType.Blog or ContentType.Album or ContentType.Music)
+        {
+            return await dbContext.ContentAuthors
+                .AsNoTracking()
+                .Where(ca => ca.ContentId == content.Id)
+                .Select(ca => ca.UserId)
+                .Distinct()
+                .ToListAsync();
+        }
+
         switch (content.ContentType)
         {
-            case ContentType.Blog:
-                return await dbContext.BlogAuthors
-                .AsNoTracking()
-                .Where(a => a.BlogId == content.ContentRefId)
-                .Select(a => a.UserId)
-                .Distinct()
-                .ToListAsync();
-            case ContentType.Album:
-                return await dbContext.GalleryAuthors
-                .AsNoTracking()
-                .Where(a => a.AlbumId == content.ContentRefId)
-                .Select(a => a.UserId)
-                .Distinct()
-                .ToListAsync();
-            case ContentType.Music:
-                return await dbContext.TrackAuthors
-                .AsNoTracking()
-                .Where(a => a.TrackId == content.ContentRefId)
-                .Select(a => a.UserId)
-                .Distinct()
-                .ToListAsync();
             default:
                 logger.LogWarning(
                     "Content type {ContentType} is not supported for owner notifications. ContentId: {ContentId}.",

@@ -18,11 +18,12 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
 
     public async Task<List<AlbumResponse>> GetAllAlbumsAsync(CancellationToken cancellationToken = default)
     {
-        var albums = await _dbContext.Albums
+        var albumRows = await _dbContext.Albums
             .Where(a => a.IsActive)
             .OrderBy(a => a.SortOrder)
             .ThenByDescending(a => a.CreatedAt)
-            .Select(a => new AlbumResponse(
+            .Select(a => new
+            {
                 a.Id,
                 a.Name,
                 a.Slug,
@@ -30,26 +31,71 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
                 a.Description,
                 a.CreatedAt,
                 a.UpdatedAt,
-                a.Images.Count,
-                a.Authors
-                    .OrderBy(ga => ga.Order)
-                    .Select(ga => new GalleryAuthorResponse(
-                        ga.UserId,
-                        ga.User.Username,
-                        ga.User.DisplayName,
-                        ga.Order))
-                    .ToList(),
-                _dbContext.Contents
-                    .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == a.Id)
-                    .Select(c => (Guid?)c.Id)
-                    .FirstOrDefault(),
+                ImageCount = a.Images.Count,
                 a.IsActive,
-                a.SortOrder))
+                a.SortOrder
+            })
             .ToListAsync(cancellationToken);
 
-        return albums
-            .Select(a => a with { Cover = NormalizeGalleryMediaUrl(a.Cover) })
-            .ToList();
+        var albumIds = albumRows.Select(a => a.Id).ToList();
+        var contentMap = albumIds.Count == 0
+            ? new List<(Guid ContentId, Guid AlbumId)>()
+            : (await _dbContext.Contents
+                .AsNoTracking()
+                .Where(c => c.ContentType == ContentType.Album && albumIds.Contains(c.ContentRefId))
+                .Select(c => new { c.Id, c.ContentRefId })
+                .ToListAsync(cancellationToken))
+                .Select(c => (ContentId: c.Id, AlbumId: c.ContentRefId))
+                .ToList();
+
+        var contentByAlbumId = contentMap.ToDictionary(c => c.AlbumId, c => c.ContentId);
+        var contentIds = contentMap.Select(c => c.ContentId).ToList();
+        var authorsByAlbumId = new Dictionary<Guid, List<ContentAuthorResponse>>();
+
+        if (contentIds.Count > 0)
+        {
+            var refIdByContentId = contentMap.ToDictionary(c => c.ContentId, c => c.AlbumId);
+            var authorRows = await _dbContext.ContentAuthors
+                .AsNoTracking()
+                .Where(ca => contentIds.Contains(ca.ContentId))
+                .OrderBy(ca => ca.Order)
+                .Select(ca => new
+                {
+                    ca.ContentId,
+                    Response = new ContentAuthorResponse(
+                        ca.UserId,
+                        ca.User.Username,
+                        ca.User.DisplayName,
+                        ca.Role,
+                        ca.Order)
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in authorRows)
+            {
+                var albumId = refIdByContentId[row.ContentId];
+                if (!authorsByAlbumId.TryGetValue(albumId, out var list))
+                {
+                    list = [];
+                    authorsByAlbumId[albumId] = list;
+                }
+                list.Add(row.Response);
+            }
+        }
+
+        return albumRows.Select(a => new AlbumResponse(
+            a.Id,
+            a.Name,
+            a.Slug,
+            NormalizeGalleryMediaUrl(a.Cover),
+            a.Description,
+            a.CreatedAt,
+            a.UpdatedAt,
+            a.ImageCount,
+            authorsByAlbumId.TryGetValue(a.Id, out var authors) ? authors : [],
+            contentByAlbumId.TryGetValue(a.Id, out var contentId) ? contentId : null,
+            a.IsActive,
+            a.SortOrder)).ToList();
     }
 
     public async Task<GalleryAlbumQueryResult> GetAlbumByIdAsync(
@@ -70,14 +116,6 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
                 a.UpdatedAt,
                 a.IsActive,
                 a.SortOrder,
-                Authors = a.Authors
-                    .OrderBy(ga => ga.Order)
-                    .Select(ga => new GalleryAuthorResponse(
-                        ga.UserId,
-                        ga.User.Username,
-                        ga.User.DisplayName,
-                        ga.Order))
-                    .ToList(),
                 Images = a.Images
                     .OrderBy(i => i.Order)
                     .Select(i => new ImageResponse(
@@ -107,6 +145,7 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
         var likeCount = 0;
         var commentCount = 0;
         var isLiked = false;
+        var authors = new List<ContentAuthorResponse>();
 
         if (contentId.HasValue)
         {
@@ -121,6 +160,18 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
                 isLiked = await _dbContext.Likes
                     .AnyAsync(l => l.ContentId == contentId.Value && l.UserId == currentUserId.Value, cancellationToken);
             }
+
+            authors = await _dbContext.ContentAuthors
+                .AsNoTracking()
+                .Where(ca => ca.ContentId == contentId.Value)
+                .OrderBy(ca => ca.Order)
+                .Select(ca => new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order))
+                .ToListAsync(cancellationToken);
         }
 
         var response = new AlbumWithImagesResponse(
@@ -134,7 +185,7 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
             albumData.Images
                 .Select(i => i with { Url = NormalizeGalleryMediaUrl(i.Url) ?? i.Url })
                 .ToList(),
-            albumData.Authors,
+            authors,
             contentId,
             likeCount,
             isLiked,
@@ -208,44 +259,19 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
 
         _dbContext.Albums.Add(album);
 
-        if (request.AuthorIds is { Count: > 0 })
-        {
-            var validAuthorIds = await _dbContext.Users
-                .Where(u => request.AuthorIds.Contains(u.Id))
-                .Select(u => u.Id)
-                .ToListAsync(cancellationToken);
-
-            for (var i = 0; i < request.AuthorIds.Count; i++)
-            {
-                var authorId = request.AuthorIds[i];
-                if (!validAuthorIds.Contains(authorId))
-                {
-                    continue;
-                }
-
-                _dbContext.GalleryAuthors.Add(new GalleryAuthor
-                {
-                    Id = Guid.NewGuid(),
-                    AlbumId = album.Id,
-                    UserId = authorId,
-                    Order = i,
-                    CreatedAt = now
-                });
-            }
-        }
-
         var contentSlug = slug;
         var existingSlug = await _dbContext.Contents
             .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
 
         if (existingSlug)
         {
-            contentSlug = $"{slug}-{album.Id.ToString().Substring(0, 8)}";
+            contentSlug = $"{slug}-{album.Id.ToString()[..8]}";
         }
 
-        var content = new Content
+        var contentId = Guid.NewGuid();
+        _dbContext.Contents.Add(new Content
         {
-            Id = Guid.NewGuid(),
+            Id = contentId,
             ContentType = ContentType.Album,
             ContentRefId = album.Id,
             Title = request.Name,
@@ -254,20 +280,36 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
             PublishedAt = now,
             CreatedAt = now,
             UpdatedAt = now
-        };
+        });
 
-        _dbContext.Contents.Add(content);
+        var authors = new List<ContentAuthorResponse>();
+        if (request.AuthorIds is { Count: > 0 })
+        {
+            var validAuthorIds = await _dbContext.Users
+                .Where(u => request.AuthorIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.Username, u.DisplayName })
+                .ToListAsync(cancellationToken);
+
+            for (var i = 0; i < request.AuthorIds.Count; i++)
+            {
+                var authorId = request.AuthorIds[i];
+                var matched = validAuthorIds.FirstOrDefault(u => u.Id == authorId);
+                if (matched is null) continue;
+
+                _dbContext.ContentAuthors.Add(new ContentAuthor
+                {
+                    Id = Guid.NewGuid(),
+                    ContentId = contentId,
+                    UserId = authorId,
+                    Order = i,
+                    CreatedAt = now
+                });
+
+                authors.Add(new ContentAuthorResponse(matched.Id, matched.Username, matched.DisplayName, null, i));
+            }
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
-
-        var authors = await _dbContext.GalleryAuthors
-            .Where(ga => ga.AlbumId == album.Id)
-            .OrderBy(ga => ga.Order)
-            .Select(ga => new GalleryAuthorResponse(
-                ga.UserId,
-                ga.User.Username,
-                ga.User.DisplayName,
-                ga.Order))
-            .ToListAsync(cancellationToken);
 
         var response = new AlbumResponse(
             album.Id,
@@ -279,7 +321,7 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
             album.UpdatedAt,
             0,
             authors,
-            content.Id,
+            contentId,
             album.IsActive,
             album.SortOrder);
 

@@ -16,5 +16,4 @@ public class Blog
 
     // Navigation properties
     public BlogCategory? Category { get; set; }
-    public ICollection<BlogAuthor> Authors { get; set; } = new List<BlogAuthor>();
 }

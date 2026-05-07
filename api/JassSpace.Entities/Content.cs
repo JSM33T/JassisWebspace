@@ -23,4 +23,6 @@ public class Content
     // Stored generated column: to_tsvector('english', title || ' ' || coalesce(search_body,''))
     // Maintained automatically by Postgres on every INSERT/UPDATE.
     public NpgsqlTsVector SearchVector { get; set; } = null!;
+
+    public ICollection<ContentAuthor> Authors { get; set; } = new List<ContentAuthor>();
 }

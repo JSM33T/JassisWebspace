@@ -42,7 +42,7 @@ public sealed record AdminGalleryDeleteResult(
 
 public interface IAdminGalleryService
 {
-    Task<List<GalleryAuthorResponse>> GetAuthorsAsync(
+    Task<List<ContentAuthorResponse>> GetAuthorsAsync(
         string? search = null,
         int take = 100,
         CancellationToken cancellationToken = default);

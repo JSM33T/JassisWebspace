@@ -60,7 +60,7 @@ public sealed record AdminMusicDeleteResult(
 
 public interface IAdminMusicService
 {
-    Task<List<TrackAuthorResponse>> GetAuthorsAsync(
+    Task<List<ContentAuthorResponse>> GetAuthorsAsync(
         string? search = null,
         int take = 100,
         CancellationToken cancellationToken = default);

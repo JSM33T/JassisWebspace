@@ -14,5 +14,4 @@ public class Album
 
     // Navigation properties
     public ICollection<Image> Images { get; set; } = new List<Image>();
-    public ICollection<GalleryAuthor> Authors { get; set; } = new List<GalleryAuthor>();
 }

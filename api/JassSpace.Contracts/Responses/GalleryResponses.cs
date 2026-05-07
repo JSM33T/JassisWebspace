@@ -1,12 +1,5 @@
 namespace JassSpace.Contracts.Responses;
 
-public record GalleryAuthorResponse(
-    Guid UserId,
-    string Username,
-    string? DisplayName,
-    int Order
-);
-
 public record AlbumResponse(
     Guid Id,
     string Name,
@@ -16,7 +9,7 @@ public record AlbumResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     int ImageCount,
-    List<GalleryAuthorResponse> Authors,
+    List<ContentAuthorResponse> Authors,
     Guid? ContentId = null,
     bool IsActive = true,
     int SortOrder = 0
@@ -41,7 +34,7 @@ public record AlbumWithImagesResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     List<ImageResponse> Images,
-    List<GalleryAuthorResponse> Authors,
+    List<ContentAuthorResponse> Authors,
     Guid? ContentId = null,
     int LikeCount = 0,
     bool IsLiked = false,

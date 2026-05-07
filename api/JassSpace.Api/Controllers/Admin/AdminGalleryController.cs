@@ -21,7 +21,7 @@ public sealed class AdminGalleryController(
     : BaseApiController
 {
     [HttpGet("authors")]
-    [ProducesResponseType(typeof(ApiResponse<List<GalleryAuthorResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<ContentAuthorResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuthors(
         [FromQuery] string? search = null,
         [FromQuery] int take = 100,

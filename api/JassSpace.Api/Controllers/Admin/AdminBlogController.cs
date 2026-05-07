@@ -98,7 +98,7 @@ public sealed class AdminBlogController(
     /// </summary>
     [HttpGet("authors")]
     [Authorize(Roles = "admin,mod")]
-    [ProducesResponseType(typeof(ApiResponse<List<BlogAuthorResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<ContentAuthorResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuthors(
         [FromQuery] string? search = null,
         [FromQuery] int take = 100,

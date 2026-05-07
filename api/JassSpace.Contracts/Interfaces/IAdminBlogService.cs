@@ -54,7 +54,7 @@ public interface IAdminBlogService
         CreateBlogCategoryRequest request,
         CancellationToken cancellationToken = default);
 
-    Task<List<BlogAuthorResponse>> GetAuthorsAsync(
+    Task<List<ContentAuthorResponse>> GetAuthorsAsync(
         string? search = null,
         int take = 100,
         CancellationToken cancellationToken = default);

@@ -36,9 +36,6 @@ public sealed class MusicService(
 
         var query = _dbContext.Tracks
             .AsNoTracking()
-            .AsSplitQuery()
-            .Include(t => t.Authors)
-                .ThenInclude(a => a.User)
             .Include(t => t.Links)
             .Where(t => t.IsPublished)
             .AsQueryable();
@@ -90,8 +87,15 @@ public sealed class MusicService(
                 .Where(c => c.ContentType == ContentType.Music && trackIds.Contains(c.ContentRefId))
                 .ToDictionaryAsync(c => c.ContentRefId, c => c.Id, cancellationToken);
 
+        var authorsByTrackId = trackIds.Count == 0
+            ? new Dictionary<Guid, List<ContentAuthorResponse>>()
+            : await LoadAuthorsByContentMapAsync(contentByRefId, cancellationToken);
+
         var response = tracks
-            .Select(t => MapTrackListItem(t, contentByRefId.TryGetValue(t.Id, out var contentId) ? contentId : null))
+            .Select(t => MapTrackListItem(
+                t,
+                contentByRefId.TryGetValue(t.Id, out var cid) ? cid : null,
+                authorsByTrackId.TryGetValue(t.Id, out var a) ? a : []))
             .ToList();
 
         return new MusicTracksQueryResult(
@@ -115,9 +119,6 @@ public sealed class MusicService(
 
         var track = await _dbContext.Tracks
             .AsNoTracking()
-            .AsSplitQuery()
-            .Include(t => t.Authors)
-                .ThenInclude(a => a.User)
             .Include(t => t.Links)
             .FirstOrDefaultAsync(t => t.Slug == normalizedSlug && t.IsPublished, cancellationToken);
 
@@ -154,7 +155,21 @@ public sealed class MusicService(
             }
         }
 
-        return MapTrackDetail(track, contentId, likeCount, isLiked, commentCount);
+        var authors = contentId.HasValue
+            ? await _dbContext.ContentAuthors
+                .AsNoTracking()
+                .Where(ca => ca.ContentId == contentId.Value)
+                .OrderBy(ca => ca.Order)
+                .Select(ca => new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order))
+                .ToListAsync(cancellationToken)
+            : [];
+
+        return MapTrackDetail(track, contentId, authors, likeCount, isLiked, commentCount);
     }
 
     public async Task<MusicPlayLinkResult> CreatePlayLinkAsync(
@@ -214,7 +229,7 @@ public sealed class MusicService(
         pageSize = Math.Clamp(pageSize, 1, 100);
     }
 
-    private static TrackListItemResponse MapTrackListItem(Track track, Guid? contentId)
+    private static TrackListItemResponse MapTrackListItem(Track track, Guid? contentId, List<ContentAuthorResponse> authors)
     {
         return new TrackListItemResponse(
             track.Id,
@@ -222,15 +237,7 @@ public sealed class MusicService(
             track.Title,
             track.Slug,
             track.Description,
-            track.Authors
-                .OrderBy(a => a.Order)
-                .Select(a => new TrackAuthorResponse(
-                    a.UserId,
-                    a.User.Username,
-                    a.User.DisplayName,
-                    a.Role,
-                    a.Order))
-                .ToList(),
+            authors,
             track.Category,
             track.Duration,
             track.ReleaseDate,
@@ -250,7 +257,7 @@ public sealed class MusicService(
             track.BootlegAssetId);
     }
 
-    private static TrackDetailResponse MapTrackDetail(Track track, Guid? contentId, int likeCount, bool isLiked, int commentCount)
+    private static TrackDetailResponse MapTrackDetail(Track track, Guid? contentId, List<ContentAuthorResponse> authors, int likeCount, bool isLiked, int commentCount)
     {
         return new TrackDetailResponse(
             track.Id,
@@ -258,15 +265,7 @@ public sealed class MusicService(
             track.Title,
             track.Slug,
             track.Description,
-            track.Authors
-                .OrderBy(a => a.Order)
-                .Select(a => new TrackAuthorResponse(
-                    a.UserId,
-                    a.User.Username,
-                    a.User.DisplayName,
-                    a.Role,
-                    a.Order))
-                .ToList(),
+            authors,
             track.Category,
             track.Duration,
             track.ReleaseDate,
@@ -287,6 +286,46 @@ public sealed class MusicService(
             likeCount,
             isLiked,
             commentCount);
+    }
+
+    private async Task<Dictionary<Guid, List<ContentAuthorResponse>>> LoadAuthorsByContentMapAsync(
+        Dictionary<Guid, Guid> contentByRefId,
+        CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, List<ContentAuthorResponse>>();
+        var contentIds = contentByRefId.Values.ToList();
+        if (contentIds.Count == 0) return result;
+
+        var refIdByContentId = contentByRefId.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+        var authorRows = await _dbContext.ContentAuthors
+            .AsNoTracking()
+            .Where(ca => contentIds.Contains(ca.ContentId))
+            .OrderBy(ca => ca.Order)
+            .Select(ca => new
+            {
+                ca.ContentId,
+                Response = new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order)
+            })
+            .ToListAsync(cancellationToken);
+
+        foreach (var row in authorRows)
+        {
+            if (!refIdByContentId.TryGetValue(row.ContentId, out var trackId)) continue;
+            if (!result.TryGetValue(trackId, out var list))
+            {
+                list = [];
+                result[trackId] = list;
+            }
+            list.Add(row.Response);
+        }
+
+        return result;
     }
 
     private static bool TryNormalizeCategory(string? value, out string normalized)

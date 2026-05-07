@@ -9,13 +9,6 @@ public record BlogCategoryResponse(
     DateTimeOffset? UpdatedAt
 );
 
-public record BlogAuthorResponse(
-    Guid UserId,
-    string Username,
-    string? DisplayName,
-    int Order
-);
-
 public record BlogListItemResponse(
     Guid Id,
     string Title,
@@ -23,7 +16,7 @@ public record BlogListItemResponse(
     string? Excerpt,
     string? FeaturedImage,
     BlogCategoryResponse? Category,
-    List<BlogAuthorResponse> Authors,
+    List<ContentAuthorResponse> Authors,
     bool IsPublished,
     DateTimeOffset? PublishedAt,
     DateTimeOffset CreatedAt,
@@ -41,7 +34,7 @@ public record BlogDetailResponse(
     string Content,
     string? FeaturedImage,
     BlogCategoryResponse? Category,
-    List<BlogAuthorResponse> Authors,
+    List<ContentAuthorResponse> Authors,
     bool IsPublished,
     DateTimeOffset? PublishedAt,
     DateTimeOffset CreatedAt,

@@ -37,7 +37,7 @@ public sealed class AdminMusicService(
         "covers"
     };
 
-    public Task<List<TrackAuthorResponse>> GetAuthorsAsync(
+    public Task<List<ContentAuthorResponse>> GetAuthorsAsync(
         string? search = null,
         int take = 100,
         CancellationToken cancellationToken = default)
@@ -62,7 +62,7 @@ public sealed class AdminMusicService(
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .Take(take)
-            .Select(u => new TrackAuthorResponse(
+            .Select(u => new ContentAuthorResponse(
                 u.Id,
                 u.Username,
                 u.DisplayName ?? $"{u.FirstName} {u.LastName}".Trim(),
@@ -89,9 +89,6 @@ public sealed class AdminMusicService(
 
         var query = _dbContext.Tracks
             .AsNoTracking()
-            .AsSplitQuery()
-            .Include(t => t.Authors)
-                .ThenInclude(a => a.User)
             .Include(t => t.Links)
             .AsQueryable();
 
@@ -123,9 +120,11 @@ public sealed class AdminMusicService(
         if (!string.IsNullOrWhiteSpace(artist))
         {
             var pattern = $"%{artist.Trim()}%";
-            query = query.Where(t => t.Authors.Any(a =>
-                EF.Functions.ILike(a.User.Username, pattern) ||
-                EF.Functions.ILike(a.User.DisplayName ?? string.Empty, pattern)));
+            query = query.Where(t => _dbContext.Contents
+                .Any(c => c.ContentType == ContentType.Music && c.ContentRefId == t.Id &&
+                          c.Authors.Any(ca =>
+                              EF.Functions.ILike(ca.User.Username, pattern) ||
+                              EF.Functions.ILike(ca.User.DisplayName ?? string.Empty, pattern))));
         }
 
         if (!string.IsNullOrWhiteSpace(genre))
@@ -160,8 +159,13 @@ public sealed class AdminMusicService(
                 .Where(c => c.ContentType == ContentType.Music && trackIds.Contains(c.ContentRefId))
                 .ToDictionaryAsync(c => c.ContentRefId, c => c.Id, cancellationToken);
 
+        var authorsByTrackId = await LoadAuthorsByTrackIdsAsync(trackIds, contentByRefId, cancellationToken);
+
         var response = tracks
-            .Select(t => MapTrackListItem(t, contentByRefId.TryGetValue(t.Id, out var contentId) ? contentId : null))
+            .Select(t => MapTrackListItem(
+                t,
+                contentByRefId.TryGetValue(t.Id, out var cid) ? cid : null,
+                authorsByTrackId.TryGetValue(t.Id, out var a) ? a : []))
             .ToList();
 
         return new AdminMusicTracksQueryResult(
@@ -221,7 +225,10 @@ public sealed class AdminMusicService(
         }
 
         var contentId = await GetContentIdAsync(id, cancellationToken);
-        return MapTrackDetail(track, contentId, 0, false, 0);
+        var authors = contentId.HasValue
+            ? await LoadAuthorsForContentAsync(contentId.Value, cancellationToken)
+            : [];
+        return MapTrackDetail(track, contentId, authors, 0, false, 0);
     }
 
     private async Task<AdminMusicCoverUploadResult> UploadTrackCoverAsyncCore(
@@ -423,13 +430,11 @@ public sealed class AdminMusicService(
 
         _dbContext.Tracks.Add(track);
 
-        AddTrackAuthors(track.Id, request.Authors, now);
-        AddTrackLinks(track.Id, request.Links, now);
-
+        var contentId = Guid.NewGuid();
         var contentSlug = await GenerateUniqueContentSlugAsync(slug, null, cancellationToken);
         _dbContext.Contents.Add(new Content
         {
-            Id = Guid.NewGuid(),
+            Id = contentId,
             ContentType = ContentType.Music,
             ContentRefId = track.Id,
             Title = track.Title,
@@ -443,15 +448,18 @@ public sealed class AdminMusicService(
             UpdatedAt = now
         });
 
+        AddTrackAuthors(contentId, request.Authors, now);
+        AddTrackLinks(track.Id, request.Links, now);
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var created = await GetTrackWithRelationsAsync(track.Id, cancellationToken)
             ?? throw new InvalidOperationException("The track was created but could not be loaded.");
 
-        var createdContentId = await GetContentIdAsync(created.Id, cancellationToken);
+        var createdAuthors = await LoadAuthorsForContentAsync(contentId, cancellationToken);
         return new AdminMusicMutationResult(
             AdminMusicMutationStatus.Success,
-            MapTrackDetail(created, createdContentId, 0, false, 0));
+            MapTrackDetail(created, contentId, createdAuthors, 0, false, 0));
     }
 
     private async Task<AdminMusicMutationResult> UpdateTrackAsyncCore(
@@ -461,7 +469,6 @@ public sealed class AdminMusicService(
     {
         var track = await _dbContext.Tracks
             .AsSplitQuery()
-            .Include(t => t.Authors)
             .Include(t => t.Links)
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
@@ -520,20 +527,17 @@ public sealed class AdminMusicService(
         track.IsPublished = request.IsPublished;
         track.UpdatedAt = now;
 
-        _dbContext.TrackAuthors.RemoveRange(track.Authors);
-        _dbContext.TrackLinks.RemoveRange(track.Links);
-        AddTrackAuthors(track.Id, request.Authors, now);
-        AddTrackLinks(track.Id, request.Links, now);
-
         var content = await _dbContext.Contents
             .FirstOrDefaultAsync(c => c.ContentType == ContentType.Music && c.ContentRefId == id, cancellationToken);
 
+        Guid resolvedContentId;
         if (content is null)
         {
             var contentSlug = await GenerateUniqueContentSlugAsync(track.Slug, null, cancellationToken);
+            resolvedContentId = Guid.NewGuid();
             _dbContext.Contents.Add(new Content
             {
-                Id = Guid.NewGuid(),
+                Id = resolvedContentId,
                 ContentType = ContentType.Music,
                 ContentRefId = track.Id,
                 Title = track.Title,
@@ -549,6 +553,10 @@ public sealed class AdminMusicService(
         }
         else
         {
+            resolvedContentId = content.Id;
+            await _dbContext.ContentAuthors
+                .Where(ca => ca.ContentId == resolvedContentId)
+                .ExecuteDeleteAsync(cancellationToken);
             content.Title = track.Title;
             content.Slug = await GenerateUniqueContentSlugAsync(track.Slug, content.Id, cancellationToken);
             content.Description = track.Description;
@@ -558,6 +566,11 @@ public sealed class AdminMusicService(
             content.SearchBody = BuildTrackSearchBody(track.Description, track.Tags);
             content.UpdatedAt = now;
         }
+
+        AddTrackAuthors(resolvedContentId, request.Authors, now);
+
+        _dbContext.TrackLinks.RemoveRange(track.Links);
+        AddTrackLinks(track.Id, request.Links, now);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -579,10 +592,10 @@ public sealed class AdminMusicService(
         var updated = await GetTrackWithRelationsAsync(id, cancellationToken)
             ?? throw new InvalidOperationException("The track was updated but could not be loaded.");
 
-        var updatedContentId = await GetContentIdAsync(id, cancellationToken);
+        var updatedAuthors = await LoadAuthorsForContentAsync(resolvedContentId, cancellationToken);
         return new AdminMusicMutationResult(
             AdminMusicMutationStatus.Success,
-            MapTrackDetail(updated, updatedContentId, 0, false, 0));
+            MapTrackDetail(updated, resolvedContentId, updatedAuthors, 0, false, 0));
     }
 
     private async Task<AdminMusicDeleteResult> DeleteTrackAsyncCore(Guid id, CancellationToken cancellationToken)
@@ -624,7 +637,7 @@ public sealed class AdminMusicService(
         return new AdminMusicDeleteResult(AdminMusicDeleteStatus.Success);
     }
 
-    private void AddTrackAuthors(Guid trackId, List<TrackAuthorInputRequest>? authors, DateTimeOffset now)
+    private void AddTrackAuthors(Guid contentId, List<TrackAuthorInputRequest>? authors, DateTimeOffset now)
     {
         if (authors is null || authors.Count == 0)
         {
@@ -639,10 +652,10 @@ public sealed class AdminMusicService(
         for (var i = 0; i < distinctAuthors.Count; i++)
         {
             var author = distinctAuthors[i];
-            _dbContext.TrackAuthors.Add(new TrackAuthor
+            _dbContext.ContentAuthors.Add(new ContentAuthor
             {
                 Id = Guid.NewGuid(),
-                TrackId = trackId,
+                ContentId = contentId,
                 UserId = author.UserId,
                 Role = NormalizeNullable(author.Role),
                 Order = i,
@@ -725,11 +738,66 @@ public sealed class AdminMusicService(
     {
         return _dbContext.Tracks
             .AsNoTracking()
-            .AsSplitQuery()
-            .Include(t => t.Authors)
-                .ThenInclude(a => a.User)
             .Include(t => t.Links)
             .FirstOrDefaultAsync(t => t.Id == trackId, cancellationToken);
+    }
+
+    private Task<List<ContentAuthorResponse>> LoadAuthorsForContentAsync(Guid contentId, CancellationToken cancellationToken)
+    {
+        return _dbContext.ContentAuthors
+            .AsNoTracking()
+            .Where(ca => ca.ContentId == contentId)
+            .OrderBy(ca => ca.Order)
+            .Select(ca => new ContentAuthorResponse(
+                ca.UserId,
+                ca.User.Username,
+                ca.User.DisplayName,
+                ca.Role,
+                ca.Order))
+            .ToListAsync(cancellationToken);
+    }
+
+    private async Task<Dictionary<Guid, List<ContentAuthorResponse>>> LoadAuthorsByTrackIdsAsync(
+        List<Guid> trackIds,
+        Dictionary<Guid, Guid> contentByRefId,
+        CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, List<ContentAuthorResponse>>();
+        if (trackIds.Count == 0) return result;
+
+        var contentIds = contentByRefId.Values.ToList();
+        if (contentIds.Count == 0) return result;
+
+        var refIdByContentId = contentByRefId.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+        var authorRows = await _dbContext.ContentAuthors
+            .AsNoTracking()
+            .Where(ca => contentIds.Contains(ca.ContentId))
+            .OrderBy(ca => ca.Order)
+            .Select(ca => new
+            {
+                ca.ContentId,
+                Response = new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order)
+            })
+            .ToListAsync(cancellationToken);
+
+        foreach (var row in authorRows)
+        {
+            if (!refIdByContentId.TryGetValue(row.ContentId, out var trackId)) continue;
+            if (!result.TryGetValue(trackId, out var list))
+            {
+                list = [];
+                result[trackId] = list;
+            }
+            list.Add(row.Response);
+        }
+
+        return result;
     }
 
     private Task<Guid?> GetContentIdAsync(Guid trackId, CancellationToken cancellationToken)
@@ -905,7 +973,7 @@ public sealed class AdminMusicService(
         return slug.Trim('-');
     }
 
-    private static TrackListItemResponse MapTrackListItem(Track track, Guid? contentId)
+    private static TrackListItemResponse MapTrackListItem(Track track, Guid? contentId, List<ContentAuthorResponse> authors)
     {
         return new TrackListItemResponse(
             track.Id,
@@ -913,15 +981,7 @@ public sealed class AdminMusicService(
             track.Title,
             track.Slug,
             track.Description,
-            track.Authors
-                .OrderBy(a => a.Order)
-                .Select(a => new TrackAuthorResponse(
-                    a.UserId,
-                    a.User.Username,
-                    a.User.DisplayName,
-                    a.Role,
-                    a.Order))
-                .ToList(),
+            authors,
             track.Category,
             track.Duration,
             track.ReleaseDate,
@@ -941,7 +1001,7 @@ public sealed class AdminMusicService(
             track.BootlegAssetId);
     }
 
-    private static TrackDetailResponse MapTrackDetail(Track track, Guid? contentId, int likeCount, bool isLiked, int commentCount)
+    private static TrackDetailResponse MapTrackDetail(Track track, Guid? contentId, List<ContentAuthorResponse> authors, int likeCount, bool isLiked, int commentCount)
     {
         return new TrackDetailResponse(
             track.Id,
@@ -949,15 +1009,7 @@ public sealed class AdminMusicService(
             track.Title,
             track.Slug,
             track.Description,
-            track.Authors
-                .OrderBy(a => a.Order)
-                .Select(a => new TrackAuthorResponse(
-                    a.UserId,
-                    a.User.Username,
-                    a.User.DisplayName,
-                    a.Role,
-                    a.Order))
-                .ToList(),
+            authors,
             track.Category,
             track.Duration,
             track.ReleaseDate,
@@ -1044,7 +1096,7 @@ public sealed class AdminMusicService(
             : "desc";
     }
 
-    private static IQueryable<Track> ApplySort(IQueryable<Track> query, string sortBy, string sortDir)
+    private IQueryable<Track> ApplySort(IQueryable<Track> query, string sortBy, string sortDir)
     {
         var ascending = sortDir == "asc";
 
@@ -1052,13 +1104,17 @@ public sealed class AdminMusicService(
         {
             "artist" => ascending
                 ? query
-                    .OrderBy(t => t.Authors
+                    .OrderBy(t => _dbContext.Contents
+                        .Where(c => c.ContentType == ContentType.Music && c.ContentRefId == t.Id)
+                        .SelectMany(c => c.Authors)
                         .OrderBy(a => a.Order)
                         .Select(a => a.User.DisplayName ?? a.User.Username)
                         .FirstOrDefault())
                     .ThenBy(t => t.Title)
                 : query
-                    .OrderByDescending(t => t.Authors
+                    .OrderByDescending(t => _dbContext.Contents
+                        .Where(c => c.ContentType == ContentType.Music && c.ContentRefId == t.Id)
+                        .SelectMany(c => c.Authors)
                         .OrderBy(a => a.Order)
                         .Select(a => a.User.DisplayName ?? a.User.Username)
                         .FirstOrDefault())

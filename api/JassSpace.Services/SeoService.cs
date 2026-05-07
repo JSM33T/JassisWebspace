@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Responses;
 using JassSpace.Data;
+using JassSpace.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -45,11 +46,11 @@ public sealed class SeoService(
             return null;
         }
 
-        var authorNames = await _dbContext.BlogAuthors
+        var authorNames = await _dbContext.ContentAuthors
             .AsNoTracking()
-            .Where(ba => ba.BlogId == blog.Id)
-            .OrderBy(ba => ba.Order)
-            .Select(ba => ba.User.DisplayName ?? ba.User.Username)
+            .Where(ca => _dbContext.Contents.Any(c => c.ContentType == ContentType.Blog && c.ContentRefId == blog.Id && c.Id == ca.ContentId))
+            .OrderBy(ca => ca.Order)
+            .Select(ca => ca.User.DisplayName ?? ca.User.Username)
             .ToListAsync(cancellationToken);
 
         var authorLabel = BuildAuthorLabel(authorNames);

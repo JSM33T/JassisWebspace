@@ -62,14 +62,6 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
                         b.Category.CreatedAt,
                         b.Category.UpdatedAt)
                     : null,
-                b.Authors
-                    .OrderBy(ba => ba.Order)
-                    .Select(ba => new BlogAuthorResponse(
-                        ba.UserId,
-                        ba.User.Username,
-                        ba.User.DisplayName,
-                        ba.Order))
-                    .ToList(),
                 b.IsPublished,
                 b.PublishedAt,
                 b.CreatedAt,
@@ -90,6 +82,7 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
         var likeCount = 0;
         var commentCount = 0;
         var isLiked = false;
+        var authors = new List<ContentAuthorResponse>();
 
         if (contentId.HasValue)
         {
@@ -107,6 +100,18 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
                     .AsNoTracking()
                     .AnyAsync(l => l.ContentId == contentId.Value && l.UserId == currentUserId.Value, cancellationToken);
             }
+
+            authors = await _dbContext.ContentAuthors
+                .AsNoTracking()
+                .Where(ca => ca.ContentId == contentId.Value)
+                .OrderBy(ca => ca.Order)
+                .Select(ca => new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order))
+                .ToListAsync(cancellationToken);
         }
 
         return new BlogDetailResponse(
@@ -118,7 +123,7 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             projection.Content,
             NormalizeBlogMediaUrl(projection.FeaturedImage),
             projection.Category,
-            projection.Authors,
+            authors,
             projection.IsPublished,
             projection.PublishedAt,
             projection.CreatedAt,
@@ -249,25 +254,11 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
 
         _dbContext.Blogs.Add(blog);
 
-        if (request.AuthorIds is { Count: > 0 })
-        {
-            for (var i = 0; i < request.AuthorIds.Count; i++)
-            {
-                _dbContext.BlogAuthors.Add(new BlogAuthor
-                {
-                    Id = Guid.NewGuid(),
-                    BlogId = blog.Id,
-                    UserId = request.AuthorIds[i],
-                    Order = i,
-                    CreatedAt = now
-                });
-            }
-        }
-
         var contentSlug = await GenerateUniqueContentSlugAsync(slug, blog.Id, cancellationToken);
+        var contentId = Guid.NewGuid();
         _dbContext.Contents.Add(new Content
         {
-            Id = Guid.NewGuid(),
+            Id = contentId,
             ContentType = ContentType.Blog,
             ContentRefId = blog.Id,
             Title = blog.Title,
@@ -277,6 +268,21 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             CreatedAt = now,
             UpdatedAt = now
         });
+
+        if (request.AuthorIds is { Count: > 0 })
+        {
+            for (var i = 0; i < request.AuthorIds.Count; i++)
+            {
+                _dbContext.ContentAuthors.Add(new ContentAuthor
+                {
+                    Id = Guid.NewGuid(),
+                    ContentId = contentId,
+                    UserId = request.AuthorIds[i],
+                    Order = i,
+                    CreatedAt = now
+                });
+            }
+        }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -366,7 +372,9 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
         if (!string.IsNullOrWhiteSpace(authorUsername))
         {
             var normalizedAuthorUsername = authorUsername.Trim();
-            query = query.Where(b => b.Authors.Any(ba => ba.User.Username == normalizedAuthorUsername));
+            query = query.Where(b => _dbContext.Contents
+                .Any(c => c.ContentType == ContentType.Blog && c.ContentRefId == b.Id &&
+                          c.Authors.Any(ca => ca.User.Username == normalizedAuthorUsername)));
         }
 
         return query;
@@ -398,14 +406,6 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
                         b.Category.CreatedAt,
                         b.Category.UpdatedAt)
                     : null,
-                b.Authors
-                    .OrderBy(ba => ba.Order)
-                    .Select(ba => new BlogAuthorResponse(
-                        ba.UserId,
-                        ba.User.Username,
-                        ba.User.DisplayName,
-                        ba.Order))
-                    .ToList(),
                 b.IsPublished,
                 b.PublishedAt,
                 b.CreatedAt,
@@ -418,12 +418,15 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
         }
 
         var blogIds = blogRows.Select(b => b.Id).ToList();
-        var contentByBlogId = await _dbContext.Contents
+        var contentList = await _dbContext.Contents
             .AsNoTracking()
             .Where(c => c.ContentType == ContentType.Blog && blogIds.Contains(c.ContentRefId))
-            .ToDictionaryAsync(c => c.ContentRefId, c => c.Id, cancellationToken);
+            .Select(c => new { c.Id, c.ContentRefId })
+            .ToListAsync(cancellationToken);
 
-        var contentIds = contentByBlogId.Values.Distinct().ToList();
+        var contentByBlogId = contentList.ToDictionary(c => c.ContentRefId, c => c.Id);
+        var contentIds = contentList.Select(c => c.Id).ToList();
+
         var likeCounts = contentIds.Count == 0
             ? new Dictionary<Guid, int>()
             : await _dbContext.Likes
@@ -441,6 +444,38 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
                 .GroupBy(c => c.ContentId)
                 .Select(g => new { g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+
+        var refIdByContentId = contentList.ToDictionary(c => c.Id, c => c.ContentRefId);
+        var authorsByBlogId = new Dictionary<Guid, List<ContentAuthorResponse>>();
+        if (contentIds.Count > 0)
+        {
+            var authorRows = await _dbContext.ContentAuthors
+                .AsNoTracking()
+                .Where(ca => contentIds.Contains(ca.ContentId))
+                .OrderBy(ca => ca.Order)
+                .Select(ca => new
+                {
+                    ca.ContentId,
+                    Response = new ContentAuthorResponse(
+                        ca.UserId,
+                        ca.User.Username,
+                        ca.User.DisplayName,
+                        ca.Role,
+                        ca.Order)
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in authorRows)
+            {
+                var blogId = refIdByContentId[row.ContentId];
+                if (!authorsByBlogId.TryGetValue(blogId, out var list))
+                {
+                    list = [];
+                    authorsByBlogId[blogId] = list;
+                }
+                list.Add(row.Response);
+            }
+        }
 
         return blogRows
             .Select(blog =>
@@ -461,7 +496,7 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
                     blog.Excerpt,
                     NormalizeBlogMediaUrl(blog.FeaturedImage),
                     blog.Category,
-                    blog.Authors,
+                    authorsByBlogId.TryGetValue(blog.Id, out var authors) ? authors : [],
                     blog.IsPublished,
                     blog.PublishedAt,
                     blog.CreatedAt,
@@ -623,7 +658,6 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
         string? Excerpt,
         string? FeaturedImage,
         BlogCategoryResponse? Category,
-        List<BlogAuthorResponse> Authors,
         bool IsPublished,
         DateTimeOffset? PublishedAt,
         DateTimeOffset CreatedAt,
@@ -637,7 +671,6 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
         string Content,
         string? FeaturedImage,
         BlogCategoryResponse? Category,
-        List<BlogAuthorResponse> Authors,
         bool IsPublished,
         DateTimeOffset? PublishedAt,
         DateTimeOffset CreatedAt,

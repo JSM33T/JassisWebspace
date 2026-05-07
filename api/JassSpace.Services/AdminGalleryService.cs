@@ -22,7 +22,7 @@ public sealed class AdminGalleryService(
     private readonly IAzureBlobStorageService _blobStorageService = blobStorageService;
     private readonly IImageProcessingService _imageProcessingService = imageProcessingService;
 
-    public Task<List<GalleryAuthorResponse>> GetAuthorsAsync(
+    public Task<List<ContentAuthorResponse>> GetAuthorsAsync(
         string? search = null,
         int take = 100,
         CancellationToken cancellationToken = default)
@@ -47,10 +47,11 @@ public sealed class AdminGalleryService(
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .Take(take)
-            .Select(u => new GalleryAuthorResponse(
+            .Select(u => new ContentAuthorResponse(
                 u.Id,
                 u.Username,
                 u.DisplayName ?? $"{u.FirstName} {u.LastName}".Trim(),
+                null,
                 0))
             .ToListAsync(cancellationToken);
     }
@@ -68,10 +69,11 @@ public sealed class AdminGalleryService(
             query = query.Where(a => a.IsActive == isActive.Value);
         }
 
-        var albums = await query
+        var albumRows = await query
             .OrderBy(a => a.SortOrder)
             .ThenByDescending(a => a.UpdatedAt ?? a.CreatedAt)
-            .Select(a => new AlbumResponse(
+            .Select(a => new
+            {
                 a.Id,
                 a.Name,
                 a.Slug,
@@ -79,26 +81,34 @@ public sealed class AdminGalleryService(
                 a.Description,
                 a.CreatedAt,
                 a.UpdatedAt,
-                a.Images.Count,
-                a.Authors
-                    .OrderBy(ga => ga.Order)
-                    .Select(ga => new GalleryAuthorResponse(
-                        ga.UserId,
-                        ga.User.Username,
-                        ga.User.DisplayName,
-                        ga.Order))
-                    .ToList(),
-                _dbContext.Contents
-                    .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == a.Id)
-                    .Select(c => (Guid?)c.Id)
-                    .FirstOrDefault(),
+                ImageCount = a.Images.Count,
                 a.IsActive,
-                a.SortOrder))
+                a.SortOrder
+            })
             .ToListAsync(cancellationToken);
 
-        return albums
-            .Select(a => a with { Cover = NormalizeGalleryMediaUrl(a.Cover) })
-            .ToList();
+        var albumIds = albumRows.Select(a => a.Id).ToList();
+        var authorsByAlbumId = await LoadAuthorsByAlbumIdsAsync(albumIds, cancellationToken);
+        var contentByAlbumId = albumIds.Count == 0
+            ? new Dictionary<Guid, Guid>()
+            : await _dbContext.Contents
+                .AsNoTracking()
+                .Where(c => c.ContentType == ContentType.Album && albumIds.Contains(c.ContentRefId))
+                .ToDictionaryAsync(c => c.ContentRefId, c => c.Id, cancellationToken);
+
+        return albumRows.Select(a => new AlbumResponse(
+            a.Id,
+            a.Name,
+            a.Slug,
+            NormalizeGalleryMediaUrl(a.Cover),
+            a.Description,
+            a.CreatedAt,
+            a.UpdatedAt,
+            a.ImageCount,
+            authorsByAlbumId.TryGetValue(a.Id, out var authors) ? authors : [],
+            contentByAlbumId.TryGetValue(a.Id, out var contentId) ? contentId : null,
+            a.IsActive,
+            a.SortOrder)).ToList();
     }
 
     public async Task<AdminGalleryAlbumWithImagesMutationResult> GetAlbumAsync(
@@ -190,8 +200,6 @@ public sealed class AdminGalleryService(
 
         _dbContext.Albums.Add(album);
 
-        var authorResponses = await AddAlbumAuthorsAsync(album.Id, request.AuthorIds, cancellationToken);
-
         var contentSlug = targetSlug;
         var existingContentSlug = await _dbContext.Contents
             .AnyAsync(c => c.Slug == contentSlug, cancellationToken);
@@ -201,9 +209,10 @@ public sealed class AdminGalleryService(
             contentSlug = $"{targetSlug}-{album.Id.ToString()[..8]}";
         }
 
+        var contentId = Guid.NewGuid();
         var content = new Content
         {
-            Id = Guid.NewGuid(),
+            Id = contentId,
             ContentType = ContentType.Album,
             ContentRefId = album.Id,
             Title = request.Name,
@@ -216,6 +225,8 @@ public sealed class AdminGalleryService(
         };
 
         _dbContext.Contents.Add(content);
+
+        var authorResponses = await AddAlbumAuthorsAsync(contentId, request.AuthorIds, cancellationToken);
 
         var images = new List<Image>();
         var index = 0;
@@ -334,7 +345,6 @@ public sealed class AdminGalleryService(
         CancellationToken cancellationToken = default)
     {
         var album = await _dbContext.Albums
-            .Include(a => a.Authors)
             .FirstOrDefaultAsync(a => a.Id == albumId, cancellationToken);
 
         if (album is null)
@@ -400,8 +410,14 @@ public sealed class AdminGalleryService(
 
         album.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await UpdateAlbumAuthorsAsync(album, request.AuthorIds, albumId, cancellationToken);
         await UpsertAlbumContentAsync(album, albumId, cancellationToken);
+
+        var albumContentId = await _dbContext.Contents
+            .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        await UpdateAlbumAuthorsAsync(albumContentId, request.AuthorIds, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var response = await BuildAlbumResponseAsync(album, albumId, cancellationToken);
@@ -521,26 +537,23 @@ public sealed class AdminGalleryService(
         return new AdminGalleryDeleteResult(AdminGalleryOperationStatus.Success);
     }
 
-    private async Task<List<GalleryAuthorResponse>> AddAlbumAuthorsAsync(
-        Guid albumId,
+    private async Task<List<ContentAuthorResponse>> AddAlbumAuthorsAsync(
+        Guid contentId,
         List<Guid>? authorIds,
         CancellationToken cancellationToken)
     {
-        var authorResponses = new List<GalleryAuthorResponse>();
         if (authorIds is not { Count: > 0 })
         {
-            return authorResponses;
+            return [];
         }
 
         var validAuthors = await _dbContext.Users
             .Where(u => authorIds.Contains(u.Id))
-            .Select(u => new
-            {
-                u.Id,
-                u.Username,
-                u.DisplayName
-            })
+            .Select(u => new { u.Id, u.Username, u.DisplayName })
             .ToListAsync(cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        var responses = new List<ContentAuthorResponse>();
 
         for (var i = 0; i < authorIds.Count; i++)
         {
@@ -551,43 +564,44 @@ public sealed class AdminGalleryService(
                 continue;
             }
 
-            _dbContext.GalleryAuthors.Add(new GalleryAuthor
+            _dbContext.ContentAuthors.Add(new ContentAuthor
             {
                 Id = Guid.NewGuid(),
-                AlbumId = albumId,
+                ContentId = contentId,
                 UserId = authorId,
                 Order = i,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = now
             });
 
-            authorResponses.Add(new GalleryAuthorResponse(
-                matched.Id,
-                matched.Username,
-                matched.DisplayName,
-                i));
+            responses.Add(new ContentAuthorResponse(matched.Id, matched.Username, matched.DisplayName, null, i));
         }
 
-        return authorResponses;
+        return responses;
     }
 
     private async Task UpdateAlbumAuthorsAsync(
-        Album album,
+        Guid contentId,
         List<Guid>? authorIds,
-        Guid albumId,
         CancellationToken cancellationToken)
     {
         var requestAuthorIds = authorIds ?? [];
-        var authorsToRemove = album.Authors.Where(a => !requestAuthorIds.Contains(a.UserId)).ToList();
-        _dbContext.GalleryAuthors.RemoveRange(authorsToRemove);
 
-        var existingAuthorUserIds = album.Authors.Select(a => a.UserId).ToList();
+        await _dbContext.ContentAuthors
+            .Where(ca => ca.ContentId == contentId && !requestAuthorIds.Contains(ca.UserId))
+            .ExecuteDeleteAsync(cancellationToken);
+
+        var existingAuthorUserIds = await _dbContext.ContentAuthors
+            .Where(ca => ca.ContentId == contentId)
+            .Select(ca => ca.UserId)
+            .ToListAsync(cancellationToken);
+
         var newAuthorUserIds = requestAuthorIds.Where(uid => !existingAuthorUserIds.Contains(uid)).ToList();
         if (newAuthorUserIds.Count == 0)
         {
             return;
         }
 
-        var existingUsers = await _dbContext.Users
+        var validUserIds = await _dbContext.Users
             .Where(u => newAuthorUserIds.Contains(u.Id))
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
@@ -596,20 +610,16 @@ public sealed class AdminGalleryService(
             .Select((id, index) => new { id, index })
             .ToDictionary(x => x.id, x => x.index);
 
-        foreach (var userId in newAuthorUserIds)
+        var now = DateTimeOffset.UtcNow;
+        foreach (var userId in newAuthorUserIds.Where(validUserIds.Contains))
         {
-            if (!existingUsers.Contains(userId))
-            {
-                continue;
-            }
-
-            _dbContext.GalleryAuthors.Add(new GalleryAuthor
+            _dbContext.ContentAuthors.Add(new ContentAuthor
             {
                 Id = Guid.NewGuid(),
-                AlbumId = albumId,
+                ContentId = contentId,
                 UserId = userId,
                 Order = orderByUserId[userId],
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = now
             });
         }
     }
@@ -685,20 +695,23 @@ public sealed class AdminGalleryService(
         var imageCount = await _dbContext.Images
             .CountAsync(i => i.AlbumId == albumId, cancellationToken);
 
-        var authors = await _dbContext.GalleryAuthors
-            .Where(ga => ga.AlbumId == albumId)
-            .OrderBy(ga => ga.Order)
-            .Select(ga => new GalleryAuthorResponse(
-                ga.UserId,
-                ga.User.Username,
-                ga.User.DisplayName,
-                ga.Order))
-            .ToListAsync(cancellationToken);
-
         var contentId = await _dbContext.Contents
             .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
             .Select(c => (Guid?)c.Id)
             .FirstOrDefaultAsync(cancellationToken);
+
+        var authors = contentId.HasValue
+            ? await _dbContext.ContentAuthors
+                .Where(ca => ca.ContentId == contentId.Value)
+                .OrderBy(ca => ca.Order)
+                .Select(ca => new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order))
+                .ToListAsync(cancellationToken)
+            : new List<ContentAuthorResponse>();
 
         return new AlbumResponse(
             album.Id,
@@ -734,14 +747,6 @@ public sealed class AdminGalleryService(
                 a.UpdatedAt,
                 a.IsActive,
                 a.SortOrder,
-                Authors = a.Authors
-                    .OrderBy(ga => ga.Order)
-                    .Select(ga => new GalleryAuthorResponse(
-                        ga.UserId,
-                        ga.User.Username,
-                        ga.User.DisplayName,
-                        ga.Order))
-                    .ToList(),
                 Images = a.Images
                     .OrderBy(i => i.Order)
                     .Select(i => new ImageResponse(
@@ -765,6 +770,20 @@ public sealed class AdminGalleryService(
             .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
             .Select(c => (Guid?)c.Id)
             .FirstOrDefaultAsync(cancellationToken);
+
+        var authors = contentId.HasValue
+            ? await _dbContext.ContentAuthors
+                .AsNoTracking()
+                .Where(ca => ca.ContentId == contentId.Value)
+                .OrderBy(ca => ca.Order)
+                .Select(ca => new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order))
+                .ToListAsync(cancellationToken)
+            : new List<ContentAuthorResponse>();
 
         var likeCount = 0;
         var commentCount = 0;
@@ -796,13 +815,61 @@ public sealed class AdminGalleryService(
             albumData.Images
                 .Select(i => i with { Url = NormalizeGalleryMediaUrl(i.Url) ?? i.Url })
                 .ToList(),
-            albumData.Authors,
+            authors,
             contentId,
             likeCount,
             isLiked,
             commentCount,
             albumData.IsActive,
             albumData.SortOrder);
+    }
+
+    private async Task<Dictionary<Guid, List<ContentAuthorResponse>>> LoadAuthorsByAlbumIdsAsync(
+        List<Guid> albumIds,
+        CancellationToken cancellationToken)
+    {
+        if (albumIds.Count == 0)
+        {
+            return new Dictionary<Guid, List<ContentAuthorResponse>>();
+        }
+
+        var contentMap = await _dbContext.Contents
+            .AsNoTracking()
+            .Where(c => c.ContentType == ContentType.Album && albumIds.Contains(c.ContentRefId))
+            .Select(c => new { c.Id, c.ContentRefId })
+            .ToListAsync(cancellationToken);
+
+        var contentIds = contentMap.Select(c => c.Id).ToList();
+        var refIdByContentId = contentMap.ToDictionary(c => c.Id, c => c.ContentRefId);
+
+        var authorRows = await _dbContext.ContentAuthors
+            .AsNoTracking()
+            .Where(ca => contentIds.Contains(ca.ContentId))
+            .OrderBy(ca => ca.Order)
+            .Select(ca => new
+            {
+                ca.ContentId,
+                Response = new ContentAuthorResponse(
+                    ca.UserId,
+                    ca.User.Username,
+                    ca.User.DisplayName,
+                    ca.Role,
+                    ca.Order)
+            })
+            .ToListAsync(cancellationToken);
+
+        var result = new Dictionary<Guid, List<ContentAuthorResponse>>();
+        foreach (var row in authorRows)
+        {
+            var albumId = refIdByContentId[row.ContentId];
+            if (!result.TryGetValue(albumId, out var list))
+            {
+                list = [];
+                result[albumId] = list;
+            }
+            list.Add(row.Response);
+        }
+        return result;
     }
 
     private static ImageResponse MapImage(Image image)

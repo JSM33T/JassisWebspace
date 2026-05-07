@@ -21,6 +21,5 @@ public class Track
 
     // Navigation properties
     public BootlegAsset? BootlegAsset { get; set; }
-    public ICollection<TrackAuthor> Authors { get; set; } = new List<TrackAuthor>();
     public ICollection<TrackLink> Links { get; set; } = new List<TrackLink>();
 }

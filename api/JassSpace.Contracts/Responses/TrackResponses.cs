@@ -1,13 +1,5 @@
 namespace JassSpace.Contracts.Responses;
 
-public sealed record TrackAuthorResponse(
-    Guid UserId,
-    string Username,
-    string? DisplayName,
-    string? Role,
-    int Order
-);
-
 public sealed record TrackLinkResponse(
     string Type,
     string Url,
@@ -21,7 +13,7 @@ public sealed record TrackListItemResponse(
     string Title,
     string Slug,
     string Description,
-    List<TrackAuthorResponse> Authors,
+    List<ContentAuthorResponse> Authors,
     string Category,
     string? Duration,
     DateTimeOffset ReleaseDate,
@@ -44,7 +36,7 @@ public sealed record TrackDetailResponse(
     string Title,
     string Slug,
     string Description,
-    List<TrackAuthorResponse> Authors,
+    List<ContentAuthorResponse> Authors,
     string Category,
     string? Duration,
     DateTimeOffset ReleaseDate,
