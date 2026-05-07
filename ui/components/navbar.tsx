@@ -399,6 +399,7 @@ export function Navbar() {
                                 onMouseEnter={handleNavLinkHover}
                             >
                                 {isActivePath('/') && activeUnderline}
+                                <House className="h-3.5 w-3.5" />
                                 Home
                             </Link>
 
@@ -410,6 +411,7 @@ export function Navbar() {
                                         onMouseEnter={handleNavLinkHover}
                                     >
                                         {isSectionActive(workMenuItems) && activeUnderline}
+                                        <Briefcase className="h-3.5 w-3.5" />
                                         Work
                                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </button>
@@ -460,6 +462,7 @@ export function Navbar() {
                                         onMouseEnter={handleNavLinkHover}
                                     >
                                         {isSectionActive(studioMenuItems) && activeUnderline}
+                                        <Library className="h-3.5 w-3.5" />
                                         Media
                                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </button>
@@ -510,6 +513,7 @@ export function Navbar() {
                                         onMouseEnter={handleNavLinkHover}
                                     >
                                         {isSectionActive(aboutMenuItems) && activeUnderline}
+                                        <Users className="h-3.5 w-3.5" />
                                         About
                                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </button>
