@@ -10,6 +10,7 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/comp
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -197,6 +198,9 @@ export default function ServicesPage() {
                                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Service Details</span>
                             </div>
                             <DialogTitle className="text-2xl font-bold tracking-tight sm:text-3xl">{selectedService?.title}</DialogTitle>
+                            <DialogDescription className="sr-only">
+                                {selectedService?.description || 'Service details and availability.'}
+                            </DialogDescription>
                             <div className="pt-4 sm:pt-6">
                                 <article className="prose prose-neutral dark:prose-invert max-w-none text-foreground/80">
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
