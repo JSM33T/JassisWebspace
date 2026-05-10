@@ -13,10 +13,11 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/comp
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { FolderCode, ChevronLeft, ChevronRight, MoveUpRight, Rocket, Send } from 'lucide-react';
+import { FolderCode, ChevronLeft, ChevronRight, Rocket, Send } from 'lucide-react';
 import { PageBanner } from '@/components/page-banner';
 import { projects as projectsData, type Project as ProjectType } from '../../data/projects';
 
@@ -174,15 +175,18 @@ function ProjectsPageContent() {
             <Dialog open={!!selectedProject} onOpenChange={(open) => !open && closeProject()}>
                 <DialogContent className="max-h-[85vh] rounded-3xl border bg-card/90 p-0 backdrop-blur-xl overflow-hidden sm:max-w-[calc(100vw-2rem)] md:max-w-[80vw] lg:max-w-[65vw] xl:max-w-[50vw]">
                     <div className="flex max-h-[85vh] flex-col">
-                    <div className="flex-1 overflow-y-auto p-10 space-y-8">
-                        <DialogHeader>
-                            <div className="flex items-center gap-3 mb-4">
-                                <Badge variant="secondary" className="rounded-full">
-                                    {selectedProject?.highlight || 'Project'}
-                                </Badge>
-                                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Project Details</span>
-                            </div>
-                        <DialogTitle className="text-3xl font-bold tracking-tight">{selectedProject?.title}</DialogTitle>
+                        <div className="flex-1 overflow-y-auto p-10 space-y-8">
+                            <DialogHeader>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <Badge variant="secondary" className="rounded-full">
+                                        {selectedProject?.highlight || 'Project'}
+                                    </Badge>
+                                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Project Details</span>
+                                </div>
+                                <DialogTitle className="text-3xl font-bold tracking-tight">{selectedProject?.title}</DialogTitle>
+                                <DialogDescription className="sr-only">
+                                    {selectedProject?.description || 'Project details, screenshots, technologies, and links.'}
+                                </DialogDescription>
                             {hasScreenshots && activeScreenshot && (
                                 <div className="pt-6 space-y-3">
                                     <div className="relative rounded-2xl border border-border bg-muted/40 p-3 sm:p-4">
