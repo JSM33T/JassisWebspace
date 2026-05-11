@@ -36,6 +36,10 @@ class AdminEmailService {
     async broadcast(id: string, req: BroadcastEmailRequest): Promise<EmailSendResult> {
         return post<EmailSendResult, BroadcastEmailRequest>(`/admin/email/templates/${id}/broadcast`, req);
     }
+
+    async getOptedOutUserIds(): Promise<string[]> {
+        return get<string[]>("/admin/email/opted-out-user-ids");
+    }
 }
 
 export const adminEmailService = new AdminEmailService();
