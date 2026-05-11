@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="Hangfire.Core" Version="1.8.23" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.4" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.4" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.4" />
