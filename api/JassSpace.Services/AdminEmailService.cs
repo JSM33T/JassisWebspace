@@ -204,6 +204,11 @@ public sealed class AdminEmailService(
         if (mode is not ("bcc" or "separate"))
             return new AdminEmailSendResult(AdminEmailSendStatus.InvalidRecipients, ErrorMessage: "Mode must be 'bcc' or 'separate'.");
 
+        if (mode == "bcc" && ExtractVariables(template.Subject, template.HtmlBody).Any(v => AutoVars.Contains(v)))
+            return new AdminEmailSendResult(
+                AdminEmailSendStatus.InvalidRecipients,
+                ErrorMessage: "BCC mode cannot personalize recipient variables like firstName. Use separate mode for templates with auto-variables.");
+
         var users = await ResolveRecipientsAsync(request.Filter, cancellationToken);
         if (users.Count == 0)
             return new AdminEmailSendResult(AdminEmailSendStatus.InvalidRecipients, ErrorMessage: "No eligible recipients found for the given filter.");
@@ -316,14 +321,23 @@ public sealed class AdminEmailService(
     }
 
     public static List<string> ExtractVariables(string subject, string htmlBody)
-        => Regex.Matches(subject + " " + htmlBody, @"\{\{([^}]+)\}\}")
-            .Select(m => m.Groups[1].Value.Trim())
+        => Regex.Matches(subject + " " + htmlBody, @"\{\{([^}]+)\}\}|\[([A-Za-z][A-Za-z0-9_]*)\]")
+            .Select(GetVariableName)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
     public static string Substitute(string template, Dictionary<string, string> vars)
-        => Regex.Replace(template, @"\{\{([^}]+)\}\}", m =>
-            vars.TryGetValue(m.Groups[1].Value.Trim(), out var v) ? v : m.Value);
+        => Regex.Replace(template, @"\{\{([^}]+)\}\}|\[([A-Za-z][A-Za-z0-9_]*)\]", m =>
+        {
+            var key = GetVariableName(m);
+            return vars.TryGetValue(key, out var v) ? v : m.Value;
+        });
+
+    private static string GetVariableName(Match match)
+        => match.Groups[1].Success
+            ? match.Groups[1].Value.Trim()
+            : match.Groups[2].Value.Trim();
 
     private static Dictionary<string, string> BuildVarsWithAutoPlaceholders(Dictionary<string, string>? manualVars)
     {

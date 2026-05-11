@@ -55,11 +55,11 @@ export function isAutoVar(v: string): boolean {
 }
 
 export function extractVariables(subject: string, htmlBody: string): string[] {
-    const matches = (subject + " " + htmlBody).matchAll(/\{\{([^}]+)\}\}/g);
+    const matches = (subject + " " + htmlBody).matchAll(/\{\{([^}]+)\}\}|\[([A-Za-z][A-Za-z0-9_]*)\]/g);
     const seen = new Set<string>();
     const result: string[] = [];
     for (const m of matches) {
-        const name = m[1].trim();
+        const name = (m[1] ?? m[2]).trim();
         const key = name.toLowerCase();
         if (!seen.has(key)) {
             seen.add(key);
@@ -70,8 +70,9 @@ export function extractVariables(subject: string, htmlBody: string): string[] {
 }
 
 export function substituteVars(template: string, vars: Record<string, string>): string {
-    return template.replace(/\{\{([^}]+)\}\}/g, (_, name) => {
+    return template.replace(/\{\{([^}]+)\}\}|\[([A-Za-z][A-Za-z0-9_]*)\]/g, (token, braceName, bracketName) => {
+        const name = braceName ?? bracketName;
         const key = name.trim();
-        return vars[key] ?? vars[key.toLowerCase()] ?? `{{${key}}}`;
+        return vars[key] ?? vars[key.toLowerCase()] ?? token;
     });
 }

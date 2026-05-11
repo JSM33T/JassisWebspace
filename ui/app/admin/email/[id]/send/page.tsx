@@ -180,9 +180,11 @@ export default function SendEmailPage() {
         }
     }
 
+    const bccHasAutoVars = mode === "bcc" && autoVars.length > 0;
+
     const canSend = mode === "test"
         ? testUsers.length > 0
-        : selectedRoles.length > 0;
+        : selectedRoles.length > 0 && !bccHasAutoVars;
 
     if (loading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
     if (!template) return <div className="p-6 text-sm text-destructive">Template not found.</div>;
@@ -357,8 +359,11 @@ export default function SendEmailPage() {
                                     </p>
                                 )}
                                 {mode === "bcc" && (
-                                    <p className="text-xs text-muted-foreground">
-                                        All matching users BCCed on a single email. Auto-variables are not personalised in BCC mode.
+                                    <p className={`text-xs ${bccHasAutoVars ? "text-destructive" : "text-muted-foreground"}`}>
+                                        {bccHasAutoVars
+                                            ? "This template uses auto-variables. Use separate mode so each recipient gets their own firstName."
+                                            : "All matching users BCCed on a single email. Auto-variables are not personalised in BCC mode."
+                                        }
                                     </p>
                                 )}
                             </div>
