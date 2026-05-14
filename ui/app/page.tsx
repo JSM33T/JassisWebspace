@@ -119,9 +119,12 @@ export default function HomePage() {
         try {
             setBlogLoading(true);
             setBlogError(null);
-            const blogs = await blogService.getBlogs({ page: 1, pageSize: 100 });
-            setBlogTotal(blogs.length);
-            const sortedBlogs = [...blogs]
+            const [displayBlogs, allBlogs] = await Promise.all([
+                blogService.getBlogs({ page: 1, pageSize: 5 }),
+                blogService.getBlogs(),
+            ]);
+            setBlogTotal(allBlogs.length);
+            const sortedBlogs = [...displayBlogs]
                 .sort((a, b) => {
                     const left = new Date(a.publishedAt ?? a.createdAt).getTime();
                     const right = new Date(b.publishedAt ?? b.createdAt).getTime();
@@ -648,7 +651,7 @@ export default function HomePage() {
 
                                 {!blogLoading && !blogError && recentBlogs.length > 0 && (
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                        {recentBlogs.map((blog) => (
+                                        {recentBlogs.map((blog, index) => (
                                             <Link
                                                 key={blog.id}
                                                 href={`/blog/${blog.slug}`}
@@ -672,7 +675,7 @@ export default function HomePage() {
 
                                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12 md:px-5 md:pb-5">
                                                     <p className="mb-0.5 font-mono text-[10px] font-medium uppercase tracking-widest text-white/60">
-                                                        {String(recentBlogs.indexOf(blog) + 1).padStart(2, '0')}
+                                                        {String(index + 1).padStart(2, '0')}
                                                         {blog.category && <span className="ml-1">· {blog.category.name}</span>}
                                                     </p>
                                                     <h3 className="line-clamp-1 text-base font-semibold text-white md:text-lg">
