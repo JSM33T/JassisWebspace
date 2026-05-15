@@ -1629,8 +1629,12 @@ public sealed class AuthService(
             username,
             firstName,
             lastName,
+            user.DisplayName,
+            user.Bio,
             ToMediaUrl(baseUrl, user.AvatarUrl, _containerName),
             ToMediaUrl(baseUrl, user.CoverUrl, _containerName),
+            user.Timezone,
+            user.Locale,
             user.CreatedAt,
             roles,
             authMethod);

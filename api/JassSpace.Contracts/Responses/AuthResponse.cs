@@ -14,8 +14,12 @@ public sealed record UserInfo(
     string? Username,
     string? FirstName,
     string? LastName,
+    string? DisplayName,
+    string? Bio,
     string? AvatarUrl,
     string? CoverUrl,
+    string? Timezone,
+    string? Locale,
     DateTimeOffset CreatedAt,
     IReadOnlyList<string> Roles,
     string? AuthMethod
