@@ -6,6 +6,7 @@
 .data/
 .env
 .env.production.local
+docker-compose.override.yml
 .context
 .cache/
 .logs/
