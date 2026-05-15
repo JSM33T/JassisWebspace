@@ -55,8 +55,7 @@ async function fetchAlbums(): Promise<Album[]> {
 }
 
 async function fetchBlogs(): Promise<BlogListItem[]> {
-    const params = new URLSearchParams({ page: "1", pageSize: "20" });
-    const response = await fetch(`${apiBaseUrl()}/blog?${params.toString()}`, {
+    const response = await fetch(`${apiBaseUrl()}/blog`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
     });
@@ -75,6 +74,7 @@ interface TaggedResult<T> {
     tag: string;
     ttlSeconds: number;
     generatedAt: string;
+    total: number;
     items: T[];
 }
 
@@ -96,6 +96,7 @@ const getCachedHomeGalleries = unstable_cache(
             tag: HOME_GALLERIES_TAG,
             ttlSeconds: HOME_GALLERIES_TTL_SECONDS,
             generatedAt: new Date().toISOString(),
+            total: albums.length,
             items: galleries,
         };
     },
@@ -115,15 +116,16 @@ const getCachedHomeBlogs = unstable_cache(
                     new Date(b.publishedAt || b.createdAt).getTime() -
                     new Date(a.publishedAt || a.createdAt).getTime(),
             )
-            .slice(0, 2);
+            .slice(0, 4);
 
         return {
             key: "home-blogs",
             label: "Home Blogs",
-            description: "Recent 2 blog cards shown on the homepage.",
+            description: "Recent 4 blog cards shown on the homepage.",
             tag: HOME_BLOGS_TAG,
             ttlSeconds: HOME_BLOGS_TTL_SECONDS,
             generatedAt: new Date().toISOString(),
+            total: blogs.length,
             items: latestBlogs,
         };
     },
@@ -147,7 +149,7 @@ function toCacheTagMeta<T>(entry: TaggedResult<T>): CacheTagMeta {
         generatedAt: entry.generatedAt,
         expiresAt: new Date(expiresMs).toISOString(),
         isExpired: Date.now() > expiresMs,
-        itemCount: entry.items.length,
+        itemCount: entry.total,
     };
 }
 
@@ -155,7 +157,9 @@ export async function getHomeContentCached(): Promise<HomeContentPayload> {
     const [galleries, blogs] = await Promise.all([getCachedHomeGalleries(), getCachedHomeBlogs()]);
     return {
         galleries: galleries.items,
+        galleryTotal: galleries.total,
         blogs: blogs.items,
+        blogTotal: blogs.total,
     };
 }
 

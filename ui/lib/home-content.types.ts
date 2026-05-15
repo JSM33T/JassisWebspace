@@ -3,7 +3,9 @@ import { type Album } from "@/lib/api/gallery.types";
 
 export interface HomeContentPayload {
     galleries: Album[];
+    galleryTotal: number;
     blogs: BlogListItem[];
+    blogTotal: number;
 }
 
 export interface CacheTagMeta {
