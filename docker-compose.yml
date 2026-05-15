@@ -8,43 +8,18 @@ services:
     env_file:
       - .env
     environment:
-      - ApplyMigrationsOnStartup=true
-      - ConnectionStrings__Redis=${DOCKER_REDIS_CONNECTION:-host.docker.internal:6379,abortConnect=false}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - /home/jassi/deployments/JassSpace/.logs/dotnet:/app/logs/dotnet
-      - /home/jassi/deployments/JassSpace/.cache:/app/cache
-    deploy:
-      resources:
-        limits:
-          cpus: '0.6'
+      - ApplyMigrationsOnStartup=${APPLY_MIGRATIONS:-false}
     restart: unless-stopped
-
-  # dotnet-tests:
-  #   build:
-  #     context: ./api
-  #     dockerfile: ./JassSpace.Api/Dockerfile
-  #     target: test
-  #   profiles:
-  #     - test
-  #   environment:
-  #     - DOTNET_CLI_TELEMETRY_OPTOUT=1
-  #     - DOTNET_NOLOGO=1
-  #   restart: "no"
 
   nextjs:
     build:
       context: ./ui
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5001}
     ports:
       - "3001:3000"
     environment:
       - NODE_ENV=production
-    deploy:
-      resources:
-        limits:
-          cpus: '0.6'
+      - API_URL=http://dotnet:8080
     restart: unless-stopped

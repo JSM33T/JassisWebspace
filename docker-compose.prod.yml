@@ -1,0 +1,22 @@
+# Production overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Or set in the server shell profile:
+#   export COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+services:
+  dotnet:
+    environment:
+      - ApplyMigrationsOnStartup=${APPLY_MIGRATIONS:-true}
+    volumes:
+      - ${DEPLOY_PATH:-/home/jassi/deployments/JassSpace}/.logs/dotnet:/app/logs/dotnet
+      - ${DEPLOY_PATH:-/home/jassi/deployments/JassSpace}/.cache:/app/cache
+    deploy:
+      resources:
+        limits:
+          cpus: '0.6'
+
+  nextjs:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.6'
