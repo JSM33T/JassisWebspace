@@ -3,6 +3,7 @@
 .idea/
 .agent/
 .cursor/
+.data/
 .env
 .env.production.local
 .context

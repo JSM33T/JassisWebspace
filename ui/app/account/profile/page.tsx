@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Camera, User, Edit, Save, X, Clock, Globe } from "lucide-react";
 import { toast } from "sonner";
@@ -411,12 +410,11 @@ export default function ProfilePage() {
                                 <div className="relative w-full overflow-hidden rounded-xl bg-muted aspect-[820/312]">
                                     {user.coverUrl ? (
                                         <div className="absolute inset-0">
-                                            <Image
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
                                                 src={user.coverUrl}
                                                 alt="Cover"
-                                                fill
-                                                className="object-cover"
-                                                sizes="(max-width: 768px) 100vw, 820px"
+                                                className="absolute inset-0 h-full w-full object-cover"
                                             />
                                         </div>
                                     ) : (

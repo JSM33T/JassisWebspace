@@ -26,7 +26,7 @@ export const HOME_BLOGS_TTL_SECONDS = parseTtl(
 );
 
 function apiBaseUrl(): string {
-    const value = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+    const value = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL)?.replace(/\/$/, "");
     if (!value) {
         throw new Error("NEXT_PUBLIC_API_URL is not configured");
     }

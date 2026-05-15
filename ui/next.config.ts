@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: 'standalone',
   images: {
-    unoptimized: process.env.NODE_ENV === 'development',
+    unoptimized: process.env.NODE_ENV === 'development' || process.env.UNOPTIMIZED_IMAGES === 'true',
     remotePatterns: [
       {
         protocol: 'http',
@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
         protocol: 'http',
         hostname: '127.0.0.1',
         port: '5283',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '5001',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '5001',
       },
       {
         protocol: 'https',

@@ -1,0 +1,51 @@
+# Local dev overrides — not for production
+# Docker Compose merges this automatically with docker-compose.yml
+services:
+  nextjs:
+    build:
+      args:
+        UNOPTIMIZED_IMAGES: "true"
+        NEXT_PUBLIC_API_URL: "http://localhost:5001"
+    environment:
+      - API_URL=http://dotnet:8080
+
+  dotnet:
+    volumes:
+      - ./.data/logs/dotnet:/app/logs/dotnet
+      - ./.data/cache:/app/cache
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=jassspace_local;Username=postgres;Password=postgres;Include Error Detail=true"
+      ConnectionStrings__Redis: "redis:6379,abortConnect=false"
+      AzureBlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+      AzureBlobStorage__ContainerName: "local-media"
+    depends_on:
+      - postgres
+      - redis
+      - azurite
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jassspace_local
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./.data/postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - ./.data/redis:/data
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    restart: unless-stopped
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./.data/azurite:/data
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck --debug /data/debug.log

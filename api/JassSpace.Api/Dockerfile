@@ -11,6 +11,10 @@ EXPOSE 8080
 EXPOSE 8081
 
 USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libkrb5-3 \
+    libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /app/logs/dotnet /app/cache \
     && chown -R ${APP_UID}:${APP_UID} /app/logs /app/cache
 USER ${APP_UID}
