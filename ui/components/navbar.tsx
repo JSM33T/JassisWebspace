@@ -208,13 +208,22 @@ export function Navbar() {
             const currentScrollY = window.scrollY || document.documentElement.scrollTop;
             const scrollDelta = currentScrollY - lastScrollY;
 
+            if (menuOpen || sidebarOpen) {
+                setIsNavbarHidden(false);
+                lastScrollY = currentScrollY;
+                return;
+            }
+
             if (currentScrollY <= topThreshold) {
                 setIsNavbarHidden(false);
                 lastScrollY = currentScrollY;
                 return;
             }
 
-            if (Math.abs(scrollDelta) < scrollDeltaThreshold) return;
+            if (Math.abs(scrollDelta) < scrollDeltaThreshold) {
+                lastScrollY = currentScrollY;
+                return;
+            }
 
             setIsNavbarHidden(scrollDelta > 0);
             lastScrollY = currentScrollY;
@@ -234,7 +243,7 @@ export function Navbar() {
             if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
             window.removeEventListener('scroll', handleScroll);
         };
-    }, []);
+    }, [menuOpen, sidebarOpen]);
 
     useEffect(() => {
         const handleSidebarState = (event: Event) => {
@@ -246,12 +255,10 @@ export function Navbar() {
     }, []);
 
     useEffect(() => {
-        const timeoutId = window.setTimeout(() => {
-            setMenuOpen(false);
-            window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: false }));
-            setSidebarOpen(false);
-        }, 0);
-        return () => window.clearTimeout(timeoutId);
+        if (!menuOpen && !sidebarOpen) return;
+        setMenuOpen(false);
+        setSidebarOpen(false);
+        window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: false }));
     }, [pathname]);
 
     const handleSidebarOpenChange = (open: boolean) => {
