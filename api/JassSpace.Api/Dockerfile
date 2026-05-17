@@ -14,6 +14,7 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libkrb5-3 \
     libgssapi-krb5-2 \
+    libvips42 \
     && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /app/logs/dotnet /app/cache \
     && chown -R ${APP_UID}:${APP_UID} /app/logs /app/cache

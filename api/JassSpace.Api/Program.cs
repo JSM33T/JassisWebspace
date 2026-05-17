@@ -11,6 +11,7 @@ using JassSpace.Api.Services;
 using JassSpace.Contracts.Interfaces;
 using JassSpace.Data;
 using JassSpace.Infra;
+using JassSpace.Infra.ImageProcessors;
 using JassSpace.Infra.Configuration;
 using JassSpace.Services;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -131,7 +132,7 @@ builder.Services.Configure<AzureBlobStorageSettings>(
 builder.Services.AddScoped<IAzureBlobStorageService, AzureBlobStorageService>();
 
 // Image Processing Service
-builder.Services.AddScoped<IImageProcessingService, ImageProcessingService>();
+builder.Services.AddScoped<IImageProcessingService, NetVipsImageProcessingService>();
 
 // Repository Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();

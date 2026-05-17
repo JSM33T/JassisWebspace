@@ -3,17 +3,17 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 
-namespace JassSpace.Infra;
+namespace JassSpace.Infra.ImageProcessors;
 
-public class ImageProcessingService : IImageProcessingService
+public class ImageSharpImageProcessingService : IImageProcessingService
 {
-    private readonly ILogger<ImageProcessingService> _logger;
+    private readonly ILogger<ImageSharpImageProcessingService> _logger;
     private const int MaxDimension = 2000;
     private const int ThumbMaxDimension = 960;
     private const int ThumbQuality = 90;
     private const float ThumbSharpness = 0f;
 
-    public ImageProcessingService(ILogger<ImageProcessingService> logger)
+    public ImageSharpImageProcessingService(ILogger<ImageSharpImageProcessingService> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -32,17 +32,14 @@ public class ImageProcessingService : IImageProcessingService
 
         try
         {
-            // Load the image
             using var image = await Image.LoadAsync(sourceStream, cancellationToken);
-            
+
             var originalWidth = image.Width;
             var originalHeight = image.Height;
 
-            // Determine if scaling is needed
             var maxSide = Math.Max(originalWidth, originalHeight);
             if (maxSide > MaxDimension)
             {
-                // Calculate new dimensions maintaining aspect ratio
                 var scale = (double)MaxDimension / maxSide;
                 var newWidth = (int)(originalWidth * scale);
                 var newHeight = (int)(originalHeight * scale);
@@ -60,11 +57,10 @@ public class ImageProcessingService : IImageProcessingService
                     originalWidth, originalHeight);
             }
 
-            // Convert to WebP and save to memory stream
             var outputStream = new MemoryStream();
             var encoder = new WebpEncoder
             {
-                Quality = 85, // High quality WebP
+                Quality = 85,
                 FileFormat = WebpFileFormatType.Lossy
             };
 
@@ -72,14 +68,14 @@ public class ImageProcessingService : IImageProcessingService
             outputStream.Position = 0;
 
             _logger.LogInformation(
-                "Image processed successfully: converted to WebP, final size {Width}x{Height}",
+                "Image processed successfully with ImageSharp: converted to WebP, final size {Width}x{Height}",
                 image.Width, image.Height);
 
             return outputStream;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process image");
+            _logger.LogError(ex, "Failed to process image with ImageSharp");
             throw new InvalidOperationException("Image processing failed. The file may not be a valid image.", ex);
         }
     }
@@ -135,7 +131,6 @@ public class ImageProcessingService : IImageProcessingService
                 image.Mutate(x => x.GaussianSharpen(sharpness));
             }
 
-            // Thumbs don't need metadata; dropping it reduces payload size a bit.
             image.Metadata.ExifProfile = null;
             image.Metadata.IptcProfile = null;
             image.Metadata.XmpProfile = null;
@@ -153,7 +148,7 @@ public class ImageProcessingService : IImageProcessingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process image to WebP");
+            _logger.LogError(ex, "Failed to process image to WebP with ImageSharp");
             throw new InvalidOperationException("Image processing failed. The file may not be a valid image.", ex);
         }
     }
