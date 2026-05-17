@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import Cropper from "react-easy-crop";
+import { useCallback, useEffect, useState } from "react";
+import Cropper, { Area } from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -115,7 +115,7 @@ export default function AvatarCropDialog({ isOpen, src, onOpenChange, onCropped,
         }
     }, [isOpen, src, initialZoom]);
 
-    const onCropComplete = useCallback((_area: any, areaPixels: any) => {
+    const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
         setCroppedPixels(areaPixels);
     }, []);
 
@@ -183,7 +183,7 @@ export default function AvatarCropDialog({ isOpen, src, onOpenChange, onCropped,
 
                 <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
-                    <Button onClick={handleConfirm} disabled={!src || !croppedPixels || saving}>{saving ? "Saving..." : "Save"}</Button>
+                    <Button onClick={handleConfirm} disabled={!src || !croppedPixels || saving}>{saving ? "Saving..." : confirmLabel}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

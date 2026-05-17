@@ -1,19 +1,28 @@
 'use client';
 
-import React from 'react';
-import ReactMarkdown, { Components } from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 
 import { Check, Copy } from 'lucide-react';
-import { useState } from 'react';
+import { ComponentProps, ReactNode, useState } from 'react';
 
 interface MarkdownRendererProps {
     content: string;
 }
 
-const CodeBlock = ({ language, children, ...props }: any) => {
+interface CodeBlockProps {
+    language: string;
+    children: ReactNode;
+}
+
+type MarkdownCodeProps = ComponentProps<'code'> & {
+    inline?: boolean;
+    node?: unknown;
+};
+
+const CodeBlock = ({ language, children }: CodeBlockProps) => {
     const [copied, setCopied] = useState(false);
 
     const onCopy = () => {
@@ -38,7 +47,6 @@ const CodeBlock = ({ language, children, ...props }: any) => {
                     {language}
                 </div>
                 <SyntaxHighlighter
-                    {...props}
                     style={dracula}
                     language={language}
                     PreTag="div"
@@ -59,10 +67,10 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                    code({ node, inline, className, children, ...props }: any) {
+                    code({ inline, className, children, ...props }: MarkdownCodeProps) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
-                            <CodeBlock language={match[1]} {...props}>
+                            <CodeBlock language={match[1]}>
                                 {children}
                             </CodeBlock>
                         ) : (

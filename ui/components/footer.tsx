@@ -144,7 +144,7 @@ export function Footer() {
                 aria-hidden="true"
             >
                 <span className="block text-[clamp(6rem,22vw,18rem)] font-black uppercase leading-none tracking-tighter text-foreground/[0.055]">
-                    jassi's
+                    jassi&apos;s
                 </span>
             </div>
         </footer>

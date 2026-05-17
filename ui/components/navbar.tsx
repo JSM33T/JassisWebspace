@@ -108,6 +108,7 @@ export function Navbar() {
     };
 
     const navRef = useRef<HTMLDivElement>(null);
+    const previousPathnameRef = useRef(pathname);
     const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
 
     const normalizedRole = (user?.role ?? '').toLowerCase();
@@ -255,11 +256,20 @@ export function Navbar() {
     }, []);
 
     useEffect(() => {
+        if (previousPathnameRef.current === pathname) return;
+
+        previousPathnameRef.current = pathname;
+
         if (!menuOpen && !sidebarOpen) return;
-        setMenuOpen(false);
-        setSidebarOpen(false);
-        window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: false }));
-    }, [pathname]);
+
+        const timeoutId = window.setTimeout(() => {
+            setMenuOpen(false);
+            setSidebarOpen(false);
+            window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: false }));
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [pathname, menuOpen, sidebarOpen]);
 
     const handleSidebarOpenChange = (open: boolean) => {
         setSidebarOpen(open);

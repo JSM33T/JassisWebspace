@@ -17,7 +17,11 @@ export interface User {
     authMethod?: string; // Track authentication method: "EmailPassword", "Google", "GitHub"
     // Additional optional fields
     role?: string;
-    preferences?: Record<string, any>;
+    preferences?: {
+        timezone?: string | null;
+        locale?: string | null;
+        [key: string]: string | number | boolean | null | undefined;
+    };
 }
 
 // Context value interface
@@ -374,7 +378,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const isTokenExpired = useCallback(() => {
         if (!user?.expiry) return false;
         return new Date() > user.expiry;
-    }, [user?.expiry]);
+    }, [user]);
 
     const contextValue: UserContextType = {
         user,

@@ -97,8 +97,8 @@ function toCacheTagMeta<T>(entry: TaggedResult<T>): CacheTagMeta {
 }
 
 export async function getMusicContentCached(): Promise<MusicContentPayload> {
-    const tracks = await getCachedMusicTracks();
-    return { tracks: tracks.items };
+    const tracks = await getCachedMusicTracks().catch(() => null);
+    return { tracks: tracks?.items ?? [] };
 }
 
 export async function getMusicCacheTagsMeta(): Promise<CacheTagMeta[]> {

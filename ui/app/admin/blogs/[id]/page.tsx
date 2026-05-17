@@ -61,7 +61,7 @@ export default function EditBlogPage() {
         <div className="p-8 pt-24 max-w-5xl mx-auto">
             <div className="mb-8">
                 <h2 className="text-3xl font-bold tracking-tight">Edit Post</h2>
-                <p className="text-muted-foreground">Update content for "{blog.title}"</p>
+                <p className="text-muted-foreground">Update content for &quot;{blog.title}&quot;</p>
             </div>
             <BlogForm initialData={blog} />
         </div>

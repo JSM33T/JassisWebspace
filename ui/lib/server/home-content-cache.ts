@@ -154,12 +154,18 @@ function toCacheTagMeta<T>(entry: TaggedResult<T>): CacheTagMeta {
 }
 
 export async function getHomeContentCached(): Promise<HomeContentPayload> {
-    const [galleries, blogs] = await Promise.all([getCachedHomeGalleries(), getCachedHomeBlogs()]);
+    const [galleriesResult, blogsResult] = await Promise.allSettled([
+        getCachedHomeGalleries(),
+        getCachedHomeBlogs(),
+    ]);
+    const galleries = galleriesResult.status === "fulfilled" ? galleriesResult.value : null;
+    const blogs = blogsResult.status === "fulfilled" ? blogsResult.value : null;
+
     return {
-        galleries: galleries.items,
-        galleryTotal: galleries.total,
-        blogs: blogs.items,
-        blogTotal: blogs.total,
+        galleries: galleries?.items ?? [],
+        galleryTotal: galleries?.total ?? 0,
+        blogs: blogs?.items ?? [],
+        blogTotal: blogs?.total ?? 0,
     };
 }
 

@@ -3,7 +3,7 @@
  */
 export interface ApiResponse<T> {
     data: T;
-    meta?: PagedMeta | Record<string, any> | null;
+    meta?: PagedMeta | Record<string, unknown> | null;
 }
 
 export interface PagedMeta {
@@ -21,7 +21,7 @@ export interface ProblemDetails {
     requestId?: string;
     correlationId?: string;
     traceId?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export class ApiError extends Error {
