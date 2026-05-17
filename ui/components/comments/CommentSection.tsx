@@ -30,6 +30,17 @@ interface CommentSectionProps {
     contentId: string;
 }
 
+function getAllDescendantIds(commentId: string, allComments: CommentResponse[]): string[] {
+    const ids: string[] = [commentId];
+    const children = allComments.filter(c => c.parentCommentId === commentId);
+
+    children.forEach(child => {
+        ids.push(...getAllDescendantIds(child.id, allComments));
+    });
+
+    return ids;
+}
+
 export function CommentSection({ contentId }: CommentSectionProps) {
     const { user, isAuthenticated } = useUser();
     const pathname = usePathname();
@@ -158,18 +169,6 @@ export function CommentSection({ contentId }: CommentSectionProps) {
             toast.error('Failed to update comment');
             throw error;
         }
-    };
-
-    // Helper function to recursively collect all descendant comment IDs
-    const getAllDescendantIds = (commentId: string, allComments: CommentResponse[]): string[] => {
-        const ids: string[] = [commentId];
-        const children = allComments.filter(c => c.parentCommentId === commentId);
-
-        children.forEach(child => {
-            ids.push(...getAllDescendantIds(child.id, allComments));
-        });
-
-        return ids;
     };
 
     const handleDelete = async (id: string) => {

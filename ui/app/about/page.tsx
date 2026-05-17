@@ -21,30 +21,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Spinner } from '@/components/ui/spinner';
 import { uiPropertiesService } from '@/lib/api/ui-properties.service';
 
-const skillGroups = [
-    {
-        label: 'Frontend',
-        items: ['TypeScript', 'Tailwind CSS', 'shadcn/ui', 'Framer Motion', 'Next.js', 'React'],
-    },
-    {
-        label: 'Backend',
-        items: [
-            '.NET / ASP.NET Core',
-            'C#',
-            'Python',
-            'LLMs & NLP',
-            'Computer Vision',
-            'Automation Pipelines',
-            'MQTT',
-            'Modbus',
-        ],
-    },
-    {
-        label: 'Product & Delivery',
-        items: ['System Design', 'UI/UX Thinking', 'Automation', 'Performance', 'SEO', 'CI/CD'],
-    },
-];
-
 const offerings = [
     {
         title: 'Product Engineering',
@@ -63,30 +39,6 @@ const offerings = [
         description:
             'Automation pipelines, background workers, and reliable deployment setups that reduce manual effort.',
         icon: Layers,
-    },
-];
-
-const timeline = [
-    {
-        period: '2026',
-        title: 'Unified Creator Platform',
-        description:
-            'Built and integrated blog, gallery, and music modules under one consistent experience with admin workflows.',
-        points: ['Track-centric music model', 'Chunked streaming and comments', 'Admin-first content management'],
-    },
-    {
-        period: '2025',
-        title: 'Full-stack Product Delivery',
-        description:
-            'Delivered end-to-end features from API design to polished UI, with focus on stable releases and iteration speed.',
-        points: ['Role-based admin tools', 'Media handling pipelines', 'SEO-ready public pages'],
-    },
-    {
-        period: 'Earlier',
-        title: 'Foundation & Exploration',
-        description:
-            'Experimented across automation, web engineering, and creative coding to build a practical product mindset.',
-        points: ['Systematic debugging habits', 'Reusable component architecture', 'Cross-domain problem solving'],
     },
 ];
 
@@ -302,37 +254,6 @@ export default function PortfolioPage() {
                     </motion.div>
                 </div>
             </section>
-
-            {/*
-            <section className="px-4 py-8">
-                <div className="container mx-auto max-w-7xl">
-                    <motion.div variants={itemVariants} className="rounded-3xl border bg-card/45 p-5 md:p-6">
-                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                            <h2 className="text-xl font-semibold tracking-tight md:text-2xl">Skills</h2>
-                            <Badge variant="outline" className="rounded-full px-4 py-1">
-                                Tailwind + shadcn aligned
-                            </Badge>
-                        </div>
-                        <div className="grid gap-5 md:grid-cols-3">
-                            {skillGroups.map((group) => (
-                                <Card key={group.label} className="rounded-2xl border bg-background/70">
-                                    <CardHeader className="space-y-3 p-4">
-                                        <CardTitle className="text-base">{group.label}</CardTitle>
-                                        <div className="flex flex-wrap gap-2">
-                                            {group.items.map((skill) => (
-                                                <Badge key={skill} variant="secondary" className="rounded-full px-3 py-1">
-                                                    {skill}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </CardHeader>
-                                </Card>
-                            ))}
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-            */}
 
         </motion.div>
     );

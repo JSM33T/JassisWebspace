@@ -85,7 +85,7 @@ export default function AdminContentPage() {
         } finally {
             setLoading(false);
         }
-    }, [typeFilter, sortBy, sortDir]);
+    }, [dateFrom, dateTo, typeFilter, sortBy, sortDir]);
 
     useEffect(() => {
         loadItems();

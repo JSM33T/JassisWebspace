@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
-import { User, BookOpen, AlertCircle } from 'lucide-react';
+import { BookOpen, AlertCircle } from 'lucide-react';
 import { profileService, ProfileInfo } from '@/lib/api/profile.service';
 
 interface AuthorModalProps {
@@ -23,13 +24,7 @@ export function AuthorModal({ isOpen, onClose, userId, username }: AuthorModalPr
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (isOpen && userId) {
-            loadProfile();
-        }
-    }, [isOpen, userId]);
-
-    const loadProfile = async () => {
+    const loadProfile = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -41,7 +36,13 @@ export function AuthorModal({ isOpen, onClose, userId, username }: AuthorModalPr
         } finally {
             setLoading(false);
         }
-    };
+    }, [username]);
+
+    useEffect(() => {
+        if (isOpen && userId) {
+            loadProfile();
+        }
+    }, [isOpen, loadProfile, userId]);
 
     const handleMoreFromAuthor = () => {
         onClose();
@@ -95,11 +96,12 @@ export function AuthorModal({ isOpen, onClose, userId, username }: AuthorModalPr
                         {/* Cover Image */}
                         {profile.coverUrl ? (
                             <div className="relative h-32 w-full bg-gradient-to-br from-primary/20 to-primary/5">
-                                <img
+                                <Image
                                     src={profile.coverUrl}
                                     alt="Cover"
-                                    className="absolute inset-0 h-full w-full object-cover"
-                                    loading="lazy"
+                                    fill
+                                    sizes="(max-width: 640px) 100vw, 500px"
+                                    className="object-cover"
                                 />
                             </div>
                         ) : (

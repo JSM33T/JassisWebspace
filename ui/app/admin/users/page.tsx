@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
     Search,
@@ -9,7 +9,6 @@ import {
     ShieldAlert,
     CheckCircle2,
     XCircle,
-    User as UserIcon,
     Calendar
 } from "lucide-react";
 import { AdminUserListItem } from "@/lib/api/admin-user.types";
@@ -49,11 +48,7 @@ export default function AdminUsersPage() {
     const search = searchParams.get("search") || "";
     const pageSize = 20;
 
-    useEffect(() => {
-        loadUsers();
-    }, [page, search]);
-
-    const loadUsers = async () => {
+    const loadUsers = useCallback(async () => {
         try {
             setLoading(true);
             const data = await adminUserService.getUsers({
@@ -67,7 +62,11 @@ export default function AdminUsersPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, search]);
+
+    useEffect(() => {
+        loadUsers();
+    }, [loadUsers]);
 
     const handleSearch = (term: string) => {
         const params = new URLSearchParams(searchParams);

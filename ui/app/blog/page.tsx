@@ -39,15 +39,6 @@ const CARD_COLORS = [
     'bg-muted/15',
 ];
 
-function getInitials(name: string) {
-    return name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-}
-
 export default function BlogHomePage() {
     const router = useRouter();
     const searchParams = useSearchParams();

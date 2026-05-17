@@ -13,7 +13,6 @@ import {
     Users2,
     Heart,
     MessageCircle,
-    MessageCircleMore,
     Settings,
     SlidersHorizontal,
     Send,

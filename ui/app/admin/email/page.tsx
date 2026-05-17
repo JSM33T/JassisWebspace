@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Send, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ import type { EmailTemplate } from "@/lib/api/admin-email.types";
 import { isAutoVar } from "@/lib/api/admin-email.types";
 
 export default function AdminEmailPage() {
-    const router = useRouter();
     const [templates, setTemplates] = useState<EmailTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState<EmailTemplate | null>(null);

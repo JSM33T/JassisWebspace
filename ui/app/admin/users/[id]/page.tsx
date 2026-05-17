@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Shield, Mail, Calendar, Key, AlertTriangle, Monitor, Save } from "lucide-react";
+import { ArrowLeft, Shield, Calendar, Key, AlertTriangle, Monitor, Save } from "lucide-react";
 import { AdminUserDetail } from "@/lib/api/admin-user.types";
 import { adminUserService } from "@/lib/api/admin-user.service";
 import { Button } from "@/components/ui/button";
