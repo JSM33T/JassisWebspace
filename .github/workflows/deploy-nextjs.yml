@@ -5,16 +5,78 @@ on:
   push:
     branches: [main]
     paths:
-      - 'ui/**'
+      - "ui/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/deploy-nextjs.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-nextjs-production
+  cancel-in-progress: false
 
 jobs:
-  deploy-nextjs:
-    if: false
+  validate-nextjs:
+    name: Validate NextJS
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:5001
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
+      NEXT_PUBLIC_SITE_URL: http://localhost:3001
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  deploy-nextjs:
+    name: Deploy NextJS
+    needs: validate-nextjs
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate deployment secrets
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          : "${SSH_HOST:?Missing SSH_HOST secret}"
+          : "${SSH_USER:?Missing SSH_USER secret}"
+          : "${REMOTE_DIR:?Missing REMOTE_DIR secret}"
+          : "${SSH_PRIVATE_KEY:?Missing SSH_PRIVATE_KEY secret}"
+          echo "Deployment secrets are present."
+
       - name: Start ssh-agent
-        uses: webfactory/ssh-agent@v0.5.4
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -23,15 +85,11 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
           ssh-keyscan -p "${SSH_PORT:-22}" "$SSH_HOST" >> ~/.ssh/known_hosts
 
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Deploy nextjs service (locked & health-gated via compose)
+      - name: Deploy nextjs service
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
@@ -39,14 +97,12 @@ jobs:
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
           SERVICE_NAME: nextjs
         run: |
-          # Passing variables as arguments $1 and $2
+          set -euo pipefail
           ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s "$REMOTE_DIR" "$SERVICE_NAME" <<'EOF'
           set -euo pipefail
 
-          # Assigning arguments to local variables
           REMOTE_DIR="$1"
           SERVICE_NAME="$2"
-
           LOCKFILE="${REMOTE_DIR}/.deploy.lock"
           exec 9>"$LOCKFILE"
 
@@ -64,7 +120,6 @@ jobs:
           git checkout -f main || git switch -f main
           git reset --hard origin/main
           git clean -fd -e logs/
-          git pull --ff-only
 
           echo "[$SERVICE_NAME] Rebuilding and bringing up service with health wait..."
           DOCKER_BUILDKIT=1 docker compose -p jassspace up -d \
@@ -74,10 +129,11 @@ jobs:
             --wait-timeout 180 \
             "$SERVICE_NAME"
 
-          echo "[$SERVICE_NAME] Deploy verified by compose --wait ✅"
+          echo "[$SERVICE_NAME] Deploy verified by compose --wait"
+          docker compose -p jassspace ps
           EOF
 
-      - name: Show recent service logs (shared lock)
+      - name: Show recent service logs
         if: always()
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -86,13 +142,12 @@ jobs:
           REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
           SERVICE_NAME: nextjs
         run: |
-          # Passing variables as arguments $1 and $2
+          set -euo pipefail
           ssh -p "${SSH_PORT:-22}" "${SSH_USER}@${SSH_HOST}" bash -s "$REMOTE_DIR" "$SERVICE_NAME" <<'EOF'
           set -euo pipefail
 
           REMOTE_DIR="$1"
           SERVICE_NAME="$2"
-
           LOCKFILE="${REMOTE_DIR}/.deploy.lock"
           exec 9>"$LOCKFILE"
 
