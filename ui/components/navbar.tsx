@@ -101,6 +101,7 @@ export function Navbar() {
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [isNavbarHidden, setIsNavbarHidden] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
 
     const handleLogout = async () => {
         setShowLogoutDialog(false);
@@ -211,6 +212,8 @@ export function Navbar() {
             const currentScrollY = window.scrollY || document.documentElement.scrollTop;
             const scrollDelta = currentScrollY - lastScrollY;
 
+            setIsScrolled(currentScrollY > topThreshold);
+
             if (menuOpen || sidebarOpen) {
                 setIsNavbarHidden(false);
                 lastScrollY = currentScrollY;
@@ -290,8 +293,10 @@ export function Navbar() {
 
     const topNavLinkClass = (active: boolean) =>
         cn(
-            'relative flex cursor-pointer items-center gap-1 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors duration-200 z-10 outline-none',
-            active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+            'relative flex cursor-pointer items-center gap-1 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] z-10 outline-none',
+            'transition-[color,opacity] duration-200',
+            active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+            !active && 'group-hover/navlinks:opacity-55 hover:!opacity-100'
         );
 
     const accountDropdownContent = (
@@ -367,7 +372,14 @@ export function Navbar() {
         </AnimatePresence>
     );
 
-    const activeUnderline = <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-primary" />;
+    const activeUnderline = (
+        <motion.span
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+            className="absolute inset-x-4 bottom-0 h-0.5 origin-center rounded-full bg-gradient-to-r from-primary/30 via-primary to-primary/30"
+        />
+    );
 
     return (
         <>
@@ -375,12 +387,23 @@ export function Navbar() {
             <nav
                 className={cn(
                     'fixed inset-x-0 top-0 z-50 hidden lg:block',
-                    'border-b border-border/60 bg-background/95 shadow-sm shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/88',
-                    'transition-transform duration-300',
+                    'bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55',
+                    // Gradient hairline that fades at the edges
+                    'after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px',
+                    'after:bg-gradient-to-r after:from-transparent after:via-border/70 after:to-transparent',
+                    'transition-[transform,background-color,box-shadow] duration-300 ease-out',
+                    isScrolled &&
+                        'shadow-lg shadow-black/10 bg-background/85 supports-[backdrop-filter]:bg-background/70',
                     isNavbarHidden ? '-translate-y-full' : 'translate-y-0'
                 )}
             >
-                <div className="mx-auto flex h-[4.25rem] max-w-screen-2xl items-center gap-6 px-6 lg:px-10">
+                <div
+                    className={cn(
+                        'mx-auto flex max-w-7xl items-center gap-6 px-6 lg:px-10',
+                        'transition-[height] duration-300 ease-out',
+                        isScrolled ? 'h-14' : 'h-[4.25rem]'
+                    )}
+                >
                     {/* Logo */}
                     <Link
                         href="/"
@@ -394,7 +417,7 @@ export function Navbar() {
                     <div className="flex flex-1 items-center justify-center">
                         <div
                             ref={navRef}
-                            className="relative flex items-center"
+                            className="group/navlinks relative flex items-center"
                             onMouseLeave={() => setHoverStyle((prev) => ({ ...prev, opacity: 0 }))}
                         >
                             {/* Sliding hover pill */}
