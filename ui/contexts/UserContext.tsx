@@ -488,8 +488,8 @@ export const userHelpers = {
     },
 
     getAvatarUrl: (user: User | null): string => {
-        if (!user) return '/placeholder-avatar.jpg';
-        return user.avatarUrl || '/placeholder-avatar.jpg';
+        if (!user) return '';
+        return user.avatarUrl || '';
     },
 
     getInitials: (user: User | null): string => {

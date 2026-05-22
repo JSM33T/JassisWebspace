@@ -61,6 +61,7 @@ import {
     House,
     Search,
     Users,
+    Wrench,
 } from 'lucide-react';
 import { SearchModal } from '@/components/search-modal';
 import { useUser, userHelpers } from '@/contexts/UserContext';
@@ -128,6 +129,7 @@ export function Navbar() {
 
     const aboutMenuItems = [
         { href: '/about', label: 'About', description: 'Learn about JassSpace and our mission', icon: UserCircle },
+        { href: '/uses', label: 'Uses', description: 'Tools, gear, and software I use daily', icon: Wrench },
         { href: '/contact', label: 'Contact', description: 'Get in touch with our team', icon: Mail },
         { href: '/privacy', label: 'Privacy Policy', description: 'See how we handle your data', icon: Shield },
         { href: '/faq', label: 'FAQ', description: 'Common questions and answers', icon: BookOpen },
@@ -631,11 +633,11 @@ export function Navbar() {
                         <button
                             type="button"
                             onClick={() => setSearchOpen(true)}
-                            className="flex h-9 items-center gap-2 rounded-full border border-border/60 bg-muted/20 px-3.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                            className="flex h-9 items-center gap-2 rounded-full border border-border/60 bg-muted/20 pl-3.5 pr-2.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
                         >
                             <Search className="h-3.5 w-3.5 shrink-0" />
                             <span className="hidden text-xs xl:block">Search here</span>
-                            <kbd className="hidden rounded border border-border/60 bg-background/80 px-1.5 py-0.5 text-[10px] font-medium xl:block">
+                            <kbd className="hidden rounded border border-border/60 bg-background/80 px-1.5 py-0.5 text-[10px] font-medium xl:ml-1 xl:block">
                                 ⌘K
                             </kbd>
                         </button>
@@ -677,7 +679,7 @@ export function Navbar() {
                                     >
                                         <Avatar className="h-8 w-8 border border-border/60">
                                             <AvatarImage
-                                                src={user?.avatarUrl || '/placeholder-avatar.jpg'}
+                                                src={user?.avatarUrl || ''}
                                                 alt="User Avatar"
                                             />
                                             <AvatarFallback className="text-xs">
@@ -782,7 +784,7 @@ export function Navbar() {
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-11 w-11 border border-border/60">
                                                     <AvatarImage
-                                                        src={user?.avatarUrl || '/placeholder-avatar.jpg'}
+                                                        src={user?.avatarUrl || ''}
                                                         alt="User Avatar"
                                                     />
                                                     <AvatarFallback>{userHelpers.getInitials(user)}</AvatarFallback>
