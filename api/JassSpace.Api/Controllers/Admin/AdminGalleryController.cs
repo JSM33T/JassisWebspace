@@ -435,6 +435,34 @@ public sealed class AdminGalleryController(
     }
 
     /// <summary>
+    /// Assign an orphaned blob to an album: copies it to the standard naming convention,
+    /// creates an Image record, and deletes the original blob.
+    /// </summary>
+    [HttpPost("audit/assign-orphan")]
+    [ProducesResponseType(typeof(ApiResponse<ImageResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AssignOrphanedBlob(
+        [FromBody] AssignOrphanRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await adminGalleryService.AssignOrphanedBlobToAlbumAsync(
+            request.BlobName,
+            request.AlbumId,
+            request.Title,
+            request.Description,
+            request.Order,
+            GetBaseUrl(),
+            cancellationToken);
+
+        if (result.Status != AdminGalleryOperationStatus.Success)
+            return MapGalleryProblem(result.Status, result.ErrorMessage);
+
+        await InvalidateGalleryCacheAsync(cancellationToken);
+        return OkEnvelope(result.Image!);
+    }
+
+    /// <summary>
     /// Cross-reference every DB gallery entry against Azure Blob Storage.
     /// Returns records whose blob is missing and blobs with no DB reference (orphaned).
     /// </summary>
@@ -547,3 +575,4 @@ public sealed class AdminGalleryController(
 }
 
 public sealed record DeleteOrphanRequest(string BlobName);
+public sealed record AssignOrphanRequest(string BlobName, Guid AlbumId, string? Title, string? Description, int? Order);

@@ -610,6 +610,87 @@ public sealed class AdminGalleryService(
         return new AdminGalleryDeleteResult(AdminGalleryOperationStatus.Success);
     }
 
+    public async Task<AdminGalleryImageMutationResult> AssignOrphanedBlobToAlbumAsync(
+        string blobName,
+        Guid albumId,
+        string? title,
+        string? description,
+        int? order,
+        string mediaBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(blobName) ||
+            !blobName.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return new AdminGalleryImageMutationResult(
+                AdminGalleryOperationStatus.ImageNotFound,
+                ErrorMessage: "Blob name must start with 'gallery/'.");
+        }
+
+        var albumExists = await _dbContext.Albums.AnyAsync(a => a.Id == albumId, cancellationToken);
+        if (!albumExists)
+        {
+            return new AdminGalleryImageMutationResult(
+                AdminGalleryOperationStatus.AlbumNotFound,
+                ErrorMessage: $"No album found with ID '{albumId}'.");
+        }
+
+        // Re-verify it's still unreferenced
+        var publicPath = StripGalleryPrefix(blobName);
+        var isReferenced =
+            await _dbContext.Albums.AnyAsync(a => a.Cover != null && a.Cover.Contains(publicPath), cancellationToken) ||
+            await _dbContext.Images.AnyAsync(i => i.Url.Contains(publicPath), cancellationToken);
+
+        if (isReferenced)
+        {
+            return new AdminGalleryImageMutationResult(
+                AdminGalleryOperationStatus.ImageNotFound,
+                ErrorMessage: "Blob is already referenced by a DB record.");
+        }
+
+        // Download the blob (GetImageAsync caches it locally if not already cached)
+        var cached = await _blobStorageService.GetImageAsync(blobName, cancellationToken);
+        if (cached is null)
+        {
+            return new AdminGalleryImageMutationResult(
+                AdminGalleryOperationStatus.ImageNotFound,
+                ErrorMessage: "Blob not found in Azure Blob Storage.");
+        }
+
+        // Re-upload under the standard gallery/images/{albumId}-{guid} name — no reprocessing needed
+        var newBlobName = EnsureGalleryBlobName($"images/{albumId}-{Guid.NewGuid()}");
+        BlobUploadResult uploadResult;
+        await using (var stream = new FileStream(cached.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            uploadResult = await _blobStorageService.UploadImageAsync(
+                stream,
+                Path.GetFileName(cached.FilePath),
+                "image/webp",
+                newBlobName,
+                cancellationToken);
+        }
+
+        var resolvedOrder = order ?? await GetNextImageOrderAsync(albumId, cancellationToken);
+        var image = new Image
+        {
+            Id = Guid.NewGuid(),
+            AlbumId = albumId,
+            Url = GetFullMediaUrl(mediaBaseUrl, uploadResult.BlobName),
+            Title = string.IsNullOrWhiteSpace(title) ? null : title.Trim(),
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            Order = resolvedOrder,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _dbContext.Images.Add(image);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Remove the original orphaned blob
+        await _blobStorageService.DeleteBlobAsync(blobName, cancellationToken);
+
+        return new AdminGalleryImageMutationResult(AdminGalleryOperationStatus.Success, MapImage(image));
+    }
+
     private async Task<List<ContentAuthorResponse>> AddAlbumAuthorsAsync(
         Guid contentId,
         List<Guid>? authorIds,

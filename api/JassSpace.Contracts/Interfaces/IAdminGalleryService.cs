@@ -105,4 +105,13 @@ public interface IAdminGalleryService
     Task<GalleryAuditResponse> AuditBlobConsistencyAsync(CancellationToken cancellationToken = default);
 
     Task<AdminGalleryDeleteResult> DeleteOrphanedBlobAsync(string blobName, CancellationToken cancellationToken = default);
+
+    Task<AdminGalleryImageMutationResult> AssignOrphanedBlobToAlbumAsync(
+        string blobName,
+        Guid albumId,
+        string? title,
+        string? description,
+        int? order,
+        string mediaBaseUrl,
+        CancellationToken cancellationToken = default);
 }

@@ -177,6 +177,16 @@ class AdminGalleryService {
     async deleteOrphanedBlob(blobName: string): Promise<void> {
         return post<void>('/admin/gallery/audit/delete-orphan', { blobName });
     }
+
+    async assignOrphanedBlob(
+        blobName: string,
+        albumId: string,
+        title?: string,
+        description?: string,
+        order?: number
+    ): Promise<void> {
+        return post<void>('/admin/gallery/audit/assign-orphan', { blobName, albumId, title, description, order });
+    }
 }
 
 export const adminGalleryService = new AdminGalleryService();
