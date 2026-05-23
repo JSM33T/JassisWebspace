@@ -417,6 +417,18 @@ public sealed class AdminGalleryController(
         }
     }
 
+    /// <summary>
+    /// Cross-reference every DB gallery entry against Azure Blob Storage.
+    /// Returns records whose blob is missing and blobs with no DB reference (orphaned).
+    /// </summary>
+    [HttpGet("audit")]
+    [ProducesResponseType(typeof(ApiResponse<GalleryAuditResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AuditBlobConsistency(CancellationToken cancellationToken = default)
+    {
+        var result = await adminGalleryService.AuditBlobConsistencyAsync(cancellationToken);
+        return OkEnvelope(result);
+    }
+
     private IActionResult MapGalleryProblem(
         AdminGalleryOperationStatus status,
         string? errorMessage)
@@ -435,7 +447,14 @@ public sealed class AdminGalleryController(
 
     private async Task InvalidateGalleryCacheAsync(CancellationToken cancellationToken)
     {
-        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, cancellationToken);
+        try
+        {
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.GallerySeo, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Gallery cache invalidation failed — cache will expire naturally.");
+        }
     }
 
     private static AdminMediaUploadInput? OpenMediaInput(

@@ -64,3 +64,19 @@ export interface AddImageRequest {
     description?: string;
     order: number;
 }
+
+export interface GalleryAuditMissingEntry {
+    kind: "cover" | "image";
+    id: string;
+    name: string | null;
+    storedUrl: string;
+    expectedBlobName: string;
+}
+
+export interface GalleryAuditResult {
+    totalAlbums: number;
+    totalImages: number;
+    totalBlobsInAzure: number;
+    missingFromBlob: GalleryAuditMissingEntry[];
+    orphanedBlobs: string[];
+}

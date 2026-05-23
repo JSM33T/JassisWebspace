@@ -101,4 +101,6 @@ public interface IAdminGalleryService
     Task<AdminGalleryDeleteResult> DeleteImageAsync(
         Guid imageId,
         CancellationToken cancellationToken = default);
+
+    Task<GalleryAuditResponse> AuditBlobConsistencyAsync(CancellationToken cancellationToken = default);
 }

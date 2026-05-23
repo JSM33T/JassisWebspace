@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, SlidersHorizontal, Send } from "lucide-react";
+import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, SlidersHorizontal, Send, ScanSearch } from "lucide-react";
 import { LogoMark } from "@/components/logo-mark";
 
 const routes = [
@@ -16,6 +16,11 @@ const routes = [
         label: "Gallery",
         icon: Image,
         href: "/admin/gallery",
+    },
+    {
+        label: "Gallery Audit",
+        icon: ScanSearch,
+        href: "/admin/gallery/audit",
     },
     {
         label: "Users",
@@ -85,7 +90,13 @@ export function AdminSidebar() {
                     {routes.map((route) => {
                         const isActive = route.href === "/admin"
                             ? pathname === route.href
-                            : pathname.startsWith(route.href);
+                            : pathname.startsWith(route.href) &&
+                              !routes.some(
+                                  (r) =>
+                                      r.href !== route.href &&
+                                      r.href.startsWith(route.href + "/") &&
+                                      pathname.startsWith(r.href)
+                              );
 
                         return (
                             <Link

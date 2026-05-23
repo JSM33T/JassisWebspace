@@ -25,6 +25,22 @@ public record ImageResponse(
     DateTimeOffset CreatedAt
 );
 
+public record GalleryAuditMissingEntry(
+    string Kind,
+    Guid Id,
+    string? Name,
+    string StoredUrl,
+    string ExpectedBlobName
+);
+
+public record GalleryAuditResponse(
+    int TotalAlbums,
+    int TotalImages,
+    int TotalBlobsInAzure,
+    List<GalleryAuditMissingEntry> MissingFromBlob,
+    List<string> OrphanedBlobs
+);
+
 public record AlbumWithImagesResponse(
     Guid Id,
     string Name,

@@ -1,4 +1,4 @@
-import { Album, AlbumWithImages, GalleryAuthor, Image } from "./gallery.types";
+import { Album, AlbumWithImages, GalleryAuditResult, GalleryAuthor, Image } from "./gallery.types";
 import { post, put, del, get } from "./client";
 
 export interface CreateAlbumRequest {
@@ -168,6 +168,10 @@ class AdminGalleryService {
         }
 
         return post<{ publicId: string, url: string }>('/admin/gallery/upload-image', formData);
+    }
+
+    async auditBlobConsistency(): Promise<GalleryAuditResult> {
+        return get<GalleryAuditResult>('/admin/gallery/audit');
     }
 }
 

@@ -537,6 +537,51 @@ public sealed class AdminGalleryService(
         return new AdminGalleryDeleteResult(AdminGalleryOperationStatus.Success);
     }
 
+    public async Task<GalleryAuditResponse> AuditBlobConsistencyAsync(CancellationToken cancellationToken = default)
+    {
+        var azureBlobs = (await _blobStorageService.ListBlobsByPrefixAsync("gallery/", cancellationToken))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var albums = await _dbContext.Albums
+            .AsNoTracking()
+            .Select(a => new { a.Id, a.Name, a.Cover })
+            .ToListAsync(cancellationToken);
+
+        var images = await _dbContext.Images
+            .AsNoTracking()
+            .Select(i => new { i.Id, i.Title, i.Url })
+            .ToListAsync(cancellationToken);
+
+        var missing = new List<GalleryAuditMissingEntry>();
+        var referencedBlobs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var album in albums)
+        {
+            if (string.IsNullOrEmpty(album.Cover)) continue;
+            var blobName = ExtractBlobNameFromUrl(album.Cover);
+            if (string.IsNullOrEmpty(blobName)) continue;
+            referencedBlobs.Add(blobName);
+            if (!azureBlobs.Contains(blobName))
+                missing.Add(new GalleryAuditMissingEntry("cover", album.Id, album.Name, album.Cover, blobName));
+        }
+
+        foreach (var image in images)
+        {
+            var blobName = ExtractBlobNameFromUrl(image.Url);
+            if (string.IsNullOrEmpty(blobName)) continue;
+            referencedBlobs.Add(blobName);
+            if (!azureBlobs.Contains(blobName))
+                missing.Add(new GalleryAuditMissingEntry("image", image.Id, image.Title, image.Url, blobName));
+        }
+
+        var orphaned = azureBlobs
+            .Where(b => !referencedBlobs.Contains(b))
+            .OrderBy(b => b)
+            .ToList();
+
+        return new GalleryAuditResponse(albums.Count, images.Count, azureBlobs.Count, missing, orphaned);
+    }
+
     private async Task<List<ContentAuthorResponse>> AddAlbumAuthorsAsync(
         Guid contentId,
         List<Guid>? authorIds,
