@@ -5,15 +5,10 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { type BlogListItem } from "@/lib/api/blog.types";
 import { type Album } from "@/lib/api/gallery.types";
 import { type CacheTagMeta, type HomeContentPayload } from "@/lib/home-content.types";
+import { apiBaseUrl, parseApiData, parseTtl, type TaggedResult } from "@/lib/server/cache-utils";
 
 export const HOME_GALLERIES_TAG = "home-galleries-feed";
 export const HOME_BLOGS_TAG = "home-blogs-feed";
-
-function parseTtl(value: string | undefined, fallback: number): number {
-    const parsed = Number.parseInt(value || "", 10);
-    if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-    return parsed;
-}
 
 const defaultTtl = parseTtl(process.env.HOME_CONTENT_REVALIDATE_SECONDS, 86400);
 export const HOME_GALLERIES_TTL_SECONDS = parseTtl(
@@ -24,22 +19,6 @@ export const HOME_BLOGS_TTL_SECONDS = parseTtl(
     process.env.HOME_BLOGS_REVALIDATE_SECONDS,
     defaultTtl,
 );
-
-function apiBaseUrl(): string {
-    const value = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL)?.replace(/\/$/, "");
-    if (!value) {
-        throw new Error("NEXT_PUBLIC_API_URL is not configured");
-    }
-    return value;
-}
-
-async function parseApiData<T>(response: Response): Promise<T> {
-    const payload = await response.json().catch(() => null);
-    if (payload && typeof payload === "object" && "data" in payload) {
-        return (payload as { data: T }).data;
-    }
-    return payload as T;
-}
 
 async function fetchAlbums(): Promise<Album[]> {
     const response = await fetch(`${apiBaseUrl()}/gallery/albums`, {
@@ -67,16 +46,6 @@ async function fetchBlogs(): Promise<BlogListItem[]> {
     return parseApiData<BlogListItem[]>(response);
 }
 
-interface TaggedResult<T> {
-    key: string;
-    label: string;
-    description: string;
-    tag: string;
-    ttlSeconds: number;
-    generatedAt: string;
-    total: number;
-    items: T[];
-}
 
 const getCachedHomeGalleries = unstable_cache(
     async (): Promise<TaggedResult<Album>> => {
@@ -149,7 +118,7 @@ function toCacheTagMeta<T>(entry: TaggedResult<T>): CacheTagMeta {
         generatedAt: entry.generatedAt,
         expiresAt: new Date(expiresMs).toISOString(),
         isExpired: Date.now() > expiresMs,
-        itemCount: entry.total,
+        itemCount: entry.total ?? entry.items.length,
     };
 }
 

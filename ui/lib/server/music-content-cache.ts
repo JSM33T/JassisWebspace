@@ -5,35 +5,14 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { type MusicTrack } from "@/lib/api/music.types";
 import { type CacheTagMeta } from "@/lib/home-content.types";
 import { type MusicContentPayload } from "@/lib/music-content.types";
+import { apiBaseUrl, parseApiData, parseTtl, type TaggedResult } from "@/lib/server/cache-utils";
 
 export const MUSIC_TRACKS_TAG = "music-tracks-feed";
-
-function parseTtl(value: string | undefined, fallback: number): number {
-    const parsed = Number.parseInt(value || "", 10);
-    if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-    return parsed;
-}
 
 export const MUSIC_TRACKS_TTL_SECONDS = parseTtl(
     process.env.MUSIC_TRACKS_REVALIDATE_SECONDS,
     864000,
 );
-
-function apiBaseUrl(): string {
-    const value = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL)?.replace(/\/$/, "");
-    if (!value) {
-        throw new Error("NEXT_PUBLIC_API_URL is not configured");
-    }
-    return value;
-}
-
-async function parseApiData<T>(response: Response): Promise<T> {
-    const payload = await response.json().catch(() => null);
-    if (payload && typeof payload === "object" && "data" in payload) {
-        return (payload as { data: T }).data;
-    }
-    return payload as T;
-}
 
 async function fetchTracks(): Promise<MusicTrack[]> {
     const params = new URLSearchParams({ page: "1", pageSize: "100" });
@@ -49,15 +28,6 @@ async function fetchTracks(): Promise<MusicTrack[]> {
     return parseApiData<MusicTrack[]>(response);
 }
 
-interface TaggedResult<T> {
-    key: string;
-    label: string;
-    description: string;
-    tag: string;
-    ttlSeconds: number;
-    generatedAt: string;
-    items: T[];
-}
 
 const getCachedMusicTracks = unstable_cache(
     async (): Promise<TaggedResult<MusicTrack>> => {
