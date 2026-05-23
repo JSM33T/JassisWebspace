@@ -173,6 +173,10 @@ class AdminGalleryService {
     async auditBlobConsistency(): Promise<GalleryAuditResult> {
         return get<GalleryAuditResult>('/admin/gallery/audit');
     }
+
+    async deleteOrphanedBlob(blobName: string): Promise<void> {
+        return post<void>('/admin/gallery/audit/delete-orphan', { blobName });
+    }
 }
 
 export const adminGalleryService = new AdminGalleryService();

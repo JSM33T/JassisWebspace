@@ -582,6 +582,34 @@ public sealed class AdminGalleryService(
         return new GalleryAuditResponse(albums.Count, images.Count, azureBlobs.Count, missing, orphaned);
     }
 
+    public async Task<AdminGalleryDeleteResult> DeleteOrphanedBlobAsync(
+        string blobName,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(blobName) ||
+            !blobName.StartsWith(GalleryBlobPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return new AdminGalleryDeleteResult(
+                AdminGalleryOperationStatus.ImageNotFound,
+                "Blob name must start with 'gallery/'.");
+        }
+
+        var publicPath = StripGalleryPrefix(blobName);
+        var isReferenced =
+            await _dbContext.Albums.AnyAsync(a => a.Cover != null && a.Cover.Contains(publicPath), cancellationToken) ||
+            await _dbContext.Images.AnyAsync(i => i.Url.Contains(publicPath), cancellationToken);
+
+        if (isReferenced)
+        {
+            return new AdminGalleryDeleteResult(
+                AdminGalleryOperationStatus.ImageNotFound,
+                "Blob is still referenced in the database and cannot be deleted as an orphan.");
+        }
+
+        await _blobStorageService.DeleteBlobAsync(blobName, cancellationToken);
+        return new AdminGalleryDeleteResult(AdminGalleryOperationStatus.Success);
+    }
+
     private async Task<List<ContentAuthorResponse>> AddAlbumAuthorsAsync(
         Guid contentId,
         List<Guid>? authorIds,

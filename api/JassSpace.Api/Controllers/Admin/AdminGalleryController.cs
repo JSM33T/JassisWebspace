@@ -418,6 +418,23 @@ public sealed class AdminGalleryController(
     }
 
     /// <summary>
+    /// Delete a single orphaned blob from Azure Blob Storage.
+    /// Blob must be under gallery/ and must not be referenced by any DB record.
+    /// </summary>
+    [HttpPost("audit/delete-orphan")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DeleteOrphanedBlob(
+        [FromBody] DeleteOrphanRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await adminGalleryService.DeleteOrphanedBlobAsync(request.BlobName, cancellationToken);
+        return result.Status == AdminGalleryOperationStatus.Success
+            ? NoContent()
+            : BadRequestProblem("Cannot delete blob", result.ErrorMessage);
+    }
+
+    /// <summary>
     /// Cross-reference every DB gallery entry against Azure Blob Storage.
     /// Returns records whose blob is missing and blobs with no DB reference (orphaned).
     /// </summary>
@@ -528,3 +545,5 @@ public sealed class AdminGalleryController(
         return $"{Request.Scheme}://{Request.Host}";
     }
 }
+
+public sealed record DeleteOrphanRequest(string BlobName);
