@@ -33,7 +33,13 @@ export function Footer() {
         <footer className="relative px-4 pb-0 pt-20 md:px-8 md:pt-24">
             <div className="mx-auto max-w-7xl">
                 {/* Main card */}
-                <div className="rounded-3xl border border-border/50 bg-card/60 px-8 py-10 backdrop-blur-sm md:px-12 md:py-12">
+                <div className="relative overflow-hidden rounded-3xl border border-border/50 bg-card/60 px-8 py-10 backdrop-blur-sm md:px-12 md:py-12">
+                    {/* Top gradient accent — mirrors the navbar hairline */}
+                    <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-x-16 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"
+                    />
+
                     <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
                         {/* Brand column */}
                         <div className="max-w-xs">
@@ -44,7 +50,7 @@ export function Footer() {
                             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                                 A personal space for projects, music, galleries, and everything in between.
                             </p>
-                            <div className="mt-6 flex items-center gap-4">
+                            <div className="mt-6 -ml-2 flex items-center gap-1">
                                 {socialLinks.map(({ href, label, icon: Icon }) => (
                                     <Link
                                         key={label}
@@ -52,7 +58,7 @@ export function Footer() {
                                         target="_blank"
                                         rel="noreferrer"
                                         aria-label={label}
-                                        className="text-muted-foreground transition-colors hover:text-foreground"
+                                        className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-accent/40 hover:text-foreground"
                                     >
                                         <Icon className="h-4 w-4" />
                                     </Link>
@@ -71,7 +77,7 @@ export function Footer() {
                                         <li key={href}>
                                             <Link
                                                 href={href}
-                                                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                                                className="relative inline-block text-sm text-muted-foreground transition-colors hover:text-foreground after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 after:content-[''] hover:after:scale-x-100"
                                             >
                                                 {label}
                                             </Link>
@@ -88,7 +94,7 @@ export function Footer() {
                                         <li key={href}>
                                             <Link
                                                 href={href}
-                                                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                                                className="relative inline-block text-sm text-muted-foreground transition-colors hover:text-foreground after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 after:content-[''] hover:after:scale-x-100"
                                             >
                                                 {label}
                                             </Link>
@@ -105,7 +111,7 @@ export function Footer() {
                                         <li key={href}>
                                             <Link
                                                 href={href}
-                                                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                                                className="relative inline-block text-sm text-muted-foreground transition-colors hover:text-foreground after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 after:content-[''] hover:after:scale-x-100"
                                             >
                                                 {label}
                                             </Link>
@@ -118,20 +124,18 @@ export function Footer() {
 
                     {/* Divider + bottom row */}
                     <div className="mt-10 border-t border-border/40 pt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs text-muted-foreground">
-                            © {new Date().getFullYear()} Jassis. All rights reserved.
-                        </p>
-                        <div className="flex items-center gap-5">
-                            <Link href="/privacy" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-                                Privacy Policy
-                            </Link>
-                            <Link href="/faq" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-                                FAQ
-                            </Link>
-                            <Link href="/contact" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-                                Contact
-                            </Link>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                            <span>© {new Date().getFullYear()} Jassis. All rights reserved.</span>
+                            <span className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider">
+                                v1.0 · May 2026
+                            </span>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            Built with{' '}
+                            <span className="text-foreground/85">Next.js</span>,{' '}
+                            <span className="text-foreground/85">Tailwind</span> &{' '}
+                            <span className="text-foreground/85">.NET</span>
+                        </p>
                     </div>
                 </div>
 
