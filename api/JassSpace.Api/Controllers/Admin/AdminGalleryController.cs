@@ -474,6 +474,17 @@ public sealed class AdminGalleryController(
         return OkEnvelope(result);
     }
 
+    /// <summary>
+    /// Invalidates the gallery SEO cache without modifying any data.
+    /// </summary>
+    [HttpPost("cache/invalidate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> InvalidateGalleryCache(CancellationToken cancellationToken = default)
+    {
+        await InvalidateGalleryCacheAsync(cancellationToken);
+        return NoContent();
+    }
+
     private IActionResult MapGalleryProblem(
         AdminGalleryOperationStatus status,
         string? errorMessage)

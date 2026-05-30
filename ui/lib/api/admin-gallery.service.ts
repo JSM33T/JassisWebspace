@@ -178,6 +178,10 @@ class AdminGalleryService {
         return post<void>('/admin/gallery/audit/delete-orphan', { blobName });
     }
 
+    async invalidateCache(): Promise<void> {
+        return post<void>('/admin/gallery/cache/invalidate');
+    }
+
     async assignOrphanedBlob(
         blobName: string,
         albumId: string,

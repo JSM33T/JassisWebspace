@@ -5,12 +5,15 @@ import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigat
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, ImageIcon, MessageSquare, Share2, ZoomIn } from 'lucide-react';
+import { ArrowLeft, Calendar, ImageIcon, MessageSquare, RefreshCw, Share2, ZoomIn } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
+import { adminGalleryService } from '@/lib/api/admin-gallery.service';
 import { AlbumWithImages } from '@/lib/api/gallery.types';
 import { ApiError } from '@/lib/api/types';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useUser } from '@/contexts/UserContext';
+import { applyCacheBustingParam } from '@/lib/cacheBust';
 
 import { CommentSection } from '@/components/comments/CommentSection';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
@@ -34,9 +37,13 @@ export default function AlbumDetailPage() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
+    const { user } = useUser();
+    const isAdmin = user?.role === 'admin';
+
     const [album, setAlbum] = useState<AlbumWithImages | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [imageVersions, setImageVersions] = useState<Record<string, number>>({});
 
     const setImageParam = (imageId: string | null) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -84,6 +91,17 @@ export default function AlbumDetailPage() {
             loadAlbum();
         }
     }, [slug, loadAlbum]);
+
+    const handleImageRefresh = async (e: React.MouseEvent, imageId: string) => {
+        e.stopPropagation();
+        setImageVersions(prev => ({ ...prev, [imageId]: Date.now() }));
+        try {
+            await adminGalleryService.invalidateCache();
+            toast.success('Cache cleared');
+        } catch {
+            toast.error('Failed to clear cache');
+        }
+    };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -271,7 +289,7 @@ export default function AlbumDetailPage() {
                                     onClick={() => setImageParam(image.id)}
                                 >
                                     <GalleryThumb
-                                        src={toGalleryThumbUrl(image.url)}
+                                        src={applyCacheBustingParam(toGalleryThumbUrl(image.url), imageVersions[image.id]) ?? toGalleryThumbUrl(image.url)}
                                         alt={image.title || 'Album image'}
                                         width={800}
                                         height={600}
@@ -286,6 +304,18 @@ export default function AlbumDetailPage() {
                                             <ZoomIn className="h-5 w-5" />
                                         </div>
                                     </div>
+
+                                    {/* Admin-only cache refresh button */}
+                                    {isAdmin && (
+                                        <button
+                                            type="button"
+                                            className="absolute top-2 right-2 z-10 bg-background/80 backdrop-blur-sm p-1.5 rounded-full text-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                            title="Refresh image cache"
+                                            onClick={(e) => handleImageRefresh(e, image.id)}
+                                        >
+                                            <RefreshCw className="h-3.5 w-3.5" />
+                                        </button>
+                                    )}
 
                                     {/* Always-visible bottom label */}
                                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12">
