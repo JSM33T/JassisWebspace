@@ -537,6 +537,28 @@ public sealed class AdminGalleryService(
         return new AdminGalleryDeleteResult(AdminGalleryOperationStatus.Success);
     }
 
+    public async Task<AdminGalleryDeleteResult> EvictImageLocalCacheAsync(Guid imageId, CancellationToken cancellationToken = default)
+    {
+        var image = await _dbContext.Images
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == imageId, cancellationToken);
+
+        if (image is null)
+        {
+            return new AdminGalleryDeleteResult(
+                AdminGalleryOperationStatus.ImageNotFound,
+                $"No image found with ID '{imageId}'.");
+        }
+
+        var blobName = ExtractBlobNameFromUrl(image.Url);
+        if (!string.IsNullOrEmpty(blobName))
+        {
+            await _blobStorageService.EvictLocalCacheAsync(blobName, cancellationToken);
+        }
+
+        return new AdminGalleryDeleteResult(AdminGalleryOperationStatus.Success);
+    }
+
     public async Task<GalleryAuditResponse> AuditBlobConsistencyAsync(CancellationToken cancellationToken = default)
     {
         var azureBlobs = (await _blobStorageService.ListBlobsByPrefixAsync("gallery/", cancellationToken))

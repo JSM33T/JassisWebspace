@@ -475,6 +475,25 @@ public sealed class AdminGalleryController(
     }
 
     /// <summary>
+    /// Evicts the server-side disk cache for a single image so the next request re-downloads from Azure Blob Storage.
+    /// Also invalidates the gallery SEO cache.
+    /// </summary>
+    [HttpPost("images/{imageId:guid}/evict-cache")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> EvictImageCache(Guid imageId, CancellationToken cancellationToken = default)
+    {
+        var result = await adminGalleryService.EvictImageLocalCacheAsync(imageId, cancellationToken);
+        if (result.Status == AdminGalleryOperationStatus.ImageNotFound)
+        {
+            return NotFoundProblem("Image not found", result.ErrorMessage);
+        }
+
+        await InvalidateGalleryCacheAsync(cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
     /// Invalidates the gallery SEO cache without modifying any data.
     /// </summary>
     [HttpPost("cache/invalidate")]

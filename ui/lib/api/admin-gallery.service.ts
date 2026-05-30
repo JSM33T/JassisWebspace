@@ -182,6 +182,10 @@ class AdminGalleryService {
         return post<void>('/admin/gallery/cache/invalidate');
     }
 
+    async evictImageCache(imageId: string): Promise<void> {
+        return post<void>(`/admin/gallery/images/${imageId}/evict-cache`);
+    }
+
     async assignOrphanedBlob(
         blobName: string,
         albumId: string,

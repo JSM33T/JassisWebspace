@@ -102,6 +102,8 @@ public interface IAdminGalleryService
         Guid imageId,
         CancellationToken cancellationToken = default);
 
+    Task<AdminGalleryDeleteResult> EvictImageLocalCacheAsync(Guid imageId, CancellationToken cancellationToken = default);
+
     Task<GalleryAuditResponse> AuditBlobConsistencyAsync(CancellationToken cancellationToken = default);
 
     Task<AdminGalleryDeleteResult> DeleteOrphanedBlobAsync(string blobName, CancellationToken cancellationToken = default);

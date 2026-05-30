@@ -602,6 +602,16 @@ namespace JassSpace.Infra
 
             return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, configuredPath));
         }
+        public Task EvictLocalCacheAsync(string blobName, CancellationToken cancellationToken = default)
+        {
+            if (!string.IsNullOrWhiteSpace(blobName))
+            {
+                ClearCachedFiles(blobName);
+            }
+
+            return Task.CompletedTask;
+        }
+
         public async Task DeleteBlobAsync(string blobName, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(blobName))

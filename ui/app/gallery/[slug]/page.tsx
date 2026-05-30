@@ -96,6 +96,7 @@ export default function AlbumDetailPage() {
         e.stopPropagation();
         setImageVersions(prev => ({ ...prev, [imageId]: Date.now() }));
         try {
+            await adminGalleryService.evictImageCache(imageId);
             await adminGalleryService.invalidateCache();
             toast.success('Cache cleared');
         } catch {

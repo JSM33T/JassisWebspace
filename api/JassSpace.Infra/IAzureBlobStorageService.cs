@@ -82,6 +82,12 @@ namespace JassSpace.Infra
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Deletes only the local disk cache files for a blob (original + thumb) without touching Azure Blob Storage.
+        /// The next request will re-download from Azure and repopulate the cache.
+        /// </summary>
+        Task EvictLocalCacheAsync(string blobName, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Lists all blobs in the container that matching the specified prefix.
         /// </summary>
         /// <param name="prefix">The prefix to filter blobs by.</param>
