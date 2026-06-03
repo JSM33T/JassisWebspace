@@ -2,6 +2,7 @@
 // Icons are stored as string names and mapped to lucide-react in the component.
 
 export interface Project {
+	category?: "saas" | "project"; // grouping bucket; defaults to "project"
 	title: string;
 	description: string;
 	details?: string;
@@ -15,6 +16,67 @@ export interface Project {
 
 export const projects: Project[] = [
 	{
+		category: "saas",
+		title: "********.io - Self-Hosted Infrastructure Monitor",
+		description:
+			"In development — open-source, self-hosted .NET monitoring platform for tracking the health of your entire stack — web APIs, sites, databases, and background services — with real-time status, history, and multi-channel alerting.",
+		details: `
+> **Status: In active development — not yet released.**
+
+## Overview
+
+********.io is an open-source, self-hosted infrastructure monitoring platform built on **.NET**, currently in active development and not yet publicly released. Think Uptime Kuma, but engineered for teams that need to watch the full health of company infrastructure — public sites, internal web APIs, databases, message queues, and arbitrary services — from a single, ownable dashboard. No SaaS lock-in, no per-monitor pricing, full data sovereignty.
+
+## Core Capabilities
+
+- **Multi-Target Monitoring** - HTTP/HTTPS endpoints, TCP ports, ping/ICMP, DNS, databases (PostgreSQL, SQL Server, MySQL, Redis), and custom service health checks.
+- **Real-Time Health Dashboard** - Live up/down status, response-time graphs, and at-a-glance service maps across environments.
+- **Uptime History & SLA Tracking** - Historical availability, latency percentiles, and rolling uptime percentages for SLA reporting.
+- **Smart Alerting** - Threshold and downtime-based alerts with de-duplication, flap detection, and escalation to reduce noise.
+- **Multi-Channel Notifications** - Email, Slack, Discord, Telegram, webhooks, and on-call integrations for instant incident awareness.
+- **Status Pages** - Public or private status pages to communicate live system health to users and stakeholders.
+
+## Architecture
+
+### Monitoring Engine (.NET)
+
+A resilient .NET worker continuously schedules and executes checks against configured targets, with configurable intervals, timeouts, retries, and per-check assertions (status code, latency, response body, certificate expiry).
+
+### Alerting Pipeline
+
+An evaluation layer turns raw check results into incidents — applying thresholds, consecutive-failure rules, and maintenance windows — then dispatches notifications through pluggable channel providers with retry and rate limiting.
+
+### Storage & History
+
+Time-series check results and incident records are persisted for trend analysis, uptime calculation, and historical reporting, with retention policies for long-running deployments.
+
+### Self-Hosted by Design
+
+Ships as a containerized, single-deploy stack you fully control — run it on your own servers, behind your own network, with your data never leaving your infrastructure.
+
+## Why It Stands Out
+
+Unlike hosted uptime services, ********.io gives teams a Uptime-Kuma-style experience with the depth of database and service-level checks, built on .NET for easy integration into existing company infrastructure — open source, self-hosted, and alerting-first.
+		`,
+		tech: [
+			".NET",
+			"Self-Hosted",
+			"Open Source",
+			"Uptime Monitoring",
+			"Health Checks",
+			"Alerting",
+			"Status Pages",
+			"PostgreSQL",
+			"Docker",
+			"Webhooks"
+		],
+		icon: "Activity",
+		links: { repo: "", live: "" },
+		screenshots: [],
+		highlight: "In Development · OSS Monitoring"
+	},
+	{
+		category: "saas",
 		title: "Linqyard - Link Management Platform",
 		description:
 			"A production-ready link-in-bio and link management platform with real-time analytics, subscription monetization, and enterprise-grade performance optimization.",
@@ -211,6 +273,9 @@ An AI-first RAG workspace built for teams that need reliable retrieval across co
 
 ## Architecture Highlights
 
+- Built on **.NET** with **Semantic Kernel** as the orchestration core for planning, prompt flows, and model routing.
+- **Kernel plugins / tools** expose retrieval, ingestion, OCR, and table-query capabilities as composable, reusable skills the kernel can invoke.
+- **MCP servers** connect external systems and tools, letting the assistant execute actions and pull live context beyond the indexed corpus.
 - Tenant-isolated workspaces with access control and audit-ready retrieval traces.
 - Hybrid retrieval pipeline (keyword + vector + metadata filters).
 - Async ingestion workers for OCR, chunking, embeddings, and table indexing.
@@ -218,12 +283,13 @@ An AI-first RAG workspace built for teams that need reliable retrieval across co
 
 ## Why It Stands Out
 
-Unlike basic text-only RAG systems, this platform handles real-world knowledge formats: rich documents, spreadsheet tables, and image-heavy content. VLM-backed OCR plus scoped retrieval (file/project/global) makes responses more accurate, controllable, and enterprise-ready.
+Unlike basic text-only RAG systems, this platform handles real-world knowledge formats: rich documents, spreadsheet tables, and image-heavy content. VLM-backed OCR plus scoped retrieval (file/project/global), orchestrated through **Semantic Kernel** with **MCP**-connected tools, makes responses more accurate, controllable, and enterprise-ready.
 		`,
 		tech: [
-			"Python",
-			"FastAPI",
-			"LangChain",
+			".NET",
+			"Semantic Kernel",
+			"Kernel Plugins / Tools",
+			"MCP Servers",
 			"VLM",
 			"OCR",
 			"RAG",
@@ -306,8 +372,11 @@ A fully modular, embeddable video conferencing platform engineered for enterpris
 - **In-Session Chat** - Persistent participant messaging with synchronized history.
 - **Dynamic Rooms** - Instant room provisioning, scheduled sessions, and waiting-room flows.
 - **RBAC Controls** - Host, presenter, and attendee roles with live permission updates.
+- **Live Transcription** - Real-time speech-to-text captions powered by **OpenAI Whisper**, with per-speaker attribution and searchable session transcripts.
 - **Asset Management** - Central handling for meeting recordings, snapshots, shared files, and generated artifacts.
 - **Windows Tray Companion** - Desktop tray app for notifications, quick room actions, participant alerts, and local conference controls.
+
+> **In progress:** Building out the video recording infrastructure — server-side composition, storage, and replay of full meeting sessions.
 
 ## Architecture
 
@@ -329,6 +398,14 @@ Room lifecycle orchestration, authN/authZ, usage analytics, recording workflows,
 
 Component-driven UI modules (video grid, controls, chat, participant panel) support both standalone deployment and embedded integration.
 
+### Live Transcription (Whisper)
+
+Audio tracks are streamed in chunked segments to an **OpenAI Whisper** transcription service, which returns low-latency partial and finalized captions. Transcripts are speaker-attributed, persisted per session, and made searchable alongside meeting recordings.
+
+### Recording Infrastructure (In Progress)
+
+Actively building server-side recording: media is captured per participant, composited into a unified meeting timeline, stored as durable artifacts, and exposed for replay with synchronized transcripts.
+
 ## Network Adaptation and Relay Strategy
 
 The platform uses a pluggable connectivity model:
@@ -347,7 +424,7 @@ This local-plus-cloud relay strategy provides operational control for private de
 - Continuous relay health monitoring and automated fallback handling.
 - High-concurrency room handling with predictable performance under burst load.
     `,
-		tech: [".NET Core", "WebRTC", "SFU", "SignalR", "Node.js", "Angular", "Redis", "TURN/STUN (Local + Twilio)", "Windows Tray App", "Asset Management"],
+		tech: [".NET Core", "WebRTC", "SFU", "SignalR", "Node.js", "Angular", "Redis", "TURN/STUN (Local + Twilio)", "Windows Tray App", "OpenAI Whisper", "Live Transcription", "Video Recording", "Asset Management"],
 		icon: "Globe",
 		links: {
 			repo: "",

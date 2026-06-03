@@ -34,6 +34,9 @@ const projects: ProjectCard[] = projectsData.map((project) => ({
     id: makeProjectId(project.title),
 }));
 
+const saasProjects = projects.filter((project) => project.category === 'saas');
+const otherProjects = projects.filter((project) => project.category !== 'saas');
+
 function ProjectsPageContent() {
     const router = useRouter();
     const pathname = usePathname();
@@ -76,6 +79,64 @@ function ProjectsPageContent() {
         setProjectParam(project.id);
     };
 
+    const renderProjectCard = (project: ProjectCard, index: number) => (
+        <motion.div
+            key={project.title}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+        >
+            <Card
+                className="flex flex-col h-full cursor-pointer rounded-2xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group"
+                onClick={() => openProject(project)}
+            >
+                <CardHeader className="px-5 pt-5 pb-3 space-y-0">
+                    <div className="mb-3">
+                        <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide">
+                            {project.highlight || 'Project'}
+                        </Badge>
+                    </div>
+                    <CardTitle className="text-lg font-semibold tracking-tight leading-snug group-hover:text-primary transition-colors">
+                        {project.title}
+                    </CardTitle>
+                    <div className="flex items-center gap-2 pt-2">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full border bg-background/50 shrink-0">
+                            <Rocket className="h-3 w-3 text-primary opacity-70" />
+                        </div>
+                        <span className="text-xs text-muted-foreground font-medium">
+                            {project.tech?.[0] ?? 'Dev Project'}
+                        </span>
+                        {project.links?.live && (
+                            <>
+                                <span className="text-muted-foreground/40 text-xs">·</span>
+                                <span className="text-xs text-muted-foreground">Live</span>
+                            </>
+                        )}
+                    </div>
+                    <CardDescription className="text-sm pt-3 line-clamp-2 leading-relaxed">
+                        {project.description}
+                    </CardDescription>
+                </CardHeader>
+                <CardFooter className="mt-auto px-5 pb-5 pt-3 border-t flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <FolderCode className="h-3.5 w-3.5" />
+                        <span>{project.tech?.length ?? 0} technologies</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {project.tech?.slice(0, 2).map((t) => (
+                            <Badge key={t} variant="outline" className="rounded-full px-2 py-0 text-xs">
+                                {t}
+                            </Badge>
+                        ))}
+                        {(project.tech?.length ?? 0) > 2 && (
+                            <span className="text-xs text-muted-foreground">+{(project.tech?.length ?? 0) - 2}</span>
+                        )}
+                    </div>
+                </CardFooter>
+            </Card>
+        </motion.div>
+    );
+
     const closeProject = () => {
         setSlideIndex(0);
         setProjectParam(null);
@@ -109,66 +170,30 @@ function ProjectsPageContent() {
             />
 
             <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
-                <div className="mx-auto max-w-6xl pt-4">
-                    <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
-                        {projects.map((project, index) => (
-                            <motion.div
-                                key={project.title}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3, delay: index * 0.05 }}
-                            >
-                                <Card
-                                    className="flex flex-col h-full cursor-pointer rounded-2xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group"
-                                    onClick={() => openProject(project)}
-                                >
-                                    <CardHeader className="px-5 pt-5 pb-3 space-y-0">
-                                        <div className="mb-3">
-                                            <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide">
-                                                {project.highlight || 'Project'}
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-lg font-semibold tracking-tight leading-snug group-hover:text-primary transition-colors">
-                                            {project.title}
-                                        </CardTitle>
-                                        <div className="flex items-center gap-2 pt-2">
-                                            <div className="flex items-center justify-center w-6 h-6 rounded-full border bg-background/50 shrink-0">
-                                                <Rocket className="h-3 w-3 text-primary opacity-70" />
-                                            </div>
-                                            <span className="text-xs text-muted-foreground font-medium">
-                                                {project.tech?.[0] ?? 'Dev Project'}
-                                            </span>
-                                            {project.links?.live && (
-                                                <>
-                                                    <span className="text-muted-foreground/40 text-xs">·</span>
-                                                    <span className="text-xs text-muted-foreground">Live</span>
-                                                </>
-                                            )}
-                                        </div>
-                                        <CardDescription className="text-sm pt-3 line-clamp-2 leading-relaxed">
-                                            {project.description}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardFooter className="mt-auto px-5 pb-5 pt-3 border-t flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                            <FolderCode className="h-3.5 w-3.5" />
-                                            <span>{project.tech?.length ?? 0} technologies</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                            {project.tech?.slice(0, 2).map((t) => (
-                                                <Badge key={t} variant="outline" className="rounded-full px-2 py-0 text-xs">
-                                                    {t}
-                                                </Badge>
-                                            ))}
-                                            {(project.tech?.length ?? 0) > 2 && (
-                                                <span className="text-xs text-muted-foreground">+{(project.tech?.length ?? 0) - 2}</span>
-                                            )}
-                                        </div>
-                                    </CardFooter>
-                                </Card>
-                            </motion.div>
-                        ))}
-                    </div>
+                <div className="mx-auto max-w-6xl space-y-12 pt-4">
+                    {saasProjects.length > 0 && (
+                        <section>
+                            <div className="mb-5 flex items-center gap-3">
+                                <h2 className="text-xl font-semibold tracking-tight">Products &amp; Platforms</h2>
+                                <span className="text-sm text-muted-foreground">{saasProjects.length}</span>
+                            </div>
+                            <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
+                                {saasProjects.map((project, index) => renderProjectCard(project, index))}
+                            </div>
+                        </section>
+                    )}
+
+                    {otherProjects.length > 0 && (
+                        <section>
+                            <div className="mb-5 flex items-center gap-3">
+                                <h2 className="text-xl font-semibold tracking-tight">Projects</h2>
+                                <span className="text-sm text-muted-foreground">{otherProjects.length}</span>
+                            </div>
+                            <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
+                                {otherProjects.map((project, index) => renderProjectCard(project, index))}
+                            </div>
+                        </section>
+                    )}
                 </div>
             </main>
 
