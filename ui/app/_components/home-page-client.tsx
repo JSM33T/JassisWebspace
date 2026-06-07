@@ -4,11 +4,12 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { useSearchParams } from "next/navigation";
-import { motion, type Variants } from "framer-motion";
-import { ArrowUpRight, BookOpen, Clock3, Disc3, Folder, Headphones, Image as GalleryIcon, Info, Layers, Mail, Music, Play, Radio, Sparkles } from "lucide-react";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Clock3, Disc3, Folder, Headphones, Image as GalleryIcon, Info, Layers, Mail, Music, Play, Radio, Sparkles, type LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useTrackPlayer } from "@/hooks/use-audio-player";
 import projects from "@/data/projects";
 import { type BlogListItem } from "@/lib/api/blog.types";
@@ -29,6 +30,28 @@ const itemVariants: Variants = {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
 };
+
+type SpotlightKind = "gallery" | "music" | "blog";
+
+interface HeroSpotlight {
+    id: string;
+    kind: SpotlightKind;
+    label: string;
+    icon: LucideIcon;
+    title: string;
+    meta: string;
+    image: string | null;
+    href: string;
+    track?: MusicTrack;
+}
+
+const HERO_FLOAT_DOTS = [
+    { left: "14%", top: "16%", size: 10, color: "var(--primary)", dur: 4, range: -12 },
+    { left: "82%", top: "24%", size: 7, color: "var(--accent)", dur: 5, range: 10 },
+    { left: "68%", top: "9%", size: 5, color: "var(--primary)", dur: 6, range: -8 },
+    { left: "22%", top: "70%", size: 8, color: "var(--secondary)", dur: 5.5, range: 12 },
+    { left: "86%", top: "58%", size: 6, color: "var(--accent)", dur: 4.5, range: -10 },
+] as const;
 
 const defaultLinks = [
     { href: "/about", label: "About", icon: Info },
@@ -78,6 +101,7 @@ interface Props {
 export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musicTracks }: Props) {
     const { playTrack } = useTrackPlayer();
     const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+    const [spotlightIndex, setSpotlightIndex] = useState(0);
 
     const latestBlog = blogs[0] ?? null;
     const latestGallery = galleries[0] ?? null;
@@ -115,6 +139,56 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
         .join(" ");
 
+    const spotlights = useMemo<HeroSpotlight[]>(() => {
+        const items: HeroSpotlight[] = [];
+        if (latestGallery) {
+            items.push({
+                id: `gallery-${latestGallery.id}`,
+                kind: "gallery",
+                label: "Featured Gallery",
+                icon: GalleryIcon,
+                title: latestGallery.name,
+                meta: `${latestGallery.imageCount ?? 0} images`,
+                image: latestGalleryCover ?? null,
+                href: `/gallery/${latestGallery.slug}`,
+            });
+        }
+        if (featuredTrack) {
+            items.push({
+                id: `track-${featuredTrack.id}`,
+                kind: "music",
+                label: "Latest Music",
+                icon: Disc3,
+                title: featuredTrack.title,
+                meta: `${formatArtists(featuredTrack)}${featuredTrack.duration ? ` · ${featuredTrack.duration}` : ""}`,
+                image: featuredTrack.cover ?? null,
+                href: `/music/${featuredTrack.slug}`,
+                track: featuredTrack,
+            });
+        }
+        if (latestBlog) {
+            items.push({
+                id: `blog-${latestBlog.id}`,
+                kind: "blog",
+                label: "Latest Blog",
+                icon: BookOpen,
+                title: latestBlog.title,
+                meta: latestBlog.category?.name ?? "Writing",
+                image: latestBlog.featuredImage ?? null,
+                href: `/blog/${latestBlog.slug}`,
+            });
+        }
+        return items;
+    }, [latestGallery, latestGalleryCover, featuredTrack, latestBlog]);
+
+    const active = spotlights[spotlightIndex] ?? spotlights[0] ?? null;
+    const ActiveSpotlightIcon = active?.icon ?? Sparkles;
+
+    const showPrevSpotlight = () =>
+        setSpotlightIndex((index) => (index - 1 + spotlights.length) % spotlights.length);
+    const showNextSpotlight = () =>
+        setSpotlightIndex((index) => (index + 1) % spotlights.length);
+
     const handlePlayTrack = async (track: MusicTrack) => {
         if (!track.hasPlayableSource) return;
         try {
@@ -147,11 +221,11 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
             <main className="relative mx-auto max-w-6xl px-6">
                 <motion.div variants={containerVariants} initial="hidden" animate="visible">
                     <motion.section
-                        className="relative flex min-h-[calc(100svh-4.25rem)] w-full flex-col items-center justify-center gap-10 pb-8 pt-8 md:flex-row md:items-center md:gap-16 md:pb-10 md:pt-10"
+                        className="relative flex min-h-[calc(100svh-4.25rem)] w-full flex-col items-center justify-center gap-10 pb-8 pt-8 md:flex-row md:items-center md:gap-10 md:pb-10 md:pt-10 lg:gap-14"
                         variants={itemVariants}
                     >
                         {/* ── Left: text ── */}
-                        <div className="flex w-full flex-col items-center gap-7 text-center md:flex-1 md:items-start md:text-left">
+                        <div className="flex w-full flex-col items-center gap-7 text-center md:basis-[44%] md:items-start md:text-left">
                             <div className="inline-flex items-center gap-2.5 rounded-full border border-border/60 bg-card/60 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-sm">
                                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                                     <ArrowUpRight className="h-3 w-3" />
@@ -169,20 +243,56 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                 Music, writing, visuals, and background details all sit in one simple flow.
                             </p>
 
-                            <div className="flex flex-wrap justify-center gap-3 md:justify-start">
-                                <Button asChild size="lg" className="rounded-full px-7">
-                                    <Link href="/about">
+                            <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start">
+                                <Button asChild size="lg" className="h-12 rounded-full pl-2 pr-7">
+                                    <Link href="/about" className="gap-3">
+                                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/15">
+                                            <ArrowUpRight className="h-4 w-4" />
+                                        </span>
                                         Explore
-                                        <ArrowUpRight className="ml-2 h-4 w-4" />
                                     </Link>
                                 </Button>
-                                <Button asChild size="lg" variant="secondary" className="rounded-full px-7">
+                                <Button asChild size="lg" variant="secondary" className="h-12 rounded-full px-7">
                                     <Link href="/gallery">
                                         <GalleryIcon className="mr-2 h-4 w-4" />
                                         View Gallery
                                     </Link>
                                 </Button>
                             </div>
+
+                            {spotlights.length > 0 && (
+                                <div className="flex items-center gap-2" role="tablist" aria-label="Featured spotlight">
+                                    {spotlights.map((item, index) => (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={index === spotlightIndex}
+                                            aria-label={item.label}
+                                            onClick={() => setSpotlightIndex(index)}
+                                            className={cn(
+                                                "h-1.5 rounded-full transition-all duration-300",
+                                                index === spotlightIndex
+                                                    ? "w-7 bg-primary"
+                                                    : "w-2.5 bg-border hover:bg-muted-foreground/40"
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            <Link href="/gallery" className="group mt-1 inline-flex items-center gap-3">
+                                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-sm ring-4 ring-primary/15">
+                                    <Sparkles className="h-5 w-5" />
+                                </span>
+                                <span className="text-left">
+                                    <span className="block text-xs text-muted-foreground">Curated picks</span>
+                                    <span className="flex items-center gap-1 text-sm font-semibold">
+                                        See recent work
+                                        <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                                    </span>
+                                </span>
+                            </Link>
 
                             <Suspense fallback={
                                 <div className="flex flex-wrap justify-center gap-2 md:hidden">
@@ -205,106 +315,170 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             </Suspense>
                         </div>
 
-                        {/* ── Right: live content bento — desktop only ── */}
-                        <div className="hidden h-[460px] flex-1 grid-cols-2 grid-rows-[1fr_1.08fr] gap-3 md:grid">
-                            <Link
-                                href={latestBlog ? `/blog/${latestBlog.slug}` : "/blog"}
-                                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
-                            >
-                                {latestBlog?.featuredImage ? (
-                                    <NextImage
-                                        src={latestBlog.featuredImage}
-                                        alt={latestBlog.title}
-                                        fill
-                                        sizes="(max-width: 768px) 100vw, 25vw"
-                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                        priority
-                                    />
-                                ) : (
-                                    <div className="h-full w-full bg-[radial-gradient(circle_at_22%_18%,color-mix(in_oklch,var(--primary)_34%,transparent),transparent_54%),radial-gradient(circle_at_82%_76%,color-mix(in_oklch,var(--secondary)_28%,transparent),transparent_58%),linear-gradient(145deg,var(--muted),var(--card))]" />
-                                )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/25 to-black/5" />
-                                <div className="absolute inset-x-0 bottom-0 p-4">
-                                    <p className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-widest text-white/65">
-                                        <BookOpen className="h-3 w-3" />
-                                        Latest Note
-                                    </p>
-                                    <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-white">
-                                        {latestBlog?.title ?? "Writing lives here"}
-                                    </h2>
-                                </div>
-                            </Link>
+                        {/* ── Right: spotlight stage — desktop only ── */}
+                        <div className="hidden w-full md:block md:basis-[56%]">
+                            <div className="relative flex h-[30rem] flex-col justify-between overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_72%_18%,color-mix(in_oklch,var(--primary)_26%,transparent),transparent_56%),linear-gradient(150deg,#111114,#0a0a0c)] p-6 shadow-2xl lg:h-[34rem]">
+                                {/* diagonal sheen + dotted texture */}
+                                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_42%)]" />
+                                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(color-mix(in_oklch,white_14%,transparent)_1px,transparent_1px)] bg-[size:18px_18px] opacity-50 [mask-image:radial-gradient(ellipse_at_70%_30%,white,transparent_72%)]" />
 
-                            <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm backdrop-blur-sm">
-                                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,color-mix(in_oklch,var(--primary)_20%,transparent),transparent_42%),radial-gradient(circle_at_82%_76%,color-mix(in_oklch,var(--accent)_14%,transparent),transparent_48%)]" />
-                                <div className="relative flex h-full flex-col justify-between">
-                                    <div className="flex items-center justify-between">
-                                        <span className="rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                                            Scale
-                                        </span>
-                                        <Sparkles className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div>
-                                        <div className="text-5xl font-semibold tracking-tight text-primary">
-                                            {galleryTotal}
+                                {/* floating accent dots */}
+                                {HERO_FLOAT_DOTS.map((dot, index) => (
+                                    <motion.span
+                                        key={index}
+                                        className="pointer-events-none absolute rounded-full"
+                                        style={{
+                                            left: dot.left,
+                                            top: dot.top,
+                                            width: dot.size,
+                                            height: dot.size,
+                                            background: dot.color,
+                                            boxShadow: `0 0 12px ${dot.color}`,
+                                        }}
+                                        animate={{ y: [0, dot.range, 0], opacity: [0.5, 1, 0.5] }}
+                                        transition={{ duration: dot.dur, repeat: Infinity, ease: "easeInOut" }}
+                                    />
+                                ))}
+
+                                {/* vertical scroll cue */}
+                                <div className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 flex-col items-center gap-3 lg:flex">
+                                    <span className="text-[10px] uppercase tracking-[0.4em] text-white/40 [writing-mode:vertical-rl]">scroll</span>
+                                    <motion.span
+                                        className="block h-12 w-px origin-top bg-gradient-to-b from-white/45 to-transparent"
+                                        animate={{ scaleY: [0.6, 1, 0.6], opacity: [0.4, 1, 0.4] }}
+                                        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                                    />
+                                </div>
+
+                                {/* circular featured media */}
+                                <div className="relative flex flex-1 items-center justify-center">
+                                    <motion.div
+                                        animate={{ y: [0, -10, 0] }}
+                                        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                                        className="relative aspect-square w-[72%] max-w-[20rem]"
+                                    >
+                                        <div className="absolute -inset-3 rounded-full bg-primary/15 blur-2xl" />
+                                        <div className="absolute inset-0 rounded-full border border-white/10 p-2">
+                                            <AnimatePresence mode="wait" initial={false}>
+                                                <motion.div
+                                                    key={active?.id ?? "empty"}
+                                                    initial={{ opacity: 0, scale: 0.94, rotate: -3 }}
+                                                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                                    exit={{ opacity: 0, scale: 1.03 }}
+                                                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                                                    className="relative h-full w-full overflow-hidden rounded-full border border-white/15 shadow-2xl"
+                                                >
+                                                    {active?.image ? (
+                                                        <NextImage
+                                                            src={active.image}
+                                                            alt={active.title}
+                                                            fill
+                                                            sizes="(max-width: 1024px) 40vw, 22vw"
+                                                            className="object-cover"
+                                                            priority
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_24%,color-mix(in_oklch,var(--primary)_44%,transparent),transparent_56%),linear-gradient(145deg,#1b1b20,#101013)]">
+                                                            <ActiveSpotlightIcon className="h-12 w-12 text-white/70" />
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+                                                </motion.div>
+                                            </AnimatePresence>
                                         </div>
-                                        <p className="mt-1 text-sm font-medium">visual albums</p>
-                                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                                            plus {musicTracks.length} tracks, {projects.length} projects, and {blogTotal} posts.
-                                        </p>
+
+                                        {/* floating label chip */}
+                                        <motion.div
+                                            animate={{ y: [0, -8, 0], rotate: [0, 3, 0] }}
+                                            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                                            className="absolute -right-3 top-4 flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-medium text-white backdrop-blur-md"
+                                        >
+                                            <ActiveSpotlightIcon className="h-4 w-4 text-primary" />
+                                            {active?.label ?? "Featured"}
+                                        </motion.div>
+
+                                        {/* floating index chip */}
+                                        {active && (
+                                            <motion.div
+                                                animate={{ y: [0, 8, 0] }}
+                                                transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+                                                className="absolute -left-4 bottom-8 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-xs text-white backdrop-blur-md"
+                                            >
+                                                <span className="font-semibold text-primary">{spotlightIndex + 1}</span>
+                                                <span className="text-white/55"> / {spotlights.length}</span>
+                                            </motion.div>
+                                        )}
+                                    </motion.div>
+                                </div>
+
+                                {/* spotlight card with prev/next */}
+                                {active && (
+                                    <div className="relative rounded-2xl border border-white/12 bg-white/[0.06] p-2.5 backdrop-blur-md">
+                                        <div className="flex items-center justify-between px-1.5 pb-2">
+                                            <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-white/55">
+                                                <ActiveSpotlightIcon className="h-3.5 w-3.5" />
+                                                {active.label}
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={showPrevSpotlight}
+                                                    aria-label="Previous spotlight"
+                                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                                                >
+                                                    <ChevronLeft className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={showNextSpotlight}
+                                                    aria-label="Next spotlight"
+                                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                                                >
+                                                    <ChevronRight className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/25 p-2">
+                                            <Link
+                                                href={active.href}
+                                                className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-white/10"
+                                            >
+                                                {active.image ? (
+                                                    <NextImage src={active.image} alt={active.title} fill sizes="56px" className="object-cover" />
+                                                ) : (
+                                                    <span className="flex h-full w-full items-center justify-center bg-white/5">
+                                                        <ActiveSpotlightIcon className="h-5 w-5 text-white/70" />
+                                                    </span>
+                                                )}
+                                            </Link>
+                                            <Link href={active.href} className="min-w-0 flex-1">
+                                                <span className="line-clamp-1 text-sm font-semibold text-white">{active.title}</span>
+                                                <span className="line-clamp-1 text-xs text-white/55">{active.meta}</span>
+                                            </Link>
+                                            {active.kind === "music" && active.track ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => active.track && void handlePlayTrack(active.track)}
+                                                    disabled={!active.track?.hasPlayableSource || playingTrackId === active.track?.id}
+                                                    aria-label="Play track"
+                                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105 disabled:opacity-60"
+                                                >
+                                                    <Play className="h-4 w-4 fill-current" />
+                                                </button>
+                                            ) : (
+                                                <Link
+                                                    href={active.href}
+                                                    aria-label={`Open ${active.title}`}
+                                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                                                >
+                                                    <ArrowUpRight className="h-4 w-4" />
+                                                </Link>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <Link
-                                href={latestGallery ? `/gallery/${latestGallery.slug}` : "/gallery"}
-                                className="group relative col-span-2 overflow-hidden rounded-2xl border border-border/50 bg-muted shadow-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
-                            >
-                                {latestGallery && latestGalleryCover ? (
-                                    <NextImage
-                                        src={latestGalleryCover}
-                                        alt={latestGallery.name}
-                                        fill
-                                        sizes="(max-width: 768px) 100vw, 50vw"
-                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                        priority
-                                    />
-                                ) : (
-                                    <div className="h-full w-full bg-[radial-gradient(circle_at_30%_30%,color-mix(in_oklch,var(--primary)_40%,transparent),transparent_60%),linear-gradient(145deg,var(--muted),var(--card))]" />
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/18 to-transparent" />
-                                <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                                    Gallery cover
-                                </div>
-                                <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-12">
-                                    <p className="mb-1 font-mono text-[10px] font-medium uppercase tracking-widest text-white/60">
-                                        {`${latestGallery?.imageCount ?? 0} images`}
-                                    </p>
-                                    <p className="line-clamp-1 text-lg font-semibold text-white">
-                                        {latestGallery?.name ?? "Recent visual work"}
-                                    </p>
-                                </div>
-                            </Link>
-                        </div>
-
-                        <motion.div
-                            variants={itemVariants}
-                            className="pointer-events-none absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80 md:flex"
-                        >
-                            <motion.span
-                                animate={{ opacity: [0.55, 1, 0.55], y: [0, 2, 0] }}
-                                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                            >
-                                Scroll to explore
-                            </motion.span>
-                            <div className="flex h-12 w-7 items-start justify-center rounded-full border border-border/70 bg-background/70 p-1 shadow-sm backdrop-blur-sm">
-                                <motion.span
-                                    className="block h-2.5 w-2.5 rounded-full bg-primary"
-                                    animate={{ y: [0, 24, 0], opacity: [0.45, 1, 0.45], scale: [0.9, 1, 0.9] }}
-                                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                                />
                             </div>
-                        </motion.div>
+                        </div>
                     </motion.section>
 
                     <motion.section variants={itemVariants} className="pb-8 md:pb-10">
