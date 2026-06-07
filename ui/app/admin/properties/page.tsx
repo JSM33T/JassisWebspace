@@ -40,8 +40,6 @@ export default function AdminPropertiesPage() {
         try {
             if (showRefreshState) {
                 setRefreshing(true);
-            } else {
-                setLoading(true);
             }
 
             const data = await adminUiPropertiesService.getProperties();
@@ -57,7 +55,9 @@ export default function AdminPropertiesPage() {
     }, []);
 
     useEffect(() => {
-        loadProperties();
+        void (async () => {
+            await loadProperties();
+        })();
     }, [loadProperties]);
 
     const handleDraftChange = (key: string, value: string) => {

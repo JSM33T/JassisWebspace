@@ -23,11 +23,14 @@ export function LikeButton({ contentId, initialCount, initialLiked }: LikeButton
     const [likeCount, setLikeCount] = useState(initialCount);
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [isLoading, setIsLoading] = useState(false);
+    const [syncedContentId, setSyncedContentId] = useState(contentId);
 
-    useEffect(() => {
+    // Re-sync to the server-provided initial values when the content changes.
+    if (contentId !== syncedContentId) {
+        setSyncedContentId(contentId);
         setLikeCount(initialCount);
         setIsLiked(initialLiked);
-    }, [contentId, initialCount, initialLiked]);
+    }
 
     useEffect(() => {
         let active = true;

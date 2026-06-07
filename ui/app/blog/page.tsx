@@ -95,19 +95,9 @@ export default function BlogHomePage() {
     }, [debouncedSearch, page, router, selectedAuthor, selectedCategorySlug]);
 
     const loadBlogs = useCallback(async () => {
-        if (isCategoryFilterPending) return;
-
-        if (isCategoryFilterInvalid) {
-            setBlogs([]);
-            setError(null);
-            setLoading(false);
-            return;
-        }
+        if (isCategoryFilterPending || isCategoryFilterInvalid) return;
 
         try {
-            setLoading(true);
-            setError(null);
-
             const data = await blogService.getBlogs({
                 search: debouncedSearch || undefined,
                 authorUsername: selectedAuthor,
@@ -132,15 +122,32 @@ export default function BlogHomePage() {
         debouncedSearch,
         page,
         selectedAuthor,
-        selectedCategory?.id,
+        selectedCategory,
     ]);
 
     useEffect(() => {
         updateUrlParams();
     }, [updateUrlParams]);
 
+    // Re-show the loading state / clear results as the query inputs change.
+    const blogsQueryKey = `${debouncedSearch}|${selectedAuthor ?? ''}|${selectedCategory?.id ?? ''}|${page}|${isCategoryFilterPending}|${isCategoryFilterInvalid}`;
+    const [loadedBlogsKey, setLoadedBlogsKey] = useState(blogsQueryKey);
+    if (blogsQueryKey !== loadedBlogsKey) {
+        setLoadedBlogsKey(blogsQueryKey);
+        if (isCategoryFilterInvalid) {
+            setBlogs([]);
+            setError(null);
+            setLoading(false);
+        } else if (!isCategoryFilterPending) {
+            setLoading(true);
+            setError(null);
+        }
+    }
+
     useEffect(() => {
-        void loadBlogs();
+        void (async () => {
+            await loadBlogs();
+        })();
     }, [loadBlogs]);
 
     const clearFilters = () => {

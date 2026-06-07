@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,12 @@ const itemVariants = {
 };
 
 export default function ProfilePage() {
-    const [isMounted, setIsMounted] = useState(false);
+    // Client-only render guard (false during SSR + first hydration, true after).
+    const isMounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
     const { user, setUser, updateUser, isInitialized } = useUser();
     const router = useRouter();
     const pathname = usePathname();
@@ -289,11 +294,6 @@ export default function ProfilePage() {
     };
 
 
-    // Ensure we only render on the client
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
     useEffect(() => {
         if (!isMounted || !isInitialized) {
             return;
@@ -305,26 +305,26 @@ export default function ProfilePage() {
         }
     }, [currentPathWithQuery, isInitialized, isMounted, router, user]);
 
-    // Initialize form data when user changes or editing starts
-    useEffect(() => {
-        if (user) {
-            setFormData({
-                username: user.username || "",
-                firstName: user.firstName || "",
-                lastName: user.lastName || "",
-                displayName: `${user.firstName} ${user.lastName}`.trim(),
-                bio: user.bio || "",
-                timezone: user.preferences?.timezone || "",
-                locale: user.preferences?.locale || "",
-                email: user.email,
-                emailVerified: true, // Mocked as not in User interface
-                createdAt: undefined, // Not in User interface
-                roles: user.role ? [user.role] : [],
-                avatarUrl: user.avatarUrl,
-                coverUrl: user.coverUrl
-            });
-        }
-    }, [user]);
+    // Initialize form data whenever the user changes (e.g. after a save).
+    const [syncedUser, setSyncedUser] = useState<typeof user | null>(null);
+    if (user && user !== syncedUser) {
+        setSyncedUser(user);
+        setFormData({
+            username: user.username || "",
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+            displayName: `${user.firstName} ${user.lastName}`.trim(),
+            bio: user.bio || "",
+            timezone: user.preferences?.timezone || "",
+            locale: user.preferences?.locale || "",
+            email: user.email,
+            emailVerified: true, // Mocked as not in User interface
+            createdAt: undefined, // Not in User interface
+            roles: user.role ? [user.role] : [],
+            avatarUrl: user.avatarUrl,
+            coverUrl: user.coverUrl
+        });
+    }
 
     // ... existing handlers ...
 

@@ -19,21 +19,20 @@ export default function AdminBlogsPage() {
     const [deleting, setDeleting] = useState<string | null>(null);
 
     useEffect(() => {
-        loadBlogs();
+        let ignore = false;
+        (async () => {
+            try {
+                const data = await adminBlogService.getBlogs({ pageSize: 100 });
+                if (!ignore) setBlogs(data);
+            } catch (error) {
+                console.error("Failed to load blogs", error);
+                toast.error("Failed to load blogs");
+            } finally {
+                if (!ignore) setLoading(false);
+            }
+        })();
+        return () => { ignore = true; };
     }, []);
-
-    const loadBlogs = async () => {
-        try {
-            setLoading(true);
-            const data = await adminBlogService.getBlogs({ pageSize: 100 });
-            setBlogs(data);
-        } catch (error) {
-            console.error("Failed to load blogs", error);
-            toast.error("Failed to load blogs");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleDelete = async (blogId: string, blogTitle: string) => {
         if (!confirm(`Are you sure you want to delete "${blogTitle}"?`)) {

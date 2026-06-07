@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -26,14 +26,8 @@ export default function GalleryPage() {
     const [error, setError] = useState<string | null>(null);
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'title'>('newest');
 
-    useEffect(() => {
-        loadAlbums();
-    }, []);
-
-    const loadAlbums = async () => {
+    const loadAlbums = useCallback(async () => {
         try {
-            setLoading(true);
-            setError(null);
             const data = await galleryService.getAllAlbums();
             setAlbums(data);
         } catch (err) {
@@ -46,7 +40,19 @@ export default function GalleryPage() {
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    const handleRetry = () => {
+        setError(null);
+        setLoading(true);
+        void loadAlbums();
     };
+
+    useEffect(() => {
+        void (async () => {
+            await loadAlbums();
+        })();
+    }, [loadAlbums]);
 
     const visibleAlbums = useMemo(() => {
         const sorted = [...albums];
@@ -110,7 +116,7 @@ export default function GalleryPage() {
                             </div>
                             <h3 className="mb-2 text-xl font-semibold">Failed to Load Albums</h3>
                             <p className="mb-6 text-muted-foreground">{error}</p>
-                            <Button onClick={loadAlbums} size="lg">
+                            <Button onClick={handleRetry} size="lg">
                                 Try Again
                             </Button>
                         </div>

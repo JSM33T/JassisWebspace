@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { commentService } from '@/lib/api/comment.service';
 import { CommentResponse, CommentNode } from '@/lib/api/comment.types';
@@ -69,22 +69,32 @@ export function CommentSection({ contentId }: CommentSectionProps) {
         return true;
     };
 
-    const loadComments = useCallback(async () => {
-        try {
-            setLoading(true);
-            const data = await commentService.getComments(contentId);
-            setComments(data);
-        } catch (error) {
-            console.error('Failed to load comments', error);
-            // toast.error('Failed to load comments'); // Optional: don't annoy if just fetch failed quietly
-        } finally {
-            setLoading(false);
-        }
-    }, [contentId]);
+    // Show the loading skeleton again whenever the target content changes.
+    const [activeContentId, setActiveContentId] = useState(contentId);
+    if (contentId !== activeContentId) {
+        setActiveContentId(contentId);
+        setLoading(true);
+    }
 
     useEffect(() => {
-        loadComments();
-    }, [loadComments]);
+        let ignore = false;
+
+        (async () => {
+            try {
+                const data = await commentService.getComments(contentId);
+                if (!ignore) setComments(data);
+            } catch (error) {
+                console.error('Failed to load comments', error);
+                // Don't annoy with a toast if the fetch failed quietly.
+            } finally {
+                if (!ignore) setLoading(false);
+            }
+        })();
+
+        return () => {
+            ignore = true;
+        };
+    }, [contentId]);
 
     const commentTree = useMemo(() => {
         const map = new Map<string, CommentNode>();

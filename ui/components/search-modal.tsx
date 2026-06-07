@@ -75,32 +75,54 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
         }
     }, []);
 
-    useEffect(() => {
+    const handleQueryChange = useCallback((value: string) => {
+        setQuery(value);
+        setSelectedIndex(-1);
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        if (!query.trim()) {
+        if (!value.trim()) {
             setResults([]);
             setTotal(0);
             setLoading(false);
             return;
         }
         setLoading(true);
-        debounceRef.current = setTimeout(() => runSearch(query), 300);
-        return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
-        };
-    }, [query, runSearch]);
+        debounceRef.current = setTimeout(() => runSearch(value), 300);
+    }, [runSearch]);
 
-    // Focus input when modal opens, reset on close
-    useEffect(() => {
-        if (open) {
-            setTimeout(() => inputRef.current?.focus(), 60);
-        } else {
+    const navigateTo = useCallback((item: SearchResultItem) => {
+        const meta = CONTENT_TYPE_META[item.contentType];
+        if (!meta) return;
+        router.push(meta.href(item));
+        onClose();
+    }, [router, onClose]);
+
+    // Reset search state when the modal closes.
+    const [wasOpen, setWasOpen] = useState(open);
+    if (open !== wasOpen) {
+        setWasOpen(open);
+        if (!open) {
             setQuery('');
             setResults([]);
             setTotal(0);
+            setLoading(false);
             setSelectedIndex(-1);
         }
+    }
+
+    // Focus the input on open; cancel any pending search on close.
+    useEffect(() => {
+        if (!open) {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            return;
+        }
+        const id = setTimeout(() => inputRef.current?.focus(), 60);
+        return () => clearTimeout(id);
     }, [open]);
+
+    // Cancel a pending debounced search on unmount.
+    useEffect(() => () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+    }, []);
 
     // Keyboard navigation
     useEffect(() => {
@@ -126,15 +148,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
 
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, results, selectedIndex]);
-
-    const navigateTo = (item: SearchResultItem) => {
-        const meta = CONTENT_TYPE_META[item.contentType];
-        if (!meta) return;
-        router.push(meta.href(item));
-        onClose();
-    };
+    }, [open, results, selectedIndex, onClose, navigateTo]);
 
     const hasResults = results.length > 0;
     const showEmpty = !loading && query.trim().length > 0 && !hasResults;
@@ -172,10 +186,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
                                     ref={inputRef}
                                     type="search"
                                     value={query}
-                                    onChange={(e) => {
-                                        setQuery(e.target.value);
-                                        setSelectedIndex(-1);
-                                    }}
+                                    onChange={(e) => handleQueryChange(e.target.value)}
                                     placeholder="Search everything..."
                                     className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                                     autoComplete="off"
@@ -188,7 +199,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
                                     {query && (
                                         <button
                                             type="button"
-                                            onClick={() => { setQuery(''); setResults([]); setTotal(0); inputRef.current?.focus(); }}
+                                            onClick={() => { handleQueryChange(''); inputRef.current?.focus(); }}
                                             className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
                                             aria-label="Clear search"
                                         >

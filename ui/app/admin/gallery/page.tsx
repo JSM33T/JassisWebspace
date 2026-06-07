@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Pencil, Trash } from "lucide-react";
 import { Album } from "@/lib/api/gallery.types";
@@ -17,13 +17,8 @@ export default function AdminGalleryPage() {
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadAlbums();
-    }, []);
-
-    const loadAlbums = async () => {
+    const loadAlbums = useCallback(async () => {
         try {
-            setLoading(true);
             const data = await adminGalleryService.getAllAlbums();
             setAlbums(data);
         } catch (error) {
@@ -32,7 +27,13 @@ export default function AdminGalleryPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        void (async () => {
+            await loadAlbums();
+        })();
+    }, [loadAlbums]);
 
     const handleDelete = async (albumId: string, albumName: string) => {
         if (!confirm(`Are you sure you want to delete "${albumName}"? This will permanently delete all images in this album.`)) {

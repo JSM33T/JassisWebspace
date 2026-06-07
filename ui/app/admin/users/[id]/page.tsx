@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Shield, Calendar, Key, AlertTriangle, Monitor, Save } from "lucide-react";
@@ -29,15 +29,8 @@ export default function AdminUserDetailPage() {
 
     const availableRoles = ["user", "mod", "admin"];
 
-    useEffect(() => {
-        if (id) {
-            loadUser(id);
-        }
-    }, [id]);
-
-    const loadUser = async (userId: string) => {
+    const loadUser = useCallback(async (userId: string) => {
         try {
-            setLoading(true);
             const data = await adminUserService.getUser(userId);
             setUser(data);
 
@@ -51,7 +44,21 @@ export default function AdminUserDetailPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    // Re-show the loading state when navigating to a different user.
+    const [loadedId, setLoadedId] = useState(id);
+    if (id !== loadedId) {
+        setLoadedId(id);
+        setLoading(true);
+    }
+
+    useEffect(() => {
+        if (!id) return;
+        void (async () => {
+            await loadUser(id);
+        })();
+    }, [id, loadUser]);
 
     const handleRoleToggle = (role: string) => {
         setSelectedRoles(prev =>

@@ -35,7 +35,6 @@ export default function AdminMessagesPage() {
 
     const loadMessages = useCallback(async () => {
         try {
-            setLoading(true);
             const data = await adminContactService.getMessages({
                 page,
                 pageSize,
@@ -49,8 +48,18 @@ export default function AdminMessagesPage() {
         }
     }, [page, search]);
 
+    // Re-show the loading state whenever the page or search changes.
+    const messagesKey = `${page}|${search}`;
+    const [loadedMessagesKey, setLoadedMessagesKey] = useState(messagesKey);
+    if (messagesKey !== loadedMessagesKey) {
+        setLoadedMessagesKey(messagesKey);
+        setLoading(true);
+    }
+
     useEffect(() => {
-        loadMessages();
+        void (async () => {
+            await loadMessages();
+        })();
     }, [loadMessages]);
 
     const handleSearch = (term: string) => {

@@ -112,12 +112,6 @@ export default function ContactPage() {
     }, []);
 
     useEffect(() => {
-        if (window.turnstile) {
-            setTurnstileScriptReady(true);
-        }
-    }, []);
-
-    useEffect(() => {
         let isMounted = true;
 
         const loadTurnstileConfig = async () => {
@@ -527,7 +521,7 @@ export default function ContactPage() {
                     src="https://challenges.cloudflare.com/turnstile/v0/api.js"
                     async
                     defer
-                    onLoad={() => setTurnstileScriptReady(true)}
+                    onReady={() => setTurnstileScriptReady(true)}
                 />
             )}
         </motion.div>

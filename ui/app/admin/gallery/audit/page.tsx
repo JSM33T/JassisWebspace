@@ -37,7 +37,7 @@ interface AssignForm {
 
 export default function GalleryAuditPage() {
     const [result, setResult] = useState<GalleryAuditResult | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     // preview modal
@@ -53,8 +53,6 @@ export default function GalleryAuditPage() {
 
     const runAudit = useCallback(async () => {
         try {
-            setLoading(true);
-            setError(null);
             setResult(await adminGalleryService.auditBlobConsistency());
         } catch (err) {
             setError(err instanceof Error ? err.message : "Audit failed.");
@@ -63,16 +61,34 @@ export default function GalleryAuditPage() {
         }
     }, []);
 
-    useEffect(() => { runAudit(); }, [runAudit]);
+    const handleRunAudit = () => {
+        setError(null);
+        setLoading(true);
+        void runAudit();
+    };
+
+    useEffect(() => {
+        void (async () => {
+            await runAudit();
+        })();
+    }, [runAudit]);
+
+    // Show the albums loading state when the assign dialog opens.
+    const [albumsLoadKey, setAlbumsLoadKey] = useState<string | null>(null);
+    if (assigningBlob !== albumsLoadKey) {
+        setAlbumsLoadKey(assigningBlob);
+        setAlbumsLoading(!!assigningBlob);
+    }
 
     // Load albums when assign dialog opens
     useEffect(() => {
         if (!assigningBlob) return;
-        setAlbumsLoading(true);
+        let ignore = false;
         adminGalleryService.getAllAlbums()
-            .then(setAlbums)
+            .then((data) => { if (!ignore) setAlbums(data); })
             .catch(() => toast.error("Failed to load albums."))
-            .finally(() => setAlbumsLoading(false));
+            .finally(() => { if (!ignore) setAlbumsLoading(false); });
+        return () => { ignore = true; };
     }, [assigningBlob]);
 
     const removeOrphan = (blobName: string) =>
@@ -134,7 +150,7 @@ export default function GalleryAuditPage() {
                             Cross-reference every DB gallery entry against Azure Blob Storage.
                         </p>
                     </div>
-                    <Button type="button" onClick={runAudit} disabled={loading} className="rounded-full">
+                    <Button type="button" onClick={handleRunAudit} disabled={loading} className="rounded-full">
                         {loading ? <><Spinner className="mr-2 h-4 w-4" />Scanning...</> : <><ScanSearch className="mr-2 h-4 w-4" />Run Audit</>}
                     </Button>
                 </div>

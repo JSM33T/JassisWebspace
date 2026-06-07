@@ -105,7 +105,6 @@ export default function EditAlbumPage() {
 
     const loadAlbum = useCallback(async () => {
         try {
-            setLoading(true);
             const data = await adminGalleryService.getAlbumById(albumId);
             setAlbum(data);
             form.reset({
@@ -130,7 +129,9 @@ export default function EditAlbumPage() {
     }, [albumId, form, router]);
 
     useEffect(() => {
-        loadAlbum();
+        void (async () => {
+            await loadAlbum();
+        })();
     }, [loadAlbum]);
 
     useEffect(() => {

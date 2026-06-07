@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -24,25 +24,37 @@ export function AuthorModal({ isOpen, onClose, userId, username }: AuthorModalPr
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const loadProfile = useCallback(async () => {
-        try {
+    // Reset to a loading state each time the modal opens (or the author changes).
+    const [loadKey, setLoadKey] = useState<string | null>(null);
+    const currentKey = isOpen && userId ? `${userId}:${username}` : null;
+    if (currentKey !== loadKey) {
+        setLoadKey(currentKey);
+        if (currentKey) {
             setLoading(true);
             setError(null);
-            const profile = await profileService.getPublicProfile(username);
-            setProfile(profile);
-        } catch (err) {
-            setError('Failed to load author profile');
-            console.error('Error loading profile:', err);
-        } finally {
-            setLoading(false);
         }
-    }, [username]);
+    }
 
     useEffect(() => {
-        if (isOpen && userId) {
-            loadProfile();
-        }
-    }, [isOpen, loadProfile, userId]);
+        if (!isOpen || !userId) return;
+        let ignore = false;
+
+        (async () => {
+            try {
+                const data = await profileService.getPublicProfile(username);
+                if (!ignore) setProfile(data);
+            } catch (err) {
+                if (!ignore) setError('Failed to load author profile');
+                console.error('Error loading profile:', err);
+            } finally {
+                if (!ignore) setLoading(false);
+            }
+        })();
+
+        return () => {
+            ignore = true;
+        };
+    }, [isOpen, userId, username]);
 
     const handleMoreFromAuthor = () => {
         onClose();

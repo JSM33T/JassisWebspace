@@ -41,10 +41,6 @@ export default function AdminSettingsPage() {
 
     const fetchCacheMeta = useCallback(async () => {
         try {
-            setLoadingCacheMeta(true);
-            setCacheError(null);
-            setCacheNotice(null);
-
             const token = typeof window === "undefined" ? null : localStorage.getItem("accessToken");
             const response = await fetch("/api/admin/cache/home", {
                 method: "GET",
@@ -101,7 +97,9 @@ export default function AdminSettingsPage() {
     };
 
     useEffect(() => {
-        fetchCacheMeta();
+        void (async () => {
+            await fetchCacheMeta();
+        })();
     }, [fetchCacheMeta]);
 
     return (

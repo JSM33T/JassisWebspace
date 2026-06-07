@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button"
 
 export function ModeToggle() {
     const { setTheme, resolvedTheme } = useTheme()
-    const [mounted, setMounted] = React.useState(false)
-
-    React.useEffect(() => {
-        setMounted(true)
-    }, [])
+    // Avoids hydration mismatch: false during SSR + first client render, true after hydration.
+    const mounted = React.useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    )
 
     const toggleTheme = () => {
         if (resolvedTheme === 'dark') {

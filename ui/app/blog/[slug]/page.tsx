@@ -47,8 +47,6 @@ export default function BlogViewPage() {
 
     const loadBlog = useCallback(async () => {
         try {
-            setLoading(true);
-            setError(null);
             const publishedBlog = await blogService.getBlogBySlug(slug);
             setBlog(publishedBlog);
         } catch (err) {
@@ -63,9 +61,19 @@ export default function BlogViewPage() {
         }
     }, [slug]);
 
+    // Re-show the loading state when navigating to a different post.
+    const [loadedSlug, setLoadedSlug] = useState(slug);
+    if (slug !== loadedSlug) {
+        setLoadedSlug(slug);
+        setLoading(true);
+        setError(null);
+    }
+
     useEffect(() => {
         if (!slug || !isInitialized) return;
-        loadBlog();
+        void (async () => {
+            await loadBlog();
+        })();
     }, [slug, isInitialized, loadBlog]);
 
     const formatDate = (date: string | null) =>

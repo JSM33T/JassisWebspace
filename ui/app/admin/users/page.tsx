@@ -50,7 +50,6 @@ export default function AdminUsersPage() {
 
     const loadUsers = useCallback(async () => {
         try {
-            setLoading(true);
             const data = await adminUserService.getUsers({
                 page,
                 pageSize,
@@ -64,8 +63,18 @@ export default function AdminUsersPage() {
         }
     }, [page, search]);
 
+    // Re-show the loading state whenever the page or search changes.
+    const usersKey = `${page}|${search}`;
+    const [loadedUsersKey, setLoadedUsersKey] = useState(usersKey);
+    if (usersKey !== loadedUsersKey) {
+        setLoadedUsersKey(usersKey);
+        setLoading(true);
+    }
+
     useEffect(() => {
-        loadUsers();
+        void (async () => {
+            await loadUsers();
+        })();
     }, [loadUsers]);
 
     const handleSearch = (term: string) => {

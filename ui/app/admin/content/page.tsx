@@ -63,7 +63,6 @@ export default function AdminContentPage() {
 
     const loadItems = useCallback(async () => {
         try {
-            setLoading(true);
             const safeFrom = Number.isNaN(new Date(dateFrom).valueOf())
                 ? new Date()
                 : new Date(dateFrom);
@@ -87,8 +86,18 @@ export default function AdminContentPage() {
         }
     }, [dateFrom, dateTo, typeFilter, sortBy, sortDir]);
 
+    // Re-show the loading state whenever the query inputs change.
+    const filterKey = `${typeFilter}|${sortBy}|${sortDir}|${dateFrom}|${dateTo}`;
+    const [loadedFilterKey, setLoadedFilterKey] = useState(filterKey);
+    if (filterKey !== loadedFilterKey) {
+        setLoadedFilterKey(filterKey);
+        setLoading(true);
+    }
+
     useEffect(() => {
-        loadItems();
+        void (async () => {
+            await loadItems();
+        })();
     }, [loadItems]);
 
     return (

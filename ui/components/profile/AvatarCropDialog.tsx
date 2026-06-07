@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -107,13 +107,17 @@ export default function AvatarCropDialog({ isOpen, src, onOpenChange, onCropped,
     const [croppedPixels, setCroppedPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
+    // Reset crop state when the dialog opens (or the image/zoom changes while open).
+    const [lastOpenState, setLastOpenState] = useState<string | null>(null);
+    const openState = isOpen ? `${src ?? ""}|${initialZoom}` : null;
+    if (openState !== lastOpenState) {
+        setLastOpenState(openState);
         if (isOpen) {
             setCrop({ x: 0, y: 0 });
             setZoom(initialZoom);
             setCroppedPixels(null);
         }
-    }, [isOpen, src, initialZoom]);
+    }
 
     const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
         setCroppedPixels(areaPixels);

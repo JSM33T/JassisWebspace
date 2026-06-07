@@ -58,9 +58,6 @@ export default function AlbumDetailPage() {
 
     const loadAlbum = useCallback(async () => {
         try {
-            setLoading(true);
-            setError(null);
-
             // First, get all albums to find the one with matching slug
             const albums = await galleryService.getAllAlbums();
             const matchedAlbum = albums.find(a => a.slug === slug);
@@ -86,10 +83,19 @@ export default function AlbumDetailPage() {
         }
     }, [slug]);
 
+    // Re-show the loading state when navigating to a different album.
+    const [loadedSlug, setLoadedSlug] = useState(slug);
+    if (slug !== loadedSlug) {
+        setLoadedSlug(slug);
+        setLoading(true);
+        setError(null);
+    }
+
     useEffect(() => {
-        if (slug) {
-            loadAlbum();
-        }
+        if (!slug) return;
+        void (async () => {
+            await loadAlbum();
+        })();
     }, [slug, loadAlbum]);
 
     const handleImageRefresh = async (e: React.MouseEvent, imageId: string) => {
