@@ -1,7 +1,12 @@
-/* Hide visible scrollbars while preserving scrolling behavior */
+/* Hide visible scrollbars while preserving scrolling behavior.
+   overflow-y stays on html only — setting it on body makes body a scroll
+   container, which breaks position: sticky for page content (the TOC, etc.). */
+html {
+  overflow-y: auto;
+}
+
 html,
 body {
-  overflow-y: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

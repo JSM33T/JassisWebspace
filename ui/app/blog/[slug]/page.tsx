@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer';
+import { TableOfContents } from '@/components/blog/TableOfContents';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { blogService } from '@/lib/api/blog.service';
 import { BlogDetail } from '@/lib/api/blog.types';
@@ -217,8 +218,8 @@ export default function BlogViewPage() {
             </div>
 
             <main className="flex-1 px-4 pb-16 pt-8 md:px-8 md:pt-10">
-                <div className="mx-auto mt-6 max-w-4xl">
-                    <div>
+                <div className="mx-auto mt-6 flex max-w-6xl gap-12">
+                    <article className="min-w-0 flex-1">
                         <Separator className="mb-8" />
 
                         {blog.featuredImage && (
@@ -257,7 +258,13 @@ export default function BlogViewPage() {
                                 <Link href="/blog">View More Articles</Link>
                             </Button>
                         </div>
-                    </div>
+                    </article>
+
+                    <aside className="hidden w-60 shrink-0 xl:block">
+                        <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pb-8">
+                            <TableOfContents content={blog.content} />
+                        </div>
+                    </aside>
                 </div>
             </main>
 

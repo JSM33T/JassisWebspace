@@ -6,11 +6,23 @@ import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 
 import { Check, Copy } from 'lucide-react';
-import { ComponentProps, ReactNode, useState } from 'react';
+import { Children, ComponentProps, isValidElement, ReactNode, useState } from 'react';
+
+import { slugify } from '@/lib/toc';
 
 interface MarkdownRendererProps {
     content: string;
 }
+
+/** Flatten React children into plain text so headings can get a stable anchor id. */
+const getNodeText = (node: ReactNode): string => {
+    if (typeof node === 'string' || typeof node === 'number') return String(node);
+    if (Array.isArray(node)) return node.map(getNodeText).join('');
+    if (isValidElement<{ children?: ReactNode }>(node)) {
+        return Children.toArray(node.props.children).map(getNodeText).join('');
+    }
+    return '';
+};
 
 interface CodeBlockProps {
     language: string;
@@ -67,6 +79,16 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
+                    h2: ({ children }) => (
+                        <h2 id={slugify(getNodeText(children))} className="scroll-mt-24">
+                            {children}
+                        </h2>
+                    ),
+                    h3: ({ children }) => (
+                        <h3 id={slugify(getNodeText(children))} className="scroll-mt-24">
+                            {children}
+                        </h3>
+                    ),
                     code({ inline, className, children, ...props }: MarkdownCodeProps) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
