@@ -8,6 +8,7 @@ import {
     TrackCoverUploadResponse,
     UpdateTrackRequest
 } from "./admin-music.types";
+import { revalidateMusicTracksFeedCacheBestEffort } from "./admin-cache.service";
 
 class AdminMusicService {
     async getAuthors(params?: { search?: string; take?: number }): Promise<TrackAuthor[]> {
@@ -50,27 +51,36 @@ class AdminMusicService {
     }
 
     async createTrack(data: CreateTrackRequest): Promise<AdminTrackDetail> {
-        return post<AdminTrackDetail, CreateTrackRequest>("/admin/music/tracks", data);
+        const track = await post<AdminTrackDetail, CreateTrackRequest>("/admin/music/tracks", data);
+        await revalidateMusicTracksFeedCacheBestEffort("music track create");
+        return track;
     }
 
     async updateTrack(id: string, data: UpdateTrackRequest): Promise<AdminTrackDetail> {
-        return put<AdminTrackDetail, UpdateTrackRequest>(`/admin/music/tracks/${id}`, data);
+        const track = await put<AdminTrackDetail, UpdateTrackRequest>(`/admin/music/tracks/${id}`, data);
+        await revalidateMusicTracksFeedCacheBestEffort("music track update");
+        return track;
     }
 
     async deleteTrack(id: string): Promise<void> {
-        return del<void>(`/admin/music/tracks/${id}`);
+        await del<void>(`/admin/music/tracks/${id}`);
+        await revalidateMusicTracksFeedCacheBestEffort("music track delete");
     }
 
     async uploadTrackCover(trackId: string, file: File): Promise<TrackCoverUploadResponse> {
         const formData = new FormData();
         formData.append("file", file);
-        return post<TrackCoverUploadResponse>(`/admin/music/tracks/${trackId}/cover`, formData);
+        const uploaded = await post<TrackCoverUploadResponse>(`/admin/music/tracks/${trackId}/cover`, formData);
+        await revalidateMusicTracksFeedCacheBestEffort("music cover upload");
+        return uploaded;
     }
 
     async uploadTrackAudio(trackId: string, file: File): Promise<TrackAudioUploadResponse> {
         const formData = new FormData();
         formData.append("file", file);
-        return post<TrackAudioUploadResponse>(`/admin/music/tracks/${trackId}/audio`, formData);
+        const uploaded = await post<TrackAudioUploadResponse>(`/admin/music/tracks/${trackId}/audio`, formData);
+        await revalidateMusicTracksFeedCacheBestEffort("music audio upload");
+        return uploaded;
     }
 }
 

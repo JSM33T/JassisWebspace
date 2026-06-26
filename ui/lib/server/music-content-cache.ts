@@ -81,7 +81,7 @@ export async function revalidateAndWarmMusicCacheTag(tag: string): Promise<Cache
         throw new Error(`Unsupported cache tag: ${tag}`);
     }
 
-    revalidateTag(MUSIC_TRACKS_TAG, "max");
+    revalidateTag(MUSIC_TRACKS_TAG, { expire: 0 });
     const refreshed = await getCachedMusicTracks();
     return toCacheTagMeta(refreshed);
 }

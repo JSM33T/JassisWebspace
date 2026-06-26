@@ -23,6 +23,7 @@ import { LikeButton } from '@/components/likes/LikeButton';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
 import { musicService } from '@/lib/api/music.service';
 import { TrackDetail } from '@/lib/api/music.types';
+import { getVersionedMusicCoverUrl } from '@/lib/music-media';
 import { ApiError } from '@/lib/api/types';
 import { toast } from 'sonner';
 
@@ -162,7 +163,7 @@ export default function MusicTrackViewPage() {
                     <div className="relative aspect-square rounded-2xl overflow-hidden border bg-muted">
                         {track.cover ? (
                             <Image
-                                src={track.cover}
+                                src={getVersionedMusicCoverUrl(track) ?? track.cover}
                                 alt={track.title}
                                 fill
                                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 40vw, 512px"
