@@ -17,6 +17,7 @@ import { type Album } from "@/lib/api/gallery.types";
 import { musicService } from "@/lib/api/music.service";
 import { type MusicTrack } from "@/lib/api/music.types";
 import { getVersionedGalleryCoverUrl } from "@/lib/gallery-media";
+import { getVersionedMusicCoverUrl } from "@/lib/music-media";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -161,7 +162,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                 icon: Disc3,
                 title: featuredTrack.title,
                 meta: `${formatArtists(featuredTrack)}${featuredTrack.duration ? ` · ${featuredTrack.duration}` : ""}`,
-                image: featuredTrack.cover ?? null,
+                image: getVersionedMusicCoverUrl(featuredTrack) ?? null,
                 href: `/music/${featuredTrack.slug}`,
                 track: featuredTrack,
             });

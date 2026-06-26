@@ -13,6 +13,7 @@ import { MusicTrack } from '@/lib/api/music.types';
 import { MusicContentPayload } from '@/lib/music-content.types';
 import { toast } from 'sonner';
 import { PageBanner } from '@/components/page-banner';
+import { getVersionedMusicCoverUrl } from '@/lib/music-media';
 
 const CATEGORY_ORDER = ['remixes', 'originals', 'snippets', 'radio/features', 'radio-features', 'features'];
 
@@ -238,7 +239,7 @@ export default function MusicPage() {
                                     {/* Background image */}
                                     {track.cover ? (
                                         <Image
-                                            src={track.cover}
+                                            src={getVersionedMusicCoverUrl(track) ?? track.cover}
                                             alt={track.title}
                                             fill
                                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
