@@ -32,6 +32,7 @@ import "yet-another-react-lightbox/plugins/captions.css";
 import "yet-another-react-lightbox/plugins/counter.css";
 
 const PHONE_LIGHTBOX_THUMBNAILS_QUERY = "(max-width: 640px)";
+const LIGHTBOX_CHROME_HIDE_DELAY_MS = 2000;
 
 function usePhoneLightboxThumbnails() {
     const [isPhone, setIsPhone] = useState(false);
@@ -70,6 +71,7 @@ export default function AlbumDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [imageVersions, setImageVersions] = useState<Record<string, number>>({});
+    const [isLightboxChromeVisible, setIsLightboxChromeVisible] = useState(true);
 
     const setImageParam = (imageId: string | null) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -144,6 +146,38 @@ export default function AlbumDetailPage() {
         });
     };
 
+    const slides = album?.images.map(image => ({
+        src: image.url,
+        thumbnail: toGalleryThumbUrl(image.url),
+        title: image.title,
+        description: image.description
+    })) ?? [];
+
+    const selectedImageId = searchParams.get('image');
+    const selectedIndex = selectedImageId && album
+        ? album.images.findIndex((image) => image.id === selectedImageId)
+        : -1;
+    const isLightboxOpen = selectedIndex >= 0;
+    const selectedImage = isLightboxOpen && album ? album.images[selectedIndex] : null;
+
+    const showLightboxChrome = useCallback(() => {
+        setIsLightboxChromeVisible(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isLightboxOpen || !isLightboxChromeVisible) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setIsLightboxChromeVisible(false);
+        }, LIGHTBOX_CHROME_HIDE_DELAY_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [isLightboxOpen, isLightboxChromeVisible, selectedIndex]);
+
     if (loading) {
         return (
             <div className="flex flex-col min-h-screen">
@@ -198,20 +232,6 @@ export default function AlbumDetailPage() {
             </div>
         );
     }
-
-    const slides = album.images.map(image => ({
-        src: image.url,
-        thumbnail: toGalleryThumbUrl(image.url),
-        title: image.title,
-        description: image.description
-    }));
-
-    const selectedImageId = searchParams.get('image');
-    const selectedIndex = selectedImageId
-        ? album.images.findIndex((image) => image.id === selectedImageId)
-        : -1;
-    const isLightboxOpen = selectedIndex >= 0;
-    const selectedImage = isLightboxOpen ? album.images[selectedIndex] : null;
 
     const handleShareCurrentImage = async () => {
         if (!selectedImage || typeof window === 'undefined') {
@@ -335,7 +355,10 @@ export default function AlbumDetailPage() {
                                         type="button"
                                         className="absolute inset-0 z-[1] cursor-zoom-in text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                         aria-label={`Open ${image.title || `image ${i + 1}`} in gallery viewer`}
-                                        onClick={() => setImageParam(image.id)}
+                                        onClick={() => {
+                                            setIsLightboxChromeVisible(true);
+                                            setImageParam(image.id);
+                                        }}
                                     >
                                         <span className="sr-only">Open image</span>
                                     </button>
@@ -377,10 +400,17 @@ export default function AlbumDetailPage() {
             </main>
 
             <Lightbox
-                className="jass-gallery-lightbox"
+                className={`jass-gallery-lightbox ${
+                    isLightboxChromeVisible
+                        ? "jass-gallery-lightbox--chrome-visible"
+                        : "jass-gallery-lightbox--chrome-hidden"
+                }`}
                 open={isLightboxOpen}
                 index={isLightboxOpen ? selectedIndex : 0}
-                close={() => setImageParam(null)}
+                close={() => {
+                    setIsLightboxChromeVisible(true);
+                    setImageParam(null);
+                }}
                 slides={slides}
                 plugins={[Zoom, Thumbnails, Captions, Fullscreen, Counter]}
                 animation={{ fade: 0 }}
@@ -418,9 +448,11 @@ export default function AlbumDetailPage() {
                     ],
                 }}
                 on={{
+                    click: showLightboxChrome,
                     view: ({ index }) => {
                         const imageId = album.images[index]?.id;
-                        if (imageId) {
+                        if (imageId && imageId !== selectedImageId) {
+                            showLightboxChrome();
                             setImageParam(imageId);
                         }
                     },
