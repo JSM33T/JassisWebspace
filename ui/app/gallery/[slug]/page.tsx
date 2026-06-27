@@ -29,6 +29,31 @@ import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Counter from "yet-another-react-lightbox/plugins/counter";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
 import "yet-another-react-lightbox/plugins/captions.css";
+import "yet-another-react-lightbox/plugins/counter.css";
+
+const PHONE_LIGHTBOX_THUMBNAILS_QUERY = "(max-width: 640px)";
+
+function usePhoneLightboxThumbnails() {
+    const [isPhone, setIsPhone] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+            return;
+        }
+
+        const mediaQuery = window.matchMedia(PHONE_LIGHTBOX_THUMBNAILS_QUERY);
+        const updateIsPhone = () => setIsPhone(mediaQuery.matches);
+
+        updateIsPhone();
+        mediaQuery.addEventListener("change", updateIsPhone);
+
+        return () => {
+            mediaQuery.removeEventListener("change", updateIsPhone);
+        };
+    }, []);
+
+    return isPhone;
+}
 
 export default function AlbumDetailPage() {
     const params = useParams();
@@ -36,6 +61,7 @@ export default function AlbumDetailPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const isPhoneLightbox = usePhoneLightboxThumbnails();
 
     const { user } = useUser();
     const isAdmin = user?.role === 'admin';
@@ -285,15 +311,14 @@ export default function AlbumDetailPage() {
                             </p>
                         </div>
                     ) : (
-                        <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
+                        <div className="columns-1 gap-2 space-y-2 sm:gap-3 sm:space-y-3 md:columns-2 md:gap-4 md:space-y-4 lg:columns-3">
                             {album.images.map((image, i) => (
                                 <motion.div
                                     key={image.id}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.4, delay: i * 0.06 }}
-                                    className="break-inside-avoid group cursor-zoom-in relative overflow-hidden rounded-2xl bg-muted"
-                                    onClick={() => setImageParam(image.id)}
+                                    className="break-inside-avoid group relative overflow-hidden rounded-xl bg-muted sm:rounded-2xl"
                                 >
                                     <GalleryThumb
                                         src={applyCacheBustingParam(toGalleryThumbUrl(image.url), imageVersions[image.id]) ?? toGalleryThumbUrl(image.url)}
@@ -306,7 +331,15 @@ export default function AlbumDetailPage() {
                                     />
 
                                     {/* Zoom icon */}
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <button
+                                        type="button"
+                                        className="absolute inset-0 z-[1] cursor-zoom-in text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                        aria-label={`Open ${image.title || `image ${i + 1}`} in gallery viewer`}
+                                        onClick={() => setImageParam(image.id)}
+                                    >
+                                        <span className="sr-only">Open image</span>
+                                    </button>
+                                    <div className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100">
                                         <div className="bg-background/80 backdrop-blur-sm p-3 rounded-full text-foreground shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300">
                                             <ZoomIn className="h-5 w-5" />
                                         </div>
@@ -316,7 +349,7 @@ export default function AlbumDetailPage() {
                                     {isAdmin && (
                                         <button
                                             type="button"
-                                            className="absolute top-2 right-2 z-10 bg-background/80 backdrop-blur-sm p-1.5 rounded-full text-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                            className="absolute top-2 right-2 z-10 bg-background/80 backdrop-blur-sm p-1.5 rounded-full text-foreground shadow-md opacity-0 transition-opacity duration-300 hover:bg-background group-hover:opacity-100 group-focus-within:opacity-100"
                                             title="Refresh image cache"
                                             onClick={(e) => handleImageRefresh(e, image.id)}
                                         >
@@ -325,7 +358,7 @@ export default function AlbumDetailPage() {
                                     )}
 
                                     {/* Always-visible bottom label */}
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12">
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-3 pt-10 sm:px-4 sm:pb-4 sm:pt-12">
                                         <p className="mb-0.5 font-mono text-[11px] font-medium uppercase tracking-widest text-white/60">
                                             {String(i + 1).padStart(2, '0')}
                                         </p>
@@ -344,6 +377,7 @@ export default function AlbumDetailPage() {
             </main>
 
             <Lightbox
+                className="jass-gallery-lightbox"
                 open={isLightboxOpen}
                 index={isLightboxOpen ? selectedIndex : 0}
                 close={() => setImageParam(null)}
@@ -353,7 +387,20 @@ export default function AlbumDetailPage() {
                 controller={{ closeOnBackdropClick: true }}
                 captions={{ descriptionTextAlign: 'center' }}
                 carousel={{ finite: true }}
-                counter={{ container: { style: { top: "unset", bottom: 0 } } }}
+                thumbnails={{
+                    position: "bottom",
+                    width: isPhoneLightbox ? 70 : 104,
+                    height: isPhoneLightbox ? 50 : 70,
+                    border: 1,
+                    borderRadius: isPhoneLightbox ? 8 : 10,
+                    padding: isPhoneLightbox ? 2 : 3,
+                    gap: isPhoneLightbox ? 6 : 10,
+                    imageFit: "cover",
+                    vignette: true,
+                    hidden: false,
+                    showToggle: false,
+                }}
+                counter={{ container: { style: { top: 0, bottom: "unset" } } }}
                 toolbar={{
                     buttons: [
                         "fullscreen",

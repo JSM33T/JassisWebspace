@@ -257,4 +257,161 @@
   .editorial-rule {
     @apply h-px w-full bg-border/80;
   }
+
+  .jass-gallery-lightbox {
+    --yarl__color_backdrop: #030303;
+    --yarl__color_button: rgba(255, 255, 255, 0.72);
+    --yarl__color_button_active: #ffffff;
+    --yarl__toolbar_padding: 10px;
+    --yarl__button_padding: 10px;
+    --yarl__icon_size: 28px;
+    --yarl__slide_captions_container_background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.76),
+      rgba(0, 0, 0, 0.34) 58%,
+      transparent
+    );
+    --yarl__slide_description_max_lines: 2;
+  }
+
+  .jass-gallery-lightbox .yarl__container {
+    background:
+      radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.08), transparent 30%),
+      #030303;
+  }
+
+  .jass-gallery-lightbox .yarl__toolbar {
+    gap: 2px;
+  }
+
+  .jass-gallery-lightbox .yarl__counter {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(14px);
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+
+  .jass-gallery-lightbox .yarl__slide {
+    padding: 10px;
+  }
+
+  .jass-gallery-lightbox .yarl__slide_image {
+    border-radius: 10px;
+  }
+
+  .jass-gallery-lightbox .yarl__slide_captions_container {
+    padding: 18px 24px 14px;
+  }
+
+  .jass-gallery-lightbox .yarl__slide_title {
+    margin-inline: auto;
+    max-width: min(72ch, calc(100vw - 120px));
+    font-size: 1rem;
+    letter-spacing: 0;
+  }
+
+  .jass-gallery-lightbox .yarl__slide_description {
+    margin-inline: auto;
+    max-width: min(72ch, calc(100vw - 48px));
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .jass-gallery-lightbox .yarl__thumbnails_container {
+    background:
+      linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.56) 22%),
+      rgba(0, 0, 0, 0.84);
+    padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+  }
+
+  .jass-gallery-lightbox .yarl__thumbnails_track {
+    align-items: center;
+  }
+
+  .jass-gallery-lightbox .yarl__thumbnails_thumbnail {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.24);
+    box-shadow: none;
+    opacity: 0.58;
+    transform: scale(0.84);
+    transition:
+      transform 180ms ease,
+      opacity 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .jass-gallery-lightbox .yarl__thumbnails_thumbnail:hover,
+  .jass-gallery-lightbox .yarl__thumbnails_thumbnail:focus-visible {
+    border-color: rgba(255, 255, 255, 0.56);
+    opacity: 0.86;
+    transform: scale(0.92);
+  }
+
+  .jass-gallery-lightbox .yarl__thumbnails_thumbnail_active {
+    border-color: #ffffff;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.5),
+      0 10px 30px rgba(0, 0, 0, 0.34);
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .jass-gallery-lightbox .yarl__thumbnails_thumbnail img {
+    border-radius: inherit;
+  }
+
+  @media (max-width: 640px) {
+    .jass-gallery-lightbox {
+      --yarl__toolbar_padding: 6px;
+      --yarl__button_padding: 8px;
+      --yarl__icon_size: 24px;
+    }
+
+    .jass-gallery-lightbox .yarl__slide {
+      padding: 6px;
+    }
+
+    .jass-gallery-lightbox .yarl__navigation_next,
+    .jass-gallery-lightbox .yarl__navigation_prev {
+      padding-inline: 8px;
+    }
+
+    .jass-gallery-lightbox .yarl__slide_captions_container {
+      padding: 14px 12px 10px;
+    }
+
+    .jass-gallery-lightbox .yarl__slide_title {
+      max-width: calc(100vw - 92px);
+      font-size: 0.875rem;
+    }
+
+    .jass-gallery-lightbox .yarl__slide_description {
+      max-width: calc(100vw - 24px);
+      font-size: 0.75rem;
+      line-height: 1.35;
+    }
+
+    .jass-gallery-lightbox .yarl__thumbnails_container {
+      padding: 5px 7px calc(7px + env(safe-area-inset-bottom));
+    }
+
+    .jass-gallery-lightbox .yarl__thumbnails_thumbnail {
+      opacity: 0.52;
+      transform: scale(0.78);
+    }
+
+    .jass-gallery-lightbox .yarl__thumbnails_thumbnail:hover,
+    .jass-gallery-lightbox .yarl__thumbnails_thumbnail:focus-visible {
+      opacity: 0.82;
+      transform: scale(0.9);
+    }
+
+    .jass-gallery-lightbox .yarl__thumbnails_thumbnail_active {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
