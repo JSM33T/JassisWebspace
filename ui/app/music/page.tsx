@@ -13,6 +13,7 @@ import { MusicTrack } from '@/lib/api/music.types';
 import { MusicContentPayload } from '@/lib/music-content.types';
 import { toast } from 'sonner';
 import { PageBanner } from '@/components/page-banner';
+import { VisualFallback } from '@/components/visual-fallback';
 import { getVersionedMusicCoverUrl } from '@/lib/music-media';
 
 const CATEGORY_ORDER = ['remixes', 'originals', 'snippets', 'radio/features', 'radio-features', 'features'];
@@ -246,9 +247,13 @@ export default function MusicPage() {
                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/30 via-muted to-secondary/30">
-                                            <Disc3 className="h-12 w-12 text-white/30" />
-                                        </div>
+                                        <VisualFallback
+                                            kind="music"
+                                            title={track.title}
+                                            eyebrow={formatCategory(track.category)}
+                                            icon={Disc3}
+                                            className="absolute inset-0 min-h-0"
+                                        />
                                     )}
 
                                     {/* Gradient overlay */}

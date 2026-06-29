@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -15,9 +15,22 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Briefcase, Send, Info } from 'lucide-react';
+import { ContentRail } from '@/components/content-rail';
 import { PageBanner } from '@/components/page-banner';
+import { SectionHeader } from '@/components/section-header';
+import { VisualFallback } from '@/components/visual-fallback';
 
-const services = [
+type ServiceStatus = 'Active' | 'Inactive';
+
+type Service = {
+    title: string;
+    description: string;
+    details: string;
+    status: ServiceStatus;
+    proof?: string;
+};
+
+const services: Service[] = [
     {
         "title": "Web Development",
         "description": "Custom Next.js and React applications built for speed, accessibility, and search engine optimization.",
@@ -34,7 +47,8 @@ const services = [
         "title": "Data Scraping & Automation",
         "description": "Enterprise-grade scraping and browser automation using Playwright and Puppeteer.",
         "details": "Automate your data collection with our robust scraping solutions.\n\n- **Complex Navigation**: Handling anti-bot measures.\n- **Large-scale Extraction**: Distributed scraping architecture.\n- **Data Cleaning**: Automated QC pipelines.",
-        "status": "Active"
+        "status": "Active",
+        "proof": "Playwright and Puppeteer automation for complex navigation, extraction, and cleanup workflows."
     },
     {
         "title": "DevOps & Deployments",
@@ -70,7 +84,8 @@ const services = [
         "title": "Intelligent Chatbots",
         "description": "Advanced hybrid chatbots with OpenAI integration and easy deployment.",
         "details": "Engage your users with intelligent, responsive chatbots.\n\n- **Hybrid Approach**: Logic + AI.\n- **Multi-channel**: Slack, WhatsApp, Web.",
-        "status": "Active"
+        "status": "Active",
+        "proof": "Hybrid logic and AI assistants for web, Slack, WhatsApp, and support-style workflows."
     },
     {
         "title": "Data Analytics",
@@ -82,13 +97,15 @@ const services = [
         "title": "Creative Portfolios",
         "description": "Elegant and dynamic showcases for artists and professionals.",
         "details": "Stand out with a stunning digital portfolio.\n\n- **Animations**: Smooth transitions.\n- **Media Galleries**: High-quality visual displays.",
-        "status": "Active"
+        "status": "Active",
+        "proof": "Polished personal showcases with animation, media galleries, and responsive presentation."
     },
     {
         "title": "C# Architecture Consulting",
         "description": "Expert guidance on .NET system design and code structure.",
         "details": "Build robust, scalable, and maintainable .NET systems with our end-to-end architecture consulting services.\n\n### Expertise Areas:\n- **Clean Architecture & DDD**: Proven patterns for success.\n- **High-level System Design**: Microservices vs. Monolith.\n- **Performance & Scaling**: Redis, database tuning, and caching.\n- **Modernization**: Cloud adoption and legacy migrations.\n\nFrom initial planning to optimization, we help you build resilient solutions.",
-        "status": "Active"
+        "status": "Active",
+        "proof": "Architecture reviews focused on clean boundaries, system design, scaling, and modernization."
     }
 ];
 
@@ -111,7 +128,7 @@ export default function ServicesPage() {
         router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     };
 
-    const openService = (service: typeof services[0]) => {
+    const openService = (service: Service) => {
         setServiceParam(serviceSlug(service.title));
     };
 
@@ -129,6 +146,8 @@ export default function ServicesPage() {
 
     const selectedService =
         services.find((service) => serviceSlug(service.title) === searchParams.get('service')) || null;
+    const activeServices = services.filter((service) => service.status === 'Active');
+    const inactiveServices = services.filter((service) => service.status !== 'Active');
 
     return (
         <motion.div
@@ -147,42 +166,117 @@ export default function ServicesPage() {
 
             <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
                 <div className="mx-auto max-w-7xl pt-4">
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {services.map((service, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3, delay: index * 0.05 }}
-                            >
-                                <Card
-                                    className={`flex flex-col h-full cursor-pointer rounded-3xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group ${service.status === 'Active' ? 'border-primary/20' : 'opacity-80'}`}
-                                    onClick={() => openService(service)}
+                    <ContentRail
+                        header={
+                            <SectionHeader
+                                eyebrow="Active Services"
+                                title="Focused offers ready for real scopes."
+                                description="Production-minded support across automation, AI workflows, creative web, and .NET architecture."
+                            />
+                        }
+                        className="pb-12 md:pb-16"
+                    >
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                            {activeServices.map((service, index) => (
+                                <motion.div
+                                    key={service.title}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3, delay: index * 0.05 }}
                                 >
-                                    <CardHeader className="p-8">
-                                        <div className="flex items-start justify-between gap-4 mb-4">
-                                            <div className="p-3 rounded-2xl border bg-background/50 group-hover:scale-110 transition-transform">
-                                                <Briefcase className="h-5 w-5 text-primary opacity-70" />
+                                    <Card
+                                        className="group flex h-full cursor-pointer rounded-3xl border border-primary/20 bg-card/55 transition-all duration-300 hover:-translate-y-0.5 hover:bg-card/85 hover:shadow-lg"
+                                        onClick={() => openService(service)}
+                                    >
+                                        <CardHeader className="space-y-0 p-4">
+                                            <div className="relative mb-4 overflow-hidden rounded-2xl border bg-muted/35">
+                                                <VisualFallback
+                                                    kind="service"
+                                                    title={service.title}
+                                                    eyebrow={service.status}
+                                                    icon={Briefcase}
+                                                    className="aspect-[16/10] min-h-0"
+                                                />
                                             </div>
-                                            <Badge variant={service.status === 'Active' ? 'default' : 'secondary'} className="rounded-full px-3">
+                                            <div className="mb-3 flex items-center justify-between gap-3">
+                                                <Badge variant="default" className="rounded-full px-3">
+                                                    {service.status}
+                                                </Badge>
+                                                <span className="flex h-9 w-9 items-center justify-center rounded-full border bg-background/60 text-muted-foreground transition-colors group-hover:text-foreground">
+                                                    <Briefcase className="h-4 w-4" />
+                                                </span>
+                                            </div>
+                                            <CardTitle className="text-lg font-semibold tracking-tight transition-colors group-hover:text-primary">
+                                                {service.title}
+                                            </CardTitle>
+                                            <CardDescription className="line-clamp-2 pt-2 text-sm leading-relaxed">
+                                                {service.description}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="mt-auto px-4">
+                                            <div className="rounded-2xl border bg-background/55 px-4 py-3">
+                                                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                                    Delivery focus
+                                                </p>
+                                                <p className="line-clamp-3 text-sm leading-relaxed text-foreground/80">
+                                                    {service.proof}
+                                                </p>
+                                            </div>
+                                        </CardContent>
+                                        <CardFooter className="px-4 pb-4 pt-4">
+                                            <div className="flex items-center text-sm font-medium text-muted-foreground transition-colors group-hover:text-primary">
+                                                View Details
+                                                <Info className="ml-2 h-4 w-4" />
+                                            </div>
+                                        </CardFooter>
+                                    </Card>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </ContentRail>
+
+                    <ContentRail
+                        header={
+                            <SectionHeader
+                                eyebrow="More Capabilities"
+                                title="Available as scoped work when needed."
+                                description="Specialized areas that can be scoped for the right project."
+                            />
+                        }
+                        className="pb-0"
+                    >
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            {inactiveServices.map((service, index) => (
+                                <motion.div
+                                    key={service.title}
+                                    initial={{ opacity: 0, y: 12 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.25, delay: index * 0.03 }}
+                                >
+                                    <button
+                                        type="button"
+                                        className="group flex h-full w-full flex-col rounded-2xl border bg-card/35 p-4 text-left opacity-85 transition-all duration-300 hover:-translate-y-0.5 hover:bg-card/65 hover:opacity-100"
+                                        onClick={() => openService(service)}
+                                    >
+                                        <div className="mb-4 flex items-center justify-between gap-3">
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border bg-background/55 text-muted-foreground transition-colors group-hover:text-foreground">
+                                                <Briefcase className="h-4 w-4" />
+                                            </span>
+                                            <Badge variant="secondary" className="rounded-full px-3">
                                                 {service.status}
                                             </Badge>
                                         </div>
-                                        <CardTitle className="text-xl font-medium tracking-tight group-hover:text-primary transition-colors">{service.title}</CardTitle>
-                                        <CardDescription className="text-sm pt-2 line-clamp-2 leading-relaxed">
+                                        <h3 className="text-base font-semibold tracking-tight group-hover:text-primary">
+                                            {service.title}
+                                        </h3>
+                                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                                             {service.description}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardFooter className="mt-auto px-8 pb-8 pt-0">
-                                        <div className="flex items-center text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">
-                                            View Details
-                                            <Info className="ml-2 h-4 w-4" />
-                                        </div>
-                                    </CardFooter>
-                                </Card>
-                            </motion.div>
-                        ))}
-                    </div>
+                                        </p>
+                                    </button>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </ContentRail>
                 </div>
             </main>
 

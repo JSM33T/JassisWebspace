@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/dialog';
 import { FolderCode, ChevronLeft, ChevronRight, Rocket, Send } from 'lucide-react';
 import { PageBanner } from '@/components/page-banner';
+import { SectionHeader } from '@/components/section-header';
+import { VisualFallback } from '@/components/visual-fallback';
 import { projects as projectsData, type Project as ProjectType } from '../../data/projects';
 
 type ProjectCard = ProjectType & { id: string };
@@ -79,7 +81,10 @@ function ProjectsPageContent() {
         setProjectParam(project.id);
     };
 
-    const renderProjectCard = (project: ProjectCard, index: number) => (
+    const renderProjectCard = (project: ProjectCard, index: number) => {
+        const preview = project.screenshots?.[0] ?? null;
+
+        return (
         <motion.div
             key={project.title}
             initial={{ opacity: 0, scale: 0.95 }}
@@ -87,10 +92,31 @@ function ProjectsPageContent() {
             transition={{ duration: 0.3, delay: index * 0.05 }}
         >
             <Card
-                className="flex flex-col h-full cursor-pointer rounded-2xl border bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg backdrop-blur-sm group"
+                className="group flex h-full cursor-pointer flex-col rounded-2xl border bg-card/50 transition-all duration-300 hover:bg-card/80 hover:shadow-lg"
                 onClick={() => openProject(project)}
             >
-                <CardHeader className="px-5 pt-5 pb-3 space-y-0">
+                <CardHeader className="space-y-0 px-5 pb-3 pt-5">
+                    <div className="relative mb-4 overflow-hidden rounded-xl border bg-muted/35">
+                        {preview ? (
+                            <div className="relative aspect-[16/9]">
+                                <Image
+                                    src={preview}
+                                    alt={`${project.title} preview`}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                            </div>
+                        ) : (
+                            <VisualFallback
+                                kind="project"
+                                title={project.title}
+                                eyebrow={project.highlight || 'Project'}
+                                icon={Rocket}
+                                className="aspect-[16/9] min-h-0"
+                            />
+                        )}
+                    </div>
                     <div className="mb-3">
                         <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide">
                             {project.highlight || 'Project'}
@@ -135,7 +161,8 @@ function ProjectsPageContent() {
                 </CardFooter>
             </Card>
         </motion.div>
-    );
+        );
+    };
 
     const closeProject = () => {
         setSlideIndex(0);
@@ -173,10 +200,12 @@ function ProjectsPageContent() {
                 <div className="mx-auto max-w-6xl space-y-12 pt-4">
                     {saasProjects.length > 0 && (
                         <section>
-                            <div className="mb-5 flex items-center gap-3">
-                                <h2 className="text-xl font-semibold tracking-tight">Products &amp; Platforms</h2>
-                                <span className="text-sm text-muted-foreground">{saasProjects.length}</span>
-                            </div>
+                            <SectionHeader
+                                eyebrow={`${saasProjects.length} product builds`}
+                                title="Products & Platforms"
+                                description="SaaS and platform-style work with concrete product direction."
+                                className="mb-5"
+                            />
                             <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
                                 {saasProjects.map((project, index) => renderProjectCard(project, index))}
                             </div>
@@ -185,10 +214,12 @@ function ProjectsPageContent() {
 
                     {otherProjects.length > 0 && (
                         <section>
-                            <div className="mb-5 flex items-center gap-3">
-                                <h2 className="text-xl font-semibold tracking-tight">Projects</h2>
-                                <span className="text-sm text-muted-foreground">{otherProjects.length}</span>
-                            </div>
+                            <SectionHeader
+                                eyebrow={`${otherProjects.length} technical builds`}
+                                title="Projects"
+                                description="Systems, tools, and experiments across media, automation, AI, and infrastructure."
+                                className="mb-5"
+                            />
                             <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
                                 {otherProjects.map((project, index) => renderProjectCard(project, index))}
                             </div>

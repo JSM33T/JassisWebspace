@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { AuthorModal } from '@/components/blog/AuthorModal';
 import { PageBanner } from '@/components/page-banner';
+import { VisualFallback } from '@/components/visual-fallback';
 
 const CARD_COLORS = [
     'bg-primary/8',
@@ -271,7 +272,13 @@ export default function BlogHomePage() {
                                                             priority={index === 0}
                                                         />
                                                     ) : (
-                                                        <div className={`flex h-full w-full items-end ${cardColor}`} />
+                                                        <VisualFallback
+                                                            kind="blog"
+                                                            title={blog.category?.name ?? 'Writing'}
+                                                            eyebrow="Blog"
+                                                            icon={BookOpen}
+                                                            className={`h-full min-h-0 ${cardColor}`}
+                                                        />
                                                     )}
 
                                                     {/* Title + category overlay */}

@@ -9,9 +9,13 @@ import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Clock3, Disc3, Folde
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ContentRail } from "@/components/content-rail";
+import { SectionHeader } from "@/components/section-header";
+import { VisualFallback } from "@/components/visual-fallback";
 import { cn } from "@/lib/utils";
 import { useTrackPlayer } from "@/hooks/use-audio-player";
 import projects from "@/data/projects";
+import { products } from "@/data/products";
 import { type BlogListItem } from "@/lib/api/blog.types";
 import { type Album } from "@/lib/api/gallery.types";
 import { musicService } from "@/lib/api/music.service";
@@ -69,21 +73,23 @@ const resumeLinks = [
     { href: "/contact", label: "Contact", icon: Mail },
 ];
 
+const featuredWorkItems = products.slice(0, 3);
+
 function MobileNavPills() {
     const searchParams = useSearchParams();
     const links = searchParams.get("ref") === "resume" ? resumeLinks : defaultLinks;
     return (
-        <div className="flex flex-wrap justify-center gap-2 md:hidden">
+        <div className="grid w-full max-w-sm grid-cols-2 gap-2 min-[380px]:grid-cols-3 md:hidden">
             {links.map((item) => {
                 const Icon = item.icon;
                 return (
                     <Link
                         key={item.href}
                         href={item.href}
-                        className="inline-flex items-center gap-1.5 rounded-full border bg-card/70 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                        className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border bg-card/70 px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
-                        <Icon className="h-3.5 w-3.5" />
-                        {item.label}
+                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{item.label}</span>
                     </Link>
                 );
             })}
@@ -219,7 +225,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_54%,color-mix(in_oklch,var(--background)_88%,transparent)_97%)]" />
             </div>
 
-            <main className="relative mx-auto max-w-6xl px-6">
+            <main className="relative mx-auto max-w-6xl px-4 sm:px-6">
                 <motion.div variants={containerVariants} initial="hidden" animate="visible">
                     <motion.section
                         className="relative flex min-h-[calc(100svh-4.25rem)] w-full flex-col items-center justify-center gap-10 pb-8 pt-8 md:flex-row md:items-center md:gap-10 md:pb-10 md:pt-10 lg:gap-14"
@@ -296,17 +302,17 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             </Link>
 
                             <Suspense fallback={
-                                <div className="flex flex-wrap justify-center gap-2 md:hidden">
+                                <div className="grid w-full max-w-sm grid-cols-2 gap-2 min-[380px]:grid-cols-3 md:hidden">
                                     {defaultLinks.map((item) => {
                                         const Icon = item.icon;
                                         return (
                                             <Link
                                                 key={item.href}
                                                 href={item.href}
-                                                className="inline-flex items-center gap-1.5 rounded-full border bg-card/70 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                                                className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full border bg-card/70 px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
                                             >
-                                                <Icon className="h-3.5 w-3.5" />
-                                                {item.label}
+                                                <Icon className="h-3.5 w-3.5 shrink-0" />
+                                                <span className="truncate">{item.label}</span>
                                             </Link>
                                         );
                                     })}
@@ -379,9 +385,13 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                                             priority
                                                         />
                                                     ) : (
-                                                        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_24%,color-mix(in_oklch,var(--primary)_44%,transparent),transparent_56%),linear-gradient(145deg,#1b1b20,#101013)]">
-                                                            <ActiveSpotlightIcon className="h-12 w-12 text-white/70" />
-                                                        </div>
+                                                        <VisualFallback
+                                                            kind={active?.kind ?? "gallery"}
+                                                            title={active?.title ?? "Featured"}
+                                                            eyebrow={active?.label ?? "Featured"}
+                                                            icon={ActiveSpotlightIcon}
+                                                            className="h-full min-h-0"
+                                                        />
                                                     )}
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
                                                 </motion.div>
@@ -510,6 +520,93 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                         </div>
                     </motion.section>
 
+                    <motion.div variants={itemVariants}>
+                        <ContentRail
+                            surface="panel"
+                            header={
+                                <SectionHeader
+                                    eyebrow="Featured Work"
+                                    title="Products with real direction, not just placeholders."
+                                    description="A compact look at the product work behind the webspace, using live data and existing screenshots where they exist."
+                                    action={
+                                        <Button asChild variant="secondary" className="rounded-full px-6">
+                                            <Link href="/products">
+                                                View Products
+                                                <ArrowUpRight className="ml-2 h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    }
+                                />
+                            }
+                            className="pb-16 md:pb-24"
+                        >
+                            <div className="grid gap-3 md:grid-cols-3">
+                                {featuredWorkItems.map((product) => {
+                                    const preview = product.screenshots?.[0] ?? null;
+                                    return (
+                                        <Link
+                                            key={product.slug}
+                                            href={`/products?product=${product.slug}`}
+                                            className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-background/65 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:bg-background/85 hover:shadow-xl"
+                                        >
+                                            <div className="relative aspect-[16/10] overflow-hidden rounded-xl border bg-muted/40">
+                                                {preview ? (
+                                                    <NextImage
+                                                        src={preview}
+                                                        alt={`${product.name} preview`}
+                                                        fill
+                                                        sizes="(max-width: 768px) 100vw, 33vw"
+                                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    />
+                                                ) : (
+                                                    <VisualFallback
+                                                        kind="product"
+                                                        title={product.name}
+                                                        eyebrow={product.status}
+                                                        className="h-full min-h-0"
+                                                    />
+                                                )}
+                                            </div>
+                                            <div className="flex min-w-0 flex-1 flex-col gap-4 px-1 pb-1 pt-4">
+                                                <div className="min-w-0 space-y-2">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Badge variant="secondary" className="rounded-full px-3">
+                                                            {product.highlight}
+                                                        </Badge>
+                                                        <span className="rounded-full border border-border/60 bg-card/70 px-3 py-1 text-xs text-muted-foreground">
+                                                            {product.status}
+                                                        </span>
+                                                    </div>
+                                                    <h3 className="line-clamp-1 text-lg font-semibold tracking-tight group-hover:text-primary">
+                                                        {product.name}
+                                                    </h3>
+                                                    <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                                                        {product.features[0] ?? product.tagline}
+                                                    </p>
+                                                </div>
+                                                <div className="mt-auto flex items-center justify-between gap-3">
+                                                    <div className="flex min-w-0 flex-wrap gap-1.5">
+                                                        {product.tech.slice(0, 2).map((tech) => (
+                                                            <span
+                                                                key={tech}
+                                                                className="rounded-full border border-border/55 bg-card/60 px-2 py-0.5 text-[11px] text-muted-foreground"
+                                                            >
+                                                                {tech}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-card/80 text-muted-foreground transition-colors group-hover:text-foreground">
+                                                        <ArrowUpRight className="h-4 w-4" />
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </ContentRail>
+                    </motion.div>
+
                     <motion.section variants={itemVariants} className="pb-16 md:pb-24">
                         <div className="relative overflow-hidden rounded-3xl border bg-card/65 p-6 backdrop-blur-sm md:p-8">
                             <div className="pointer-events-none absolute inset-0">
@@ -519,25 +616,20 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             </div>
 
                             <div className="relative">
-                                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                                    <div className="space-y-3">
-                                        <Badge variant="secondary" className="w-fit rounded-full px-4 py-1.5">
-                                            Fresh Visuals
-                                        </Badge>
-                                        <h2 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
-                                            Recent Gallery Picks
-                                        </h2>
-                                        <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-                                            Latest captures and curated moments from the visual collection.
-                                        </p>
-                                    </div>
-                                    <Button asChild variant="secondary" className="rounded-full px-6">
-                                        <Link href="/gallery">
-                                            Discover all galleries
-                                            <ArrowUpRight className="ml-2 h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                </div>
+                                <SectionHeader
+                                    eyebrow="Fresh Visuals"
+                                    title="Recent Gallery Picks"
+                                    description="Latest captures and curated moments from the visual collection."
+                                    action={
+                                        <Button asChild variant="secondary" className="rounded-full px-6">
+                                            <Link href="/gallery">
+                                                Discover all galleries
+                                                <ArrowUpRight className="ml-2 h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    }
+                                    className="mb-6"
+                                />
 
                                 {galleries.length === 0 ? (
                                     <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
@@ -567,7 +659,12 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                                                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                                                             />
                                                         ) : (
-                                                            <div className="relative h-full w-full bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklch,var(--primary)_42%,transparent),transparent_54%),radial-gradient(circle_at_82%_76%,color-mix(in_oklch,var(--secondary)_36%,transparent),transparent_58%),linear-gradient(140deg,color-mix(in_oklch,var(--muted)_80%,transparent),var(--card))]" />
+                                                            <VisualFallback
+                                                                kind="gallery"
+                                                                title={album.name}
+                                                                eyebrow={`${album.imageCount ?? 0} photos`}
+                                                                className="h-full min-h-0"
+                                                            />
                                                         )}
                                                     </div>
                                                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12 md:px-5 md:pb-5">
@@ -604,9 +701,13 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_24%,color-mix(in_oklch,var(--primary)_38%,transparent),transparent_54%),linear-gradient(145deg,var(--muted),var(--card))]">
-                                            <Disc3 className="h-8 w-8 text-white/70" />
-                                        </div>
+                                        <VisualFallback
+                                            kind="music"
+                                            title={featuredTrack?.title ?? "Music shelf"}
+                                            eyebrow={featuredTrack?.category ? formatCategory(featuredTrack.category) : "Music"}
+                                            icon={Disc3}
+                                            className="h-full min-h-0"
+                                        />
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
                                 </Link>
@@ -677,25 +778,20 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             </div>
 
                             <div className="relative">
-                                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                                    <div className="space-y-3">
-                                        <Badge variant="secondary" className="w-fit rounded-full px-4 py-1.5">
-                                            Fresh Writing
-                                        </Badge>
-                                        <h2 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
-                                            Recent Blog Picks
-                                        </h2>
-                                        <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-                                            A visual showcase of my latest articles.
-                                        </p>
-                                    </div>
-                                    <Button asChild variant="secondary" className="rounded-full px-6">
-                                        <Link href="/blog">
-                                            Discover all blogs
-                                            <ArrowUpRight className="ml-2 h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                </div>
+                                <SectionHeader
+                                    eyebrow="Fresh Writing"
+                                    title="Recent Blog Picks"
+                                    description="A visual showcase of my latest articles."
+                                    action={
+                                        <Button asChild variant="secondary" className="rounded-full px-6">
+                                            <Link href="/blog">
+                                                Discover all blogs
+                                                <ArrowUpRight className="ml-2 h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    }
+                                    className="mb-6"
+                                />
 
                                 {blogs.length === 0 ? (
                                     <div className="rounded-2xl border bg-background/60 px-5 py-10 text-center">
@@ -719,9 +815,13 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                                                         />
                                                     ) : (
-                                                        <div className="relative flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklch,var(--primary)_42%,transparent),transparent_54%),radial-gradient(circle_at_82%_76%,color-mix(in_oklch,var(--secondary)_36%,transparent),transparent_58%),linear-gradient(140deg,color-mix(in_oklch,var(--muted)_80%,transparent),var(--card))]">
-                                                            <BookOpen className="h-8 w-8 text-white/80" />
-                                                        </div>
+                                                        <VisualFallback
+                                                            kind="blog"
+                                                            title={blog.category?.name ?? "Writing"}
+                                                            eyebrow="Blog"
+                                                            icon={BookOpen}
+                                                            className="h-full min-h-0"
+                                                        />
                                                     )}
                                                 </div>
                                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-4 pt-12 md:px-5 md:pb-5">
