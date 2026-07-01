@@ -10,6 +10,15 @@ services:
     environment:
       - ApplyMigrationsOnStartup=${APPLY_MIGRATIONS:-false}
     restart: unless-stopped
+    cpus: "0.55"
+    mem_limit: 384m
+    memswap_limit: 384m
+    pids_limit: 160
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   nextjs:
     build:
@@ -22,4 +31,14 @@ services:
     environment:
       - NODE_ENV=production
       - API_URL=http://dotnet:8080
+      - NODE_OPTIONS=--max-old-space-size=256
     restart: unless-stopped
+    cpus: "0.35"
+    mem_limit: 384m
+    memswap_limit: 384m
+    pids_limit: 120
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
