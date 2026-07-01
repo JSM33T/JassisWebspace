@@ -159,7 +159,42 @@ export function Navbar() {
         items.some((item) => isActivePath(item.href));
 
     const navDropdownContentClassName =
-        'w-72 rounded-2xl border border-border/60 bg-background/70 p-2 text-foreground shadow-xl shadow-black/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60';
+        'w-[min(42rem,calc(100vw-2rem))] rounded-3xl border border-border/60 bg-background/75 p-3 text-foreground shadow-2xl shadow-black/15 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65';
+
+    const navDropdownGridClassName = 'grid grid-cols-2 gap-2';
+
+    const navDropdownItemClassName = (active: boolean) =>
+        cn(
+            'group/menuitem flex h-full min-h-24 cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all duration-200',
+            'border-border/45 bg-background/45 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-accent/55 hover:shadow-sm',
+            active && 'border-primary/30 bg-accent/70 shadow-sm'
+        );
+
+    const navDropdownIconClassName = (active: boolean) =>
+        cn(
+            'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/55 bg-card/80 text-primary transition-colors',
+            'group-hover/menuitem:border-primary/25 group-hover/menuitem:bg-background',
+            active && 'border-primary/35 bg-background text-foreground'
+        );
+
+    const renderDesktopMenuItem = (item: (typeof workMenuItems)[number]) => {
+        const Icon = item.icon;
+        const isActive = isActivePath(item.href);
+
+        return (
+            <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent">
+                <Link href={item.href} className={navDropdownItemClassName(isActive)}>
+                    <span className={navDropdownIconClassName(isActive)}>
+                        <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="flex min-w-0 flex-col gap-1">
+                        <span className="font-semibold leading-none tracking-tight">{item.label}</span>
+                        <span className="text-sm leading-5 text-muted-foreground">{item.description}</span>
+                    </span>
+                </Link>
+            </DropdownMenuItem>
+        );
+    };
 
     const formatAudioTime = (seconds: number) => {
         if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
@@ -478,35 +513,9 @@ export function Navbar() {
                                     sideOffset={14}
                                     collisionPadding={16}
                                 >
-                                    {workMenuItems.map((item) => {
-                                        const Icon = item.icon;
-                                        const isActive = isActivePath(item.href);
-                                        return (
-                                            <DropdownMenuItem key={item.href} asChild>
-                                                <Link
-                                                    href={item.href}
-                                                    className={cn(
-                                                        'flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors',
-                                                        'hover:border-border/50 hover:bg-accent/60',
-                                                        isActive && 'border-border/70 bg-accent/70'
-                                                    )}
-                                                >
-                                                    <Icon
-                                                        className={cn(
-                                                            'h-5 w-5 shrink-0 text-primary',
-                                                            isActive && 'text-foreground'
-                                                        )}
-                                                    />
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium">{item.label}</span>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {item.description}
-                                                        </span>
-                                                    </div>
-                                                </Link>
-                                            </DropdownMenuItem>
-                                        );
-                                    })}
+                                    <div className={navDropdownGridClassName}>
+                                        {workMenuItems.map(renderDesktopMenuItem)}
+                                    </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
@@ -529,35 +538,9 @@ export function Navbar() {
                                     sideOffset={14}
                                     collisionPadding={16}
                                 >
-                                    {studioMenuItems.map((item) => {
-                                        const Icon = item.icon;
-                                        const isActive = isActivePath(item.href);
-                                        return (
-                                            <DropdownMenuItem key={item.href} asChild>
-                                                <Link
-                                                    href={item.href}
-                                                    className={cn(
-                                                        'flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors',
-                                                        'hover:border-border/50 hover:bg-accent/60',
-                                                        isActive && 'border-border/70 bg-accent/70'
-                                                    )}
-                                                >
-                                                    <Icon
-                                                        className={cn(
-                                                            'h-5 w-5 shrink-0 text-primary',
-                                                            isActive && 'text-foreground'
-                                                        )}
-                                                    />
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium">{item.label}</span>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {item.description}
-                                                        </span>
-                                                    </div>
-                                                </Link>
-                                            </DropdownMenuItem>
-                                        );
-                                    })}
+                                    <div className={navDropdownGridClassName}>
+                                        {studioMenuItems.map(renderDesktopMenuItem)}
+                                    </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
@@ -580,35 +563,9 @@ export function Navbar() {
                                     sideOffset={14}
                                     collisionPadding={16}
                                 >
-                                    {aboutMenuItems.map((item) => {
-                                        const Icon = item.icon;
-                                        const isActive = isActivePath(item.href);
-                                        return (
-                                            <DropdownMenuItem key={item.href} asChild>
-                                                <Link
-                                                    href={item.href}
-                                                    className={cn(
-                                                        'flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors',
-                                                        'hover:border-border/50 hover:bg-accent/60',
-                                                        isActive && 'border-border/70 bg-accent/70'
-                                                    )}
-                                                >
-                                                    <Icon
-                                                        className={cn(
-                                                            'h-5 w-5 shrink-0 text-primary',
-                                                            isActive && 'text-foreground'
-                                                        )}
-                                                    />
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium">{item.label}</span>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {item.description}
-                                                        </span>
-                                                    </div>
-                                                </Link>
-                                            </DropdownMenuItem>
-                                        );
-                                    })}
+                                    <div className={navDropdownGridClassName}>
+                                        {aboutMenuItems.map(renderDesktopMenuItem)}
+                                    </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
@@ -630,35 +587,9 @@ export function Navbar() {
                                     sideOffset={14}
                                     collisionPadding={16}
                                 >
-                                    {miscMenuItems.map((item) => {
-                                        const Icon = item.icon;
-                                        const isActive = isActivePath(item.href);
-                                        return (
-                                            <DropdownMenuItem key={item.href} asChild>
-                                                <Link
-                                                    href={item.href}
-                                                    className={cn(
-                                                        'flex cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 transition-colors',
-                                                        'hover:border-border/50 hover:bg-accent/60',
-                                                        isActive && 'border-border/70 bg-accent/70'
-                                                    )}
-                                                >
-                                                    <Icon
-                                                        className={cn(
-                                                            'h-5 w-5 shrink-0 text-primary',
-                                                            isActive && 'text-foreground'
-                                                        )}
-                                                    />
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium">{item.label}</span>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {item.description}
-                                                        </span>
-                                                    </div>
-                                                </Link>
-                                            </DropdownMenuItem>
-                                        );
-                                    })}
+                                    <div className={navDropdownGridClassName}>
+                                        {miscMenuItems.map(renderDesktopMenuItem)}
+                                    </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>}
                         </div>
