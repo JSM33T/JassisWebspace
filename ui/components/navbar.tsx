@@ -62,7 +62,6 @@ import {
     Search,
     Users,
     Wrench,
-    Package,
 } from 'lucide-react';
 import { SearchModal } from '@/components/search-modal';
 import { useUser, userHelpers } from '@/contexts/UserContext';
@@ -123,7 +122,6 @@ export function Navbar() {
     ];
 
     const workMenuItems = [
-        { href: '/products', label: 'Products', description: 'Explore our product platforms', icon: Package },
         { href: '/projects', label: 'Projects', description: 'View our completed projects', icon: FolderCode },
         { href: '/services', label: 'Services', description: 'Explore the services we offer', icon: Briefcase },
     ];

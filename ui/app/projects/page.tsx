@@ -36,9 +36,6 @@ const projects: ProjectCard[] = projectsData.map((project) => ({
     id: makeProjectId(project.title),
 }));
 
-const saasProjects = projects.filter((project) => project.category === 'saas');
-const otherProjects = projects.filter((project) => project.category !== 'saas');
-
 function ProjectsPageContent() {
     const router = useRouter();
     const pathname = usePathname();
@@ -198,30 +195,16 @@ function ProjectsPageContent() {
 
             <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
                 <div className="mx-auto max-w-6xl space-y-12 pt-4">
-                    {saasProjects.length > 0 && (
+                    {projects.length > 0 && (
                         <section>
                             <SectionHeader
-                                eyebrow={`${saasProjects.length} product builds`}
-                                title="Products & Platforms"
-                                description="SaaS and platform-style work with concrete product direction."
-                                className="mb-5"
-                            />
-                            <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
-                                {saasProjects.map((project, index) => renderProjectCard(project, index))}
-                            </div>
-                        </section>
-                    )}
-
-                    {otherProjects.length > 0 && (
-                        <section>
-                            <SectionHeader
-                                eyebrow={`${otherProjects.length} technical builds`}
+                                eyebrow={`${projects.length} technical builds`}
                                 title="Projects"
                                 description="Systems, tools, and experiments across media, automation, AI, and infrastructure."
                                 className="mb-5"
                             />
                             <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">
-                                {otherProjects.map((project, index) => renderProjectCard(project, index))}
+                                {projects.map((project, index) => renderProjectCard(project, index))}
                             </div>
                         </section>
                     )}

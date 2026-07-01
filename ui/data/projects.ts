@@ -2,7 +2,6 @@
 // Icons are stored as string names and mapped to lucide-react in the component.
 
 export interface Project {
-	category?: "saas" | "project"; // grouping bucket; defaults to "project"
 	title: string;
 	description: string;
 	details?: string;
@@ -16,8 +15,7 @@ export interface Project {
 
 export const projects: Project[] = [
 	{
-		category: "saas",
-		title: "********.io - Self-Hosted Infrastructure Monitor",
+		title: "ProBeacon - Self-Hosted Infrastructure Monitor",
 		description:
 			"In development — open-source, self-hosted .NET monitoring platform for tracking the health of your entire stack — web APIs, sites, databases, and background services — with real-time status, history, and multi-channel alerting.",
 		details: `
@@ -25,7 +23,7 @@ export const projects: Project[] = [
 
 ## Overview
 
-********.io is an open-source, self-hosted infrastructure monitoring platform built on **.NET**, currently in active development and not yet publicly released. Think Uptime Kuma, but engineered for teams that need to watch the full health of company infrastructure — public sites, internal web APIs, databases, message queues, and arbitrary services — from a single, ownable dashboard. No SaaS lock-in, no per-monitor pricing, full data sovereignty.
+ProBeacon is an open-source, self-hosted infrastructure monitoring platform built on **.NET**, currently in active development and not yet publicly released. Think Uptime Kuma, but engineered for teams that need to watch the full health of company infrastructure — public sites, internal web APIs, databases, message queues, and arbitrary services — from a single, ownable dashboard. No SaaS lock-in, no per-monitor pricing, full data sovereignty.
 
 ## Core Capabilities
 
@@ -56,7 +54,7 @@ Ships as a containerized, single-deploy stack you fully control — run it on yo
 
 ## Why It Stands Out
 
-Unlike hosted uptime services, ********.io gives teams a Uptime-Kuma-style experience with the depth of database and service-level checks, built on .NET for easy integration into existing company infrastructure — open source, self-hosted, and alerting-first.
+Unlike hosted uptime services, ProBeacon gives teams a Uptime-Kuma-style experience with the depth of database and service-level checks, built on .NET for easy integration into existing company infrastructure — open source, self-hosted, and alerting-first.
 		`,
 		tech: [
 			".NET",
@@ -73,10 +71,9 @@ Unlike hosted uptime services, ********.io gives teams a Uptime-Kuma-style exper
 		icon: "Activity",
 		links: { repo: "", live: "" },
 		screenshots: [],
-		highlight: "In Development · OSS Monitoring"
+		highlight: "Standalone Project"
 	},
 	{
-		category: "saas",
 		title: "Linqyard - Link Management Platform",
 		description:
 			"A production-ready link-in-bio and link management platform with real-time analytics, subscription monetization, and enterprise-grade performance optimization.",
@@ -140,7 +137,7 @@ The system separates read-heavy public traffic from write-intensive analytics us
 			"/images/projects/linqyard/2.png",
             "/images/projects/linqyard/1.png"
 		],
-		highlight: "SaaS (Production Ready)",
+		highlight: "Standalone Project",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/linqyard.jpg"
 	},
 	{
@@ -642,7 +639,7 @@ SurfSwift models workflows as composable graphs where nodes represent operations
 			live: ""
 		},
 		screenshots: [],
-		highlight: "Intelligent Automation"
+		highlight: "Standalone Project"
 	},
 	{
 		title: "Workflow Engine",

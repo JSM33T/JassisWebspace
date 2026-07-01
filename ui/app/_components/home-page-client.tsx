@@ -15,7 +15,6 @@ import { VisualFallback } from "@/components/visual-fallback";
 import { cn } from "@/lib/utils";
 import { useTrackPlayer } from "@/hooks/use-audio-player";
 import projects from "@/data/projects";
-import { products } from "@/data/products";
 import { type BlogListItem } from "@/lib/api/blog.types";
 import { type Album } from "@/lib/api/gallery.types";
 import { musicService } from "@/lib/api/music.service";
@@ -73,7 +72,16 @@ const resumeLinks = [
     { href: "/contact", label: "Contact", icon: Mail },
 ];
 
-const featuredWorkItems = products.slice(0, 3);
+const makeProjectId = (title: string) =>
+    title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+const featuredProjectNames = ["ProBeacon", "SurfSwift", "Linqyard"];
+const featuredWorkItems = featuredProjectNames
+    .map((name) => projects.find((project) => project.title.toLowerCase().startsWith(name.toLowerCase())))
+    .filter((project): project is NonNullable<typeof project> => Boolean(project));
 
 function MobileNavPills() {
     const searchParams = useSearchParams();
@@ -526,12 +534,12 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             header={
                                 <SectionHeader
                                     eyebrow="Featured Work"
-                                    title="Products with real direction, not just placeholders."
-                                    description="A compact look at the product work behind the webspace, using live data and existing screenshots where they exist."
+                                    title="Standalone projects with real direction."
+                                    description="A compact look at ProBeacon, SurfSwift, and Linqyard as standalone project builds."
                                     action={
                                         <Button asChild variant="secondary" className="rounded-full px-6">
-                                            <Link href="/products">
-                                                View Products
+                                            <Link href="/projects">
+                                                View Projects
                                                 <ArrowUpRight className="ml-2 h-4 w-4" />
                                             </Link>
                                         </Button>
@@ -541,28 +549,29 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             className="pb-16 md:pb-24"
                         >
                             <div className="grid gap-3 md:grid-cols-3">
-                                {featuredWorkItems.map((product) => {
-                                    const preview = product.screenshots?.[0] ?? null;
+                                {featuredWorkItems.map((project) => {
+                                    const preview = project.screenshots?.[0] ?? null;
+                                    const projectId = makeProjectId(project.title);
                                     return (
                                         <Link
-                                            key={product.slug}
-                                            href={`/products?product=${product.slug}`}
+                                            key={project.title}
+                                            href={`/projects?project=${projectId}`}
                                             className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-background/65 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:bg-background/85 hover:shadow-xl"
                                         >
                                             <div className="relative aspect-[16/10] overflow-hidden rounded-xl border bg-muted/40">
                                                 {preview ? (
                                                     <NextImage
                                                         src={preview}
-                                                        alt={`${product.name} preview`}
+                                                        alt={`${project.title} preview`}
                                                         fill
                                                         sizes="(max-width: 768px) 100vw, 33vw"
                                                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                                                     />
                                                 ) : (
                                                     <VisualFallback
-                                                        kind="product"
-                                                        title={product.name}
-                                                        eyebrow={product.status}
+                                                        kind="project"
+                                                        title={project.title}
+                                                        eyebrow={project.highlight || "Project"}
                                                         className="h-full min-h-0"
                                                     />
                                                 )}
@@ -571,22 +580,19 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                                 <div className="min-w-0 space-y-2">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <Badge variant="secondary" className="rounded-full px-3">
-                                                            {product.highlight}
+                                                            {project.highlight || "Project"}
                                                         </Badge>
-                                                        <span className="rounded-full border border-border/60 bg-card/70 px-3 py-1 text-xs text-muted-foreground">
-                                                            {product.status}
-                                                        </span>
                                                     </div>
                                                     <h3 className="line-clamp-1 text-lg font-semibold tracking-tight group-hover:text-primary">
-                                                        {product.name}
+                                                        {project.title}
                                                     </h3>
                                                     <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                                                        {product.features[0] ?? product.tagline}
+                                                        {project.description}
                                                     </p>
                                                 </div>
                                                 <div className="mt-auto flex items-center justify-between gap-3">
                                                     <div className="flex min-w-0 flex-wrap gap-1.5">
-                                                        {product.tech.slice(0, 2).map((tech) => (
+                                                        {project.tech?.slice(0, 2).map((tech) => (
                                                             <span
                                                                 key={tech}
                                                                 className="rounded-full border border-border/55 bg-card/60 px-2 py-0.5 text-[11px] text-muted-foreground"
