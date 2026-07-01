@@ -115,8 +115,9 @@ export function Navbar() {
 
     const normalizedRole = (user?.role ?? '').toLowerCase();
 
+    const blogMenuItem = { href: '/blog', label: 'Blog', description: 'Read our latest posts and updates', icon: FileText };
+
     const studioMenuItems = [
-        { href: '/blog', label: 'Blog', description: 'Read our latest posts and updates', icon: FileText },
         { href: '/gallery', label: 'Gallery', description: 'View our creative gallery', icon: Image },
         { href: '/music', label: 'Music', description: 'Explore our music collection', icon: Music },
     ];
@@ -141,6 +142,7 @@ export function Navbar() {
             title: 'Explore',
             items: [
                 { href: '/', label: 'Home', icon: House },
+                blogMenuItem,
                 ...studioMenuItems,
             ],
         },
@@ -443,6 +445,18 @@ export function Navbar() {
                                 {isActivePath('/') && activeUnderline}
                                 <House className="h-3.5 w-3.5" />
                                 Home
+                            </Link>
+
+                            {/* Blog */}
+                            <Link
+                                href={blogMenuItem.href}
+                                aria-current={isActivePath(blogMenuItem.href) ? 'page' : undefined}
+                                className={topNavLinkClass(isActivePath(blogMenuItem.href))}
+                                onMouseEnter={handleNavLinkHover}
+                            >
+                                {isActivePath(blogMenuItem.href) && activeUnderline}
+                                <FileText className="h-3.5 w-3.5" />
+                                Blog
                             </Link>
 
                             {/* Work */}
