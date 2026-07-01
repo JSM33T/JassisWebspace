@@ -10,13 +10,3 @@ services:
     volumes:
       - ${DEPLOY_PATH:-/home/jassi/deployments/JassSpace}/.logs/dotnet:/app/logs/dotnet
       - ${DEPLOY_PATH:-/home/jassi/deployments/JassSpace}/.cache:/app/cache
-    deploy:
-      resources:
-        limits:
-          cpus: '0.6'
-
-  nextjs:
-    deploy:
-      resources:
-        limits:
-          cpus: '0.6'
