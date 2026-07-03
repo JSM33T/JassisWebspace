@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -13,6 +13,7 @@ import {
     ArrowLeft,
     Calendar,
     Disc3,
+    Eye,
     MessageSquare,
     Music,
     Play,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { ContentViewTracker } from '@/components/views/ContentViewTracker';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
 import { musicService } from '@/lib/api/music.service';
 import { TrackDetail } from '@/lib/api/music.types';
@@ -118,6 +120,10 @@ export default function MusicTrackViewPage() {
         }
     };
 
+    const handleViewCountChange = useCallback((viewCount: number) => {
+        setTrack((current) => current ? { ...current, viewCount } : current);
+    }, []);
+
     if (loading) {
         return (
             <div className="container max-w-5xl mx-auto pt-24 px-4 space-y-4">
@@ -151,6 +157,12 @@ export default function MusicTrackViewPage() {
 
     return (
         <div className="pt-8">
+            {track.contentId ? (
+                <ContentViewTracker
+                    contentId={track.contentId}
+                    onViewCountChange={handleViewCountChange}
+                />
+            ) : null}
             <div className="container max-w-5xl mx-auto px-4 pt-12 mb-12">
                 <Button variant="ghost" size="sm" asChild className="mb-6">
                     <Link href="/music">
@@ -256,6 +268,10 @@ export default function MusicTrackViewPage() {
                                 <span className="flex items-center gap-2">
                                     <MessageSquare className="h-4 w-4" />
                                     <span>{track.commentCount}</span>
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    <Eye className="h-4 w-4" />
+                                    <span>{track.viewCount}</span>
                                 </span>
                             </div>
                         ) : null}

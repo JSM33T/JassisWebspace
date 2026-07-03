@@ -155,6 +155,7 @@ builder.Services.AddScoped<IUiPropertiesService, UiPropertiesService>();
 builder.Services.AddScoped<IContactService, ContactService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
+builder.Services.AddScoped<IContentViewService, ContentViewService>();
 builder.Services.AddScoped<IBootlegService, BootlegService>();
 builder.Services.AddHttpClient<IDevelopmentService, DevelopmentService>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();

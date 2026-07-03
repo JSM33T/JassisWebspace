@@ -94,6 +94,11 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
                     lastActivity = likeLast;
                 }
 
+                if (content.LastViewedAt.HasValue && content.LastViewedAt.Value > lastActivity)
+                {
+                    lastActivity = content.LastViewedAt.Value;
+                }
+
                 return new AdminContentListItemResponse(
                     content.Id,
                     content.Title,
@@ -106,9 +111,10 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
                     linkCount,
                     commentCount,
                     likeCount,
+                    content.ViewCount,
                     lastActivity);
             })
-            .Where(r => r.LikeCount > 0 || r.CommentCount > 0)
+            .Where(r => r.LikeCount > 0 || r.CommentCount > 0 || r.ViewCount > 0)
             .ToList();
 
         var normalizedSortDir = sortDir?.ToLowerInvariant() == "asc" ? "asc" : "desc";
@@ -222,6 +228,11 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
             lastActivity = lastLikeAt.Value;
         }
 
+        if (content.LastViewedAt.HasValue && content.LastViewedAt.Value > lastActivity)
+        {
+            lastActivity = content.LastViewedAt.Value;
+        }
+
         return new AdminContentDetailResponse(
             content.Id,
             content.Title,
@@ -234,6 +245,7 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
             linkCount,
             commentCount,
             likedBy.Count,
+            content.ViewCount,
             lastActivity,
             likedBy,
             distinctCommenters);

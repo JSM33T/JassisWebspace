@@ -21,6 +21,7 @@ public sealed record AdminContentListItemResponse(
     int LinkCount,
     int CommentCount,
     int LikeCount,
+    int ViewCount,
     DateTimeOffset LastActivityAt
 );
 
@@ -48,6 +49,7 @@ public sealed record AdminContentDetailResponse(
     int LinkCount,
     int CommentCount,
     int LikeCount,
+    int ViewCount,
     DateTimeOffset LastActivityAt,
     IReadOnlyCollection<AdminContentUserSummaryResponse> LikedBy,
     IReadOnlyCollection<AdminContentUserSummaryResponse> CommentedBy

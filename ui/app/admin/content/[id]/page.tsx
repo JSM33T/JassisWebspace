@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Clock, Heart, Link as LinkIcon, MessageCircle } from "lucide-react";
+import { ArrowLeft, Clock, Eye, Heart, Link as LinkIcon, MessageCircle } from "lucide-react";
 import { adminContentService } from "@/lib/api/admin-content.service";
 import { AdminContentDetail } from "@/lib/api/admin-content.types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -130,7 +130,7 @@ export default function AdminContentDetailPage() {
                         <CardDescription className="text-sm text-muted-foreground">{content.slug}</CardDescription>
                     </div>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-4">
+                <CardContent className="grid gap-4 md:grid-cols-5">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <LinkIcon className="h-4 w-4" />
                         <div>
@@ -151,6 +151,13 @@ export default function AdminContentDetailPage() {
                             {content.likeCount}
                         </span>
                         <span className="text-xs uppercase tracking-wide">Likes</span>
+                    </div>
+                    <div className="flex flex-col text-sm text-muted-foreground">
+                        <span className="flex items-center gap-2 font-semibold text-foreground">
+                            <Eye className="h-4 w-4" />
+                            {content.viewCount}
+                        </span>
+                        <span className="text-xs uppercase tracking-wide">Views</span>
                     </div>
                     <div className="flex flex-col text-sm text-muted-foreground">
                         <span className="flex items-center gap-2 font-semibold text-foreground">

@@ -37,6 +37,7 @@ export interface AlbumWithImages {
     likeCount: number;
     isLiked: boolean;
     commentCount: number;
+    viewCount: number;
     name: string;
     slug: string;
     cover: string | null;

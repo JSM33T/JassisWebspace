@@ -12,6 +12,7 @@ export interface AdminContentBase {
     linkCount: number;
     commentCount: number;
     likeCount: number;
+    viewCount: number;
     lastActivityAt: string;
 }
 

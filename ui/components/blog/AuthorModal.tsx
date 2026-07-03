@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -81,6 +81,9 @@ export function AuthorModal({ isOpen, onClose, userId, username, showMoreFromAut
                     <div className="p-6 space-y-4">
                         <VisuallyHidden>
                             <DialogTitle>Loading author profile</DialogTitle>
+                            <DialogDescription>
+                                Loading public profile details for {username}.
+                            </DialogDescription>
                         </VisuallyHidden>
                         <Skeleton className="h-32 w-full" />
                         <div className="flex items-center gap-4">
@@ -96,6 +99,9 @@ export function AuthorModal({ isOpen, onClose, userId, username, showMoreFromAut
                     <div className="p-6 text-center">
                         <VisuallyHidden>
                             <DialogTitle>Error loading profile</DialogTitle>
+                            <DialogDescription>
+                                The public profile details could not be loaded.
+                            </DialogDescription>
                         </VisuallyHidden>
                         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-destructive/10 mb-3">
                             <AlertCircle className="h-6 w-6 text-destructive" />
@@ -139,7 +145,9 @@ export function AuthorModal({ isOpen, onClose, userId, username, showMoreFromAut
                                         <span className="text-primary">✓</span>
                                     )}
                                 </DialogTitle>
-                                <p className="text-sm text-muted-foreground">@{profile.username}</p>
+                                <DialogDescription className="text-sm text-muted-foreground">
+                                    @{profile.username}
+                                </DialogDescription>
                             </DialogHeader>
 
                             {/* Name */}

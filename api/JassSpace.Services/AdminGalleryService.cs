@@ -871,10 +871,12 @@ public sealed class AdminGalleryService(
         var imageCount = await _dbContext.Images
             .CountAsync(i => i.AlbumId == albumId, cancellationToken);
 
-        var contentId = await _dbContext.Contents
+        var contentMeta = await _dbContext.Contents
+            .AsNoTracking()
             .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
-            .Select(c => (Guid?)c.Id)
+            .Select(c => new { c.Id, c.ViewCount })
             .FirstOrDefaultAsync(cancellationToken);
+        var contentId = contentMeta?.Id;
 
         var authors = contentId.HasValue
             ? await _dbContext.ContentAuthors
@@ -942,10 +944,12 @@ public sealed class AdminGalleryService(
             return null;
         }
 
-        var contentId = await _dbContext.Contents
+        var contentMeta = await _dbContext.Contents
+            .AsNoTracking()
             .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
-            .Select(c => (Guid?)c.Id)
+            .Select(c => new { c.Id, c.ViewCount })
             .FirstOrDefaultAsync(cancellationToken);
+        var contentId = contentMeta?.Id;
 
         var authors = contentId.HasValue
             ? await _dbContext.ContentAuthors
@@ -963,6 +967,7 @@ public sealed class AdminGalleryService(
 
         var likeCount = 0;
         var commentCount = 0;
+        var viewCount = contentMeta?.ViewCount ?? 0;
         var isLiked = false;
 
         if (contentId.HasValue)
@@ -997,7 +1002,8 @@ public sealed class AdminGalleryService(
             isLiked,
             commentCount,
             albumData.IsActive,
-            albumData.SortOrder);
+            albumData.SortOrder,
+            viewCount);
     }
 
     private async Task<Dictionary<Guid, List<ContentAuthorResponse>>> LoadAuthorsByAlbumIdsAsync(

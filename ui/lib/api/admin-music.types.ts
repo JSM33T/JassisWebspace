@@ -36,6 +36,7 @@ export interface AdminTrackDetail extends MusicTrack {
     likeCount: number;
     isLiked: boolean;
     commentCount: number;
+    viewCount: number;
 }
 
 export interface TrackCoverUploadResponse {

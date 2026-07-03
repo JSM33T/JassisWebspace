@@ -18,6 +18,7 @@ import {
     Heart,
     MessageSquare,
     AlertTriangle,
+    Eye,
 } from 'lucide-react';
 
 import { MarkdownRenderer } from '@/components/blog/MarkdownRenderer';
@@ -28,6 +29,7 @@ import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
 import { AuthorModal } from '@/components/blog/AuthorModal';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { ContentViewTracker } from '@/components/views/ContentViewTracker';
 import { useUser } from '@/contexts/UserContext';
 
 export default function BlogViewPage() {
@@ -96,6 +98,9 @@ export default function BlogViewPage() {
     };
 
     const isInteractivityDisabled = !blog?.isPublished;
+    const handleViewCountChange = useCallback((viewCount: number) => {
+        setBlog((current) => current ? { ...current, viewCount } : current);
+    }, []);
     const canEditBlog =
         !!blog &&
         (
@@ -140,6 +145,13 @@ export default function BlogViewPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background text-foreground">
+            {blog && (
+                <ContentViewTracker
+                    contentId={blog.contentId}
+                    disabled={isInteractivityDisabled}
+                    onViewCountChange={handleViewCountChange}
+                />
+            )}
             <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
                 <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
                 <div className="mx-auto max-w-6xl relative">
@@ -212,6 +224,10 @@ export default function BlogViewPage() {
                         <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
                             <MessageSquare className="h-4 w-4" />
                             <span>{blog.commentCount}</span>
+                        </div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                            <Eye className="h-4 w-4" />
+                            <span>{blog.viewCount}</span>
                         </div>
                         {canEditBlog && (
                             <Button variant="outline" size="sm" asChild className="rounded-full">

@@ -73,14 +73,16 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             return null;
         }
 
-        var contentId = await _dbContext.Contents
+        var contentMeta = await _dbContext.Contents
             .AsNoTracking()
             .Where(c => c.ContentType == ContentType.Blog && c.ContentRefId == projection.Id)
-            .Select(c => (Guid?)c.Id)
+            .Select(c => new { c.Id, c.ViewCount })
             .FirstOrDefaultAsync(cancellationToken);
+        var contentId = contentMeta?.Id;
 
         var likeCount = 0;
         var commentCount = 0;
+        var viewCount = contentMeta?.ViewCount ?? 0;
         var isLiked = false;
         var authors = new List<ContentAuthorResponse>();
 
@@ -130,7 +132,8 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             projection.UpdatedAt,
             likeCount,
             isLiked,
-            commentCount);
+            commentCount,
+            viewCount);
     }
 
     public async Task<List<BlogCategoryResponse>> GetCategoriesAsync(CancellationToken cancellationToken = default)
@@ -421,10 +424,11 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
         var contentList = await _dbContext.Contents
             .AsNoTracking()
             .Where(c => c.ContentType == ContentType.Blog && blogIds.Contains(c.ContentRefId))
-            .Select(c => new { c.Id, c.ContentRefId })
+            .Select(c => new { c.Id, c.ContentRefId, c.ViewCount })
             .ToListAsync(cancellationToken);
 
         var contentByBlogId = contentList.ToDictionary(c => c.ContentRefId, c => c.Id);
+        var viewCountsByContentId = contentList.ToDictionary(c => c.Id, c => c.ViewCount);
         var contentIds = contentList.Select(c => c.Id).ToList();
 
         var likeCounts = contentIds.Count == 0
@@ -482,11 +486,13 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             {
                 var likeCount = 0;
                 var commentCount = 0;
+                var viewCount = 0;
 
                 if (contentByBlogId.TryGetValue(blog.Id, out var contentId))
                 {
                     likeCount = likeCounts.TryGetValue(contentId, out var resolvedLikeCount) ? resolvedLikeCount : 0;
                     commentCount = commentCounts.TryGetValue(contentId, out var resolvedCommentCount) ? resolvedCommentCount : 0;
+                    viewCount = viewCountsByContentId.TryGetValue(contentId, out var resolvedViewCount) ? resolvedViewCount : 0;
                 }
 
                 return new BlogListItemResponse(
@@ -502,7 +508,8 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
                     blog.CreatedAt,
                     blog.UpdatedAt,
                     likeCount,
-                    commentCount);
+                    commentCount,
+                    viewCount);
             })
             .ToList();
     }

@@ -137,13 +137,16 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
                 ErrorMessage: $"No album found with ID '{albumId}'.");
         }
 
-        var contentId = await _dbContext.Contents
+        var contentMeta = await _dbContext.Contents
+            .AsNoTracking()
             .Where(c => c.ContentType == ContentType.Album && c.ContentRefId == albumId)
-            .Select(c => (Guid?)c.Id)
+            .Select(c => new { c.Id, c.ViewCount })
             .FirstOrDefaultAsync(cancellationToken);
+        var contentId = contentMeta?.Id;
 
         var likeCount = 0;
         var commentCount = 0;
+        var viewCount = contentMeta?.ViewCount ?? 0;
         var isLiked = false;
         var authors = new List<ContentAuthorResponse>();
 
@@ -191,7 +194,8 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
             isLiked,
             commentCount,
             albumData.IsActive,
-            albumData.SortOrder);
+            albumData.SortOrder,
+            viewCount);
 
         return new GalleryAlbumQueryResult(GalleryQueryStatus.Success, response);
     }

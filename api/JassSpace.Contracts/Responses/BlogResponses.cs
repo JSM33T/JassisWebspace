@@ -22,7 +22,8 @@ public record BlogListItemResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     int LikeCount = 0,
-    int CommentCount = 0
+    int CommentCount = 0,
+    int ViewCount = 0
 );
 
 public record BlogDetailResponse(
@@ -41,5 +42,6 @@ public record BlogDetailResponse(
     DateTimeOffset? UpdatedAt,
     int LikeCount = 0,
     bool IsLiked = false,
-    int CommentCount = 0
+    int CommentCount = 0,
+    int ViewCount = 0
 );

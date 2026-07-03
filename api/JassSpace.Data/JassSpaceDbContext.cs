@@ -22,6 +22,7 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
     public DbSet<Image> Images { get; set; }
     public DbSet<Content> Contents { get; set; }
     public DbSet<ContentAuthor> ContentAuthors { get; set; }
+    public DbSet<ContentView> ContentViews { get; set; }
     public DbSet<Blog> Blogs { get; set; }
     public DbSet<BlogCategory> BlogCategories { get; set; }
     public DbSet<BootlegAsset> BootlegAssets { get; set; }
@@ -60,6 +61,7 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         ConfigureImageEntity(modelBuilder);
         ConfigureContentEntity(modelBuilder);
         ConfigureContentAuthorEntity(modelBuilder);
+        ConfigureContentViewEntity(modelBuilder);
         ConfigureBlogEntity(modelBuilder);
         ConfigureBlogCategoryEntity(modelBuilder);
         ConfigureBootlegAssetEntity(modelBuilder);
@@ -356,24 +358,49 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         entity.HasIndex(e => e.Slug).IsUnique();
 
         // Indexes
+        entity.Property(e => e.ViewCount)
+            .HasDefaultValue(0);
+
         entity.HasIndex(e => e.ContentType);
         entity.HasIndex(e => new { e.ContentType, e.ContentRefId });
         entity.HasIndex(e => e.IsPublished);
         entity.HasIndex(e => e.CreatedAt);
+        entity.HasIndex(e => e.LastViewedAt);
 
-        // Full-text search: stored generated tsvector + GIN index
-        entity.HasGeneratedTsVectorColumn(
-            c => c.SearchVector,
-            "english",
-            c => new { c.Title, c.Description, c.SearchBody });
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            entity.Ignore(e => e.SearchVector);
+        }
+        else
+        {
+            // Full-text search: stored generated tsvector + GIN index
+            entity.HasGeneratedTsVectorColumn(
+                c => c.SearchVector,
+                "english",
+                c => new { c.Title, c.Description, c.SearchBody });
 
-        entity.HasIndex(e => e.SearchVector)
-              .HasMethod("GIN");
+            entity.HasIndex(e => e.SearchVector)
+                  .HasMethod("GIN");
+        }
 
         entity.HasMany(c => c.Authors)
               .WithOne(ca => ca.Content)
               .HasForeignKey(ca => ca.ContentId)
               .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureContentViewEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<ContentView>();
+
+        entity.HasKey(e => e.Id);
+        entity.HasIndex(e => new { e.ContentId, e.ViewedAt });
+        entity.HasIndex(e => e.ViewedAt);
+
+        entity.HasOne(e => e.Content)
+            .WithMany()
+            .HasForeignKey(e => e.ContentId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private void ConfigureContentAuthorEntity(ModelBuilder modelBuilder)

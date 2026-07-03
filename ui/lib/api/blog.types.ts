@@ -28,6 +28,7 @@ export interface BlogListItem {
     updatedAt: string | null;
     likeCount: number;
     commentCount: number;
+    viewCount: number;
 }
 
 export interface BlogDetail {
@@ -47,6 +48,7 @@ export interface BlogDetail {
     likeCount: number;
     isLiked: boolean;
     commentCount: number;
+    viewCount: number;
 }
 
 export interface CreateBlogRequest {

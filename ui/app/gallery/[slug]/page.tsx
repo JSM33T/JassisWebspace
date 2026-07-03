@@ -5,7 +5,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigat
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, ImageIcon, MessageSquare, RefreshCw, Share2, ZoomIn } from 'lucide-react';
+import { ArrowLeft, Calendar, Eye, ImageIcon, MessageSquare, RefreshCw, Share2, ZoomIn } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
 import { adminGalleryService } from '@/lib/api/admin-gallery.service';
 import { AlbumWithImages } from '@/lib/api/gallery.types';
@@ -18,6 +18,7 @@ import { applyCacheBustingParam } from '@/lib/cacheBust';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { ContentViewTracker } from '@/components/views/ContentViewTracker';
 import { Badge } from '@/components/ui/badge';
 import { toGalleryThumbUrl } from '@/lib/gallery-media';
 import Lightbox from "yet-another-react-lightbox";
@@ -158,6 +159,10 @@ export default function AlbumDetailPage() {
     const isLightboxOpen = selectedIndex >= 0;
     const selectedImage = isLightboxOpen && album ? album.images[selectedIndex] : null;
 
+    const handleViewCountChange = useCallback((viewCount: number) => {
+        setAlbum((current) => current ? { ...current, viewCount } : current);
+    }, []);
+
     if (loading) {
         return (
             <div className="flex flex-col min-h-screen">
@@ -241,6 +246,12 @@ export default function AlbumDetailPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
+            {album.contentId && (
+                <ContentViewTracker
+                    contentId={album.contentId}
+                    onViewCountChange={handleViewCountChange}
+                />
+            )}
             <div className="relative overflow-hidden border-b border-border/30 px-6 pb-10 pt-28 md:px-10 md:pb-14 md:pt-32">
                 <div className="absolute right-0 top-0 h-[28rem] w-[28rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-primary/6 blur-3xl" />
                 <div className="mx-auto max-w-5xl relative">
@@ -286,6 +297,10 @@ export default function AlbumDetailPage() {
                         <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
                             <MessageSquare className="h-4 w-4" />
                             <span>{album.commentCount}</span>
+                        </div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                            <Eye className="h-4 w-4" />
+                            <span>{album.viewCount}</span>
                         </div>
                     </div>
                 </div>

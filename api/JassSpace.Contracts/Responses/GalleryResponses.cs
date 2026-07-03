@@ -56,5 +56,6 @@ public record AlbumWithImagesResponse(
     bool IsLiked = false,
     int CommentCount = 0,
     bool IsActive = true,
-    int SortOrder = 0
+    int SortOrder = 0,
+    int ViewCount = 0
 );

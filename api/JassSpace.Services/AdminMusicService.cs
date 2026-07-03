@@ -224,11 +224,12 @@ public sealed class AdminMusicService(
             return null;
         }
 
-        var contentId = await GetContentIdAsync(id, cancellationToken);
+        var contentMeta = await GetContentMetaAsync(id, cancellationToken);
+        var contentId = contentMeta?.Id;
         var authors = contentId.HasValue
             ? await LoadAuthorsForContentAsync(contentId.Value, cancellationToken)
             : [];
-        return MapTrackDetail(track, contentId, authors, 0, false, 0);
+        return MapTrackDetail(track, contentId, authors, 0, false, 0, contentMeta?.ViewCount ?? 0);
     }
 
     private async Task<AdminMusicCoverUploadResult> UploadTrackCoverAsyncCore(
@@ -809,6 +810,15 @@ public sealed class AdminMusicService(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    private Task<ContentMeta?> GetContentMetaAsync(Guid trackId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Contents
+            .AsNoTracking()
+            .Where(c => c.ContentType == ContentType.Music && c.ContentRefId == trackId)
+            .Select(c => new ContentMeta(c.Id, c.ViewCount))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private async Task<string> GenerateUniqueTrackSlugAsync(string seed, Guid? existingTrackId, CancellationToken cancellationToken)
     {
         var baseSlug = GenerateSlug(seed);
@@ -1001,7 +1011,7 @@ public sealed class AdminMusicService(
             track.BootlegAssetId);
     }
 
-    private static TrackDetailResponse MapTrackDetail(Track track, Guid? contentId, List<ContentAuthorResponse> authors, int likeCount, bool isLiked, int commentCount)
+    private static TrackDetailResponse MapTrackDetail(Track track, Guid? contentId, List<ContentAuthorResponse> authors, int likeCount, bool isLiked, int commentCount, int viewCount = 0)
     {
         return new TrackDetailResponse(
             track.Id,
@@ -1029,7 +1039,8 @@ public sealed class AdminMusicService(
             track.BootlegAssetId,
             likeCount,
             isLiked,
-            commentCount);
+            commentCount,
+            viewCount);
     }
 
     private static bool TryNormalizeCategory(string? value, out string normalized)
@@ -1235,4 +1246,6 @@ public sealed class AdminMusicService(
         AdminMusicMutationStatus Status,
         string? NormalizedCategory,
         string? ErrorMessage);
+
+    private sealed record ContentMeta(Guid Id, int ViewCount);
 }

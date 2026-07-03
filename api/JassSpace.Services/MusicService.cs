@@ -127,14 +127,16 @@ public sealed class MusicService(
             return null;
         }
 
-        var contentId = await _dbContext.Contents
+        var contentMeta = await _dbContext.Contents
             .AsNoTracking()
             .Where(c => c.ContentType == ContentType.Music && c.ContentRefId == track.Id)
-            .Select(c => (Guid?)c.Id)
+            .Select(c => new { c.Id, c.ViewCount })
             .FirstOrDefaultAsync(cancellationToken);
+        var contentId = contentMeta?.Id;
 
         var likeCount = 0;
         var commentCount = 0;
+        var viewCount = contentMeta?.ViewCount ?? 0;
         var isLiked = false;
 
         if (contentId.HasValue)
@@ -169,7 +171,7 @@ public sealed class MusicService(
                 .ToListAsync(cancellationToken)
             : [];
 
-        return MapTrackDetail(track, contentId, authors, likeCount, isLiked, commentCount);
+        return MapTrackDetail(track, contentId, authors, likeCount, isLiked, commentCount, viewCount);
     }
 
     public async Task<MusicPlayLinkResult> CreatePlayLinkAsync(
@@ -257,7 +259,7 @@ public sealed class MusicService(
             track.BootlegAssetId);
     }
 
-    private static TrackDetailResponse MapTrackDetail(Track track, Guid? contentId, List<ContentAuthorResponse> authors, int likeCount, bool isLiked, int commentCount)
+    private static TrackDetailResponse MapTrackDetail(Track track, Guid? contentId, List<ContentAuthorResponse> authors, int likeCount, bool isLiked, int commentCount, int viewCount)
     {
         return new TrackDetailResponse(
             track.Id,
@@ -285,7 +287,8 @@ public sealed class MusicService(
             track.BootlegAssetId,
             likeCount,
             isLiked,
-            commentCount);
+            commentCount,
+            viewCount);
     }
 
     private async Task<Dictionary<Guid, List<ContentAuthorResponse>>> LoadAuthorsByContentMapAsync(

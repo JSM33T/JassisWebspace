@@ -14,6 +14,8 @@ public class Content
     public string? Cover { get; set; }
     public bool IsPublished { get; set; }
     public DateTimeOffset? PublishedAt { get; set; }
+    public int ViewCount { get; set; }
+    public DateTimeOffset? LastViewedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 

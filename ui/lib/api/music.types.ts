@@ -40,6 +40,7 @@ export interface TrackDetail extends MusicTrack {
     likeCount: number;
     isLiked: boolean;
     commentCount: number;
+    viewCount: number;
 }
 
 export interface TrackPlayLinkResponse {

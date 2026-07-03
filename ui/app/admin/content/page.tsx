@@ -206,7 +206,7 @@ export default function AdminContentPage() {
                                 </div>
                             </div>
 
-                            <div className="grid gap-3 sm:grid-cols-3 text-sm text-muted-foreground">
+                            <div className="grid gap-3 sm:grid-cols-4 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-2">
                                     <Heart className="h-4 w-4" />
                                     <span className="font-semibold text-foreground">{item.likeCount}</span>
@@ -216,6 +216,11 @@ export default function AdminContentPage() {
                                     <MessageCircle className="h-4 w-4" />
                                     <span className="font-semibold text-foreground">{item.commentCount}</span>
                                     <span>comments</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Eye className="h-4 w-4" />
+                                    <span className="font-semibold text-foreground">{item.viewCount}</span>
+                                    <span>views</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs text-muted-foreground uppercase tracking-wide">
