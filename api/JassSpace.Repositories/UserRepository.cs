@@ -33,13 +33,10 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
         if (string.IsNullOrEmpty(normalized))
             return null;
 
-        // Case-insensitive username match + not deleted
-        // If you use CITEXT in PG, you can compare directly without ToLower.
-        var now = DateTimeOffset.UtcNow;
-
         var user = await _db.Users
             .AsNoTracking()
             .Where(u => u.DeletedAt == null &&
+                        u.IsActive &&
                         u.Username.ToLower() == normalized.ToLower())
             .Select(u => new
             {
@@ -47,9 +44,17 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
                 u.Username,
                 u.FirstName,
                 u.LastName,
+                u.DisplayName,
                 u.AvatarUrl,
                 u.CoverUrl,
-                u.Bio
+                u.Bio,
+                u.VerifiedBadge,
+                u.CreatedAt,
+                u.UpdatedAt,
+                Roles = u.UserRoles
+                    .OrderBy(ur => ur.Role.Name)
+                    .Select(ur => ur.Role.Name)
+                    .ToArray()
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -60,9 +65,14 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
             user.Username,
             user.FirstName,
             user.LastName,
+            user.DisplayName,
             user.AvatarUrl,
             user.CoverUrl,
-            user.Bio
+            user.Bio,
+            user.VerifiedBadge,
+            user.CreatedAt,
+            user.UpdatedAt,
+            user.Roles
         );
     }
 

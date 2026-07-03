@@ -5,9 +5,14 @@ public sealed record UserPublicResponse(
     string Username,
     string? FirstName,
     string? LastName,
+    string? DisplayName,
     string? AvatarUrl,
     string? CoverUrl,
-    string? Bio
+    string? Bio,
+    bool VerifiedBadge,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<string> Roles
 );
 
 /// <summary>

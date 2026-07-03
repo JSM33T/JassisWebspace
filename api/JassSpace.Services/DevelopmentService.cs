@@ -7,6 +7,8 @@ using JassSpace.Contracts.Requests;
 using JassSpace.Contracts.Responses;
 using JassSpace.Data;
 using JassSpace.Entities;
+using JassSpace.Infra;
+using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -19,6 +21,8 @@ public sealed class DevelopmentService(
     HttpClient httpClient,
     IMemoryCache cache,
     IOptions<DevelopmentGitHubOptions> options,
+    IEmailService emailService,
+    IConfiguration configuration,
     ILogger<DevelopmentService> logger)
     : IDevelopmentService
 {
@@ -26,6 +30,8 @@ public sealed class DevelopmentService(
     private readonly HttpClient _httpClient = httpClient;
     private readonly IMemoryCache _cache = cache;
     private readonly DevelopmentGitHubOptions _options = options.Value;
+    private readonly IEmailService _emailService = emailService;
+    private readonly IConfiguration _configuration = configuration;
     private readonly ILogger<DevelopmentService> _logger = logger;
 
     public async Task<DevelopmentSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken = default)
@@ -319,9 +325,10 @@ public sealed class DevelopmentService(
 
         try
         {
+            var profileUrl = BuildUserProfileUrl(suggestion.User.Username);
             var createdIssue = await CreateGitHubIssueAsync(
                 title,
-                BuildPromotedIssueBody(body, suggestion),
+                BuildPromotedIssueBody(body, suggestion, profileUrl),
                 cancellationToken);
 
             var now = DateTimeOffset.UtcNow;
@@ -333,6 +340,8 @@ public sealed class DevelopmentService(
             suggestion.UpdatedAt = now;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await SendPromotionEmailAsync(suggestion, title, createdIssue, profileUrl, cancellationToken);
 
             return new DevelopmentMutationResult<DevelopmentSuggestionResponse>(
                 DevelopmentMutationStatus.Success,
@@ -867,7 +876,7 @@ public sealed class DevelopmentService(
         return normalized is "open" or "closed" or "all" ? normalized : "open";
     }
 
-    private static string BuildPromotedIssueBody(string body, DevelopmentSuggestion suggestion)
+    private static string BuildPromotedIssueBody(string body, DevelopmentSuggestion suggestion, string profileUrl)
     {
         var author = suggestion.User.DisplayName ?? suggestion.User.Username;
         return $"""
@@ -877,10 +886,123 @@ public sealed class DevelopmentService(
 Promoted from JassSpace development suggestion.
 
 Suggestion ID: {suggestion.Id}
-Submitted by: {author} (@{suggestion.User.Username})
+Submitted by: {author}
+JassSpace profile: {profileUrl}
 Submitted at: {suggestion.CreatedAt:O}
 """;
     }
+
+    private async Task SendPromotionEmailAsync(
+        DevelopmentSuggestion suggestion,
+        string issueTitle,
+        DevelopmentIssueResponse issue,
+        string profileUrl,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!suggestion.User.EmailVerified || !suggestion.User.IsActive || suggestion.User.DeletedAt is not null)
+        {
+            _logger.LogInformation(
+                "Skipping promotion email for suggestion {SuggestionId}; user {UserId} is not eligible.",
+                suggestion.Id,
+                suggestion.UserId);
+            return;
+        }
+
+        try
+        {
+            var recipientName = GetUserDisplayName(suggestion.User);
+            var subject = $"Your JassSpace suggestion is now GitHub issue #{issue.Number}";
+            var body = BuildPromotionEmailBody(recipientName, suggestion, issueTitle, issue, profileUrl);
+
+            await _emailService.SendEmailAsync(suggestion.User.Email, subject, body, isHtml: true);
+
+            _logger.LogInformation(
+                "Sent promotion email for suggestion {SuggestionId} to user {UserId}.",
+                suggestion.Id,
+                suggestion.UserId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Suggestion {SuggestionId} was promoted to GitHub issue #{IssueNumber}, but the notification email failed.",
+                suggestion.Id,
+                issue.Number);
+        }
+    }
+
+    private static string BuildPromotionEmailBody(
+        string recipientName,
+        DevelopmentSuggestion suggestion,
+        string issueTitle,
+        DevelopmentIssueResponse issue,
+        string profileUrl)
+    {
+        var encodedRecipientName = HtmlEncodeSafe(recipientName);
+        var encodedSuggestionTitle = HtmlEncodeSafe(suggestion.Title);
+        var encodedIssueTitle = HtmlEncodeSafe(issueTitle);
+        var encodedIssueUrl = HtmlEncodeSafe(issue.Url);
+        var encodedProfileUrl = HtmlEncodeSafe(profileUrl);
+
+        return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Suggestion Promoted</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 640px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: #111827; color: white; padding: 24px; text-align: center; border-radius: 10px 10px 0 0; }}
+        .content {{ background: #f9fafb; padding: 24px; border-radius: 0 0 10px 10px; }}
+        .issue {{ background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0; }}
+        .button {{ display: inline-block; background: #2563eb; color: #fff !important; text-decoration: none; padding: 12px 18px; border-radius: 6px; font-weight: 600; }}
+        .meta {{ color: #6b7280; font-size: 13px; margin-top: 18px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h2>Your suggestion has been promoted</h2>
+        </div>
+        <div class='content'>
+            <p>Hi {encodedRecipientName},</p>
+            <p>Your suggestion has been added to the development tracker, and a live GitHub issue has been raised for it.</p>
+
+            <div class='issue'>
+                <p><strong>Suggestion:</strong> {encodedSuggestionTitle}</p>
+                <p><strong>GitHub issue #{issue.Number}:</strong> {encodedIssueTitle}</p>
+            </div>
+
+            <p>
+                <a class='button' href='{encodedIssueUrl}'>View GitHub issue</a>
+                <a class='button' href='{encodedProfileUrl}' style='margin-left: 8px; background: #111827;'>View JassSpace profile</a>
+            </p>
+
+            <p class='meta'>You are receiving this because you submitted this suggestion on JassSpace.</p>
+        </div>
+    </div>
+</body>
+</html>";
+    }
+
+    private static string GetUserDisplayName(User user)
+        => !string.IsNullOrWhiteSpace(user.DisplayName)
+            ? user.DisplayName
+            : !string.IsNullOrWhiteSpace(user.FirstName)
+                ? user.FirstName
+                : user.Username;
+
+    private string BuildUserProfileUrl(string username)
+    {
+        var baseUrl = (_configuration.GetValue<string>("Frontend:BaseUrl") ?? "http://localhost:3000").TrimEnd('/');
+        return $"{baseUrl}/user/{Uri.EscapeDataString(username)}";
+    }
+
+    private static string HtmlEncodeSafe(string? value)
+        => WebUtility.HtmlEncode(value ?? string.Empty);
 
     private static string? TryGetObjectString(JsonElement item, string objectName, string propertyName)
     {
