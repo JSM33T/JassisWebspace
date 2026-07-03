@@ -9,5 +9,7 @@ export * from './admin-chat.service';
 export * from './admin-ui-properties.service';
 export * from './music.service';
 export * from './admin-music.service';
+export * from './development.service';
+export * from './admin-development.service';
 export * from './ui-properties.service';
 export { default } from './auth.service';

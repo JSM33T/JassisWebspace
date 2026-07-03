@@ -33,6 +33,8 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
     public DbSet<UiProperties> UiProperties => Set<UiProperties>();
     public DbSet<EmailTemplate> EmailTemplates { get; set; }
     public DbSet<UserEmailPreference> UserEmailPreferences { get; set; }
+    public DbSet<DevelopmentSuggestion> DevelopmentSuggestions => Set<DevelopmentSuggestion>();
+    public DbSet<DevelopmentNote> DevelopmentNotes => Set<DevelopmentNote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,6 +71,8 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         ConfigureUiPropertiesEntity(modelBuilder);
         ConfigureEmailTemplateEntity(modelBuilder);
         ConfigureUserEmailPreferenceEntity(modelBuilder);
+        ConfigureDevelopmentSuggestionEntity(modelBuilder);
+        ConfigureDevelopmentNoteEntity(modelBuilder);
 
         SeedRoles(modelBuilder);
         SeedAppConfigs(modelBuilder);
@@ -654,5 +658,73 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
               .WithOne()
               .HasForeignKey<UserEmailPreference>(p => p.UserId)
               .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private void ConfigureDevelopmentSuggestionEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<DevelopmentSuggestion>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Title)
+            .HasMaxLength(180)
+            .IsRequired();
+
+        entity.Property(e => e.Body)
+            .HasMaxLength(5000)
+            .IsRequired();
+
+        entity.Property(e => e.Status)
+            .HasMaxLength(32)
+            .IsRequired();
+
+        entity.Property(e => e.GitHubIssueUrl)
+            .HasMaxLength(2048);
+
+        entity.HasIndex(e => e.Status);
+        entity.HasIndex(e => e.CreatedAt);
+        entity.HasIndex(e => e.UserId);
+
+        entity.HasOne(e => e.User)
+            .WithMany()
+            .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasOne(e => e.ReviewedByUser)
+            .WithMany()
+            .HasForeignKey(e => e.ReviewedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
+
+    private void ConfigureDevelopmentNoteEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<DevelopmentNote>();
+
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Title)
+            .HasMaxLength(180)
+            .IsRequired();
+
+        entity.Property(e => e.Body)
+            .HasMaxLength(8000)
+            .IsRequired();
+
+        entity.Property(e => e.Version)
+            .HasMaxLength(80);
+
+        entity.Property(e => e.Category)
+            .HasMaxLength(64)
+            .IsRequired();
+
+        entity.HasIndex(e => e.IsPublished);
+        entity.HasIndex(e => e.PublishedAt);
+        entity.HasIndex(e => e.CreatedAt);
+        entity.HasIndex(e => e.Category);
+
+        entity.HasOne(e => e.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(e => e.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

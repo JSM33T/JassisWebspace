@@ -16,9 +16,10 @@ interface AuthorModalProps {
     onClose: () => void;
     userId: string;
     username: string;
+    showMoreFromAuthor?: boolean;
 }
 
-export function AuthorModal({ isOpen, onClose, userId, username }: AuthorModalProps) {
+export function AuthorModal({ isOpen, onClose, userId, username, showMoreFromAuthor = true }: AuthorModalProps) {
     const router = useRouter();
     const [profile, setProfile] = useState<ProfileInfo | null>(null);
     const [loading, setLoading] = useState(true);
@@ -158,14 +159,15 @@ export function AuthorModal({ isOpen, onClose, userId, username }: AuthorModalPr
                                 </div>
                             )}
 
-                            {/* More Button */}
-                            <Button 
-                                onClick={handleMoreFromAuthor}
-                                className="w-full"
-                            >
-                                <BookOpen className="mr-2 h-4 w-4" />
-                                More from this author
-                            </Button>
+                            {showMoreFromAuthor ? (
+                                <Button
+                                    onClick={handleMoreFromAuthor}
+                                    className="w-full"
+                                >
+                                    <BookOpen className="mr-2 h-4 w-4" />
+                                    More from this author
+                                </Button>
+                            ) : null}
                         </div>
                     </>
                 ) : null}

@@ -31,7 +31,7 @@ export default function AdminLayout({
             return;
         }
 
-        if (user.role !== "admin") {
+        if (user.role !== "admin" && user.role !== "mod") {
             router.replace("/");
         }
     }, [currentPathWithQuery, isInitialized, router, user]);
@@ -40,7 +40,7 @@ export default function AdminLayout({
         return null;
     }
 
-    if (!user || user.role !== "admin") {
+    if (!user || (user.role !== "admin" && user.role !== "mod")) {
         return null;
     }
 

@@ -62,6 +62,7 @@ import {
     Search,
     Users,
     Wrench,
+    GitPullRequest,
 } from 'lucide-react';
 import { SearchModal } from '@/components/search-modal';
 import { useUser, userHelpers } from '@/contexts/UserContext';
@@ -124,6 +125,7 @@ export function Navbar() {
 
     const workMenuItems = [
         { href: '/projects', label: 'Projects', description: 'View our completed projects', icon: FolderCode },
+        { href: '/development', label: 'Development', description: 'Track issues, releases, and suggestions', icon: GitPullRequest },
         { href: '/services', label: 'Services', description: 'Explore the services we offer', icon: Briefcase },
     ];
 
@@ -357,7 +359,7 @@ export function Navbar() {
                 </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {normalizedRole === 'admin' && (
+            {(normalizedRole === 'admin' || normalizedRole === 'mod') && (
                 <DropdownMenuItem asChild>
                     <Link href="/admin" className="cursor-pointer">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
