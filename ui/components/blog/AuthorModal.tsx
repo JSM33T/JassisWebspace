@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
-import { BookOpen, AlertCircle } from 'lucide-react';
+import { AlertCircle, BookOpen, UserRound } from 'lucide-react';
 import { profileService, ProfileInfo } from '@/lib/api/profile.service';
 
 interface AuthorModalProps {
@@ -159,15 +160,24 @@ export function AuthorModal({ isOpen, onClose, userId, username, showMoreFromAut
                                 </div>
                             )}
 
-                            {showMoreFromAuthor ? (
-                                <Button
-                                    onClick={handleMoreFromAuthor}
-                                    className="w-full"
-                                >
-                                    <BookOpen className="mr-2 h-4 w-4" />
-                                    More from this author
+                            <div className={showMoreFromAuthor ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
+                                <Button asChild variant="outline" className="w-full" onClick={onClose}>
+                                    <Link href={`/user/${encodeURIComponent(profile.username || username)}`}>
+                                        <UserRound className="mr-2 h-4 w-4" />
+                                        View profile
+                                    </Link>
                                 </Button>
-                            ) : null}
+
+                                {showMoreFromAuthor ? (
+                                    <Button
+                                        onClick={handleMoreFromAuthor}
+                                        className="w-full"
+                                    >
+                                        <BookOpen className="mr-2 h-4 w-4" />
+                                        More from this author
+                                    </Button>
+                                ) : null}
+                            </div>
                         </div>
                     </>
                 ) : null}

@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { UserRound } from 'lucide-react';
 import { profileService, ProfileInfo } from '@/lib/api/profile.service';
 
 interface CommentUserModalProps {
@@ -119,6 +122,15 @@ export function CommentUserModal({
                             <div className="mt-4">
                                 <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{bio}</p>
                             </div>
+
+                            {resolvedUsername ? (
+                                <Button asChild variant="outline" className="mt-6 w-full" onClick={onClose}>
+                                    <Link href={`/user/${encodeURIComponent(resolvedUsername)}`}>
+                                        <UserRound className="mr-2 h-4 w-4" />
+                                        View profile
+                                    </Link>
+                                </Button>
+                            ) : null}
                         </div>
                     </>
                 )}
