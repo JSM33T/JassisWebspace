@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AuthorModal } from "@/components/blog/AuthorModal";
+import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     AlertDialog,
@@ -482,7 +483,11 @@ export default function AdminDevelopmentPage() {
                                                 <TableCell className="max-w-xl">
                                                     <div className="space-y-2">
                                                         <div className="font-medium">{suggestion.title}</div>
-                                                        <p className="line-clamp-3 whitespace-pre-wrap text-sm text-muted-foreground">{suggestion.body}</p>
+                                                        <MarkdownRenderer
+                                                            content={suggestion.body}
+                                                            variant="compact"
+                                                            className="max-h-40 overflow-hidden text-muted-foreground"
+                                                        />
                                                         <DevelopmentProgressLayer
                                                             level={suggestionProgressLevel(suggestion.status)}
                                                             className="max-w-md"
@@ -708,7 +713,11 @@ export default function AdminDevelopmentPage() {
                                                 </Button>
                                             </div>
                                         </div>
-                                        <p className="line-clamp-3 whitespace-pre-wrap text-sm text-muted-foreground">{note.body}</p>
+                                        <MarkdownRenderer
+                                            content={note.body}
+                                            variant="compact"
+                                            className="max-h-32 overflow-hidden text-muted-foreground"
+                                        />
                                     </div>
                                 ))
                             )}

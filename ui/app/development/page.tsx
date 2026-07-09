@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AuthorModal } from "@/components/blog/AuthorModal";
+import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer";
 import {
     DevelopmentProgressLayer,
     issueProgressLevel,
@@ -144,7 +145,11 @@ function FeedRow({
                 </div>
                 <h2 className="text-base font-semibold leading-6">{itemTitle(entry)}</h2>
                 {body ? (
-                    <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{body}</p>
+                    <MarkdownRenderer
+                        content={body}
+                        variant="compact"
+                        className="max-h-48 overflow-hidden text-muted-foreground"
+                    />
                 ) : null}
                 {progressLevel ? <DevelopmentProgressLayer level={progressLevel} /> : null}
                 {entry.kind === "suggestion" ? (

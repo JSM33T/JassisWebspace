@@ -9,9 +9,12 @@ import { Check, Copy } from 'lucide-react';
 import { Children, ComponentProps, isValidElement, ReactNode, useState } from 'react';
 
 import { slugify } from '@/lib/toc';
+import { cn } from '@/lib/utils';
 
 interface MarkdownRendererProps {
     content: string;
+    variant?: 'article' | 'compact';
+    className?: string;
 }
 
 /** Flatten React children into plain text so headings can get a stable anchor id. */
@@ -73,9 +76,17 @@ const CodeBlock = ({ language, children }: CodeBlockProps) => {
     );
 };
 
-export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
+export const MarkdownRenderer = ({ content, variant = 'article', className }: MarkdownRendererProps) => {
     return (
-        <div className="prose prose-lg dark:prose-invert max-w-none">
+        <div
+            className={cn(
+                'prose dark:prose-invert max-w-none break-words',
+                variant === 'article'
+                    ? 'prose-lg'
+                    : 'prose-sm prose-headings:mb-1.5 prose-headings:mt-2 prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-blockquote:my-2 prose-pre:my-2 prose-table:my-2',
+                className
+            )}
+        >
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
