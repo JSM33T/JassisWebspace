@@ -21,7 +21,16 @@ import { Button } from "@/components/ui/button";
 import { AuthorModal } from "@/components/blog/AuthorModal";
 import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
     DevelopmentProgressLayer,
+    DevelopmentProgressLevel,
     issueProgressLevel,
     suggestionProgressLevel,
 } from "@/components/development/development-progress-layer";
@@ -112,6 +121,12 @@ function itemMeta(entry: FeedItem) {
     return `${entry.item.category}${entry.item.version ? ` - ${entry.item.version}` : ""} - ${formatDate(entry.item.publishedAt ?? entry.item.createdAt)}`;
 }
 
+function itemProgressLevel(entry: FeedItem): DevelopmentProgressLevel | null {
+    if (entry.kind === "issue") return issueProgressLevel(entry.item.state);
+    if (entry.kind === "suggestion") return suggestionProgressLevel(entry.item.status);
+    return null;
+}
+
 function KindIcon({ kind }: { kind: FeedItem["kind"] }) {
     if (kind === "issue") return <CircleDot className="h-4 w-4" />;
     if (kind === "release") return <Tag className="h-4 w-4" />;
@@ -122,16 +137,15 @@ function KindIcon({ kind }: { kind: FeedItem["kind"] }) {
 function FeedRow({
     entry,
     onUserClick,
+    onOpenDetails,
 }: {
     entry: FeedItem;
     onUserClick: (userId: string, username: string) => void;
+    onOpenDetails: (entry: FeedItem) => void;
 }) {
     const href = itemHref(entry);
     const body = itemBody(entry);
-    const progressLevel =
-        entry.kind === "issue" ? issueProgressLevel(entry.item.state) :
-        entry.kind === "suggestion" ? suggestionProgressLevel(entry.item.status) :
-        null;
+    const progressLevel = itemProgressLevel(entry);
 
     return (
         <article className="grid gap-3 rounded-lg border bg-card/70 p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
@@ -145,22 +159,32 @@ function FeedRow({
                 </div>
                 <h2 className="text-base font-semibold leading-6">{itemTitle(entry)}</h2>
                 {body ? (
-                    <MarkdownRenderer
-                        content={body}
-                        variant="compact"
-                        className="max-h-48 overflow-hidden text-muted-foreground"
-                    />
+                    <div className="relative max-h-32 overflow-hidden">
+                        <MarkdownRenderer
+                            content={body}
+                            variant="compact"
+                            className="text-muted-foreground"
+                        />
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-card/95 to-transparent" />
+                    </div>
                 ) : null}
                 {progressLevel ? <DevelopmentProgressLayer level={progressLevel} /> : null}
-                {entry.kind === "suggestion" ? (
-                    <button
-                        type="button"
-                        className="text-left text-xs font-medium text-primary underline-offset-4 hover:underline"
-                        onClick={() => onUserClick(entry.item.userId, entry.item.username)}
-                    >
-                        {entry.item.userDisplayName ?? entry.item.username}
-                    </button>
-                ) : null}
+                <div className="flex flex-wrap items-center gap-3">
+                    {entry.kind === "suggestion" ? (
+                        <button
+                            type="button"
+                            className="text-left text-xs font-medium text-primary underline-offset-4 hover:underline"
+                            onClick={() => onUserClick(entry.item.userId, entry.item.username)}
+                        >
+                            {entry.item.userDisplayName ?? entry.item.username}
+                        </button>
+                    ) : null}
+                    {body ? (
+                        <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => onOpenDetails(entry)}>
+                            View details
+                        </Button>
+                    ) : null}
+                </div>
             </div>
             {href ? (
                 <Button asChild variant="ghost" size="icon-sm" aria-label={`Open ${kindLabel(entry.kind).toLowerCase()}`}>
@@ -193,6 +217,7 @@ export default function DevelopmentPage() {
     const [submitting, setSubmitting] = useState(false);
     const [selectedUser, setSelectedUser] = useState<{ userId: string; username: string } | null>(null);
     const [userModalOpen, setUserModalOpen] = useState(false);
+    const [selectedEntry, setSelectedEntry] = useState<FeedItem | null>(null);
 
     const titleText = title.trim();
     const bodyText = body.trim();
@@ -368,6 +393,10 @@ export default function DevelopmentPage() {
         });
     }, [allItems, view]);
 
+    const selectedEntryBody = selectedEntry ? itemBody(selectedEntry) : null;
+    const selectedEntryHref = selectedEntry ? itemHref(selectedEntry) : null;
+    const selectedEntryProgress = selectedEntry ? itemProgressLevel(selectedEntry) : null;
+
     if (loading) {
         return (
             <main className="mx-auto max-w-5xl px-4 pb-16 pt-28 sm:px-6 lg:px-8">
@@ -529,7 +558,14 @@ export default function DevelopmentPage() {
                             entry.kind === "release" ? `release-${entry.item.id}` :
                             `${entry.kind}-${entry.item.id}`;
 
-                        return <FeedRow key={key} entry={entry} onUserClick={openUserPanel} />;
+                        return (
+                            <FeedRow
+                                key={key}
+                                entry={entry}
+                                onUserClick={openUserPanel}
+                                onOpenDetails={setSelectedEntry}
+                            />
+                        );
                     })
                 ) : (
                     <div className="rounded-lg border bg-card/70 p-8 text-center text-sm text-muted-foreground">
@@ -547,6 +583,62 @@ export default function DevelopmentPage() {
                     showMoreFromAuthor={false}
                 />
             ) : null}
+
+            <Dialog open={selectedEntry !== null} onOpenChange={(open) => { if (!open) setSelectedEntry(null); }}>
+                <DialogContent className="max-h-[86vh] overflow-hidden p-0 sm:max-w-3xl">
+                    {selectedEntry ? (
+                        <>
+                            <DialogHeader className="border-b px-6 pb-4 pt-6 pr-14">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant={kindBadgeVariant(selectedEntry.kind)}>{kindLabel(selectedEntry.kind)}</Badge>
+                                    <span className="text-xs text-muted-foreground">{itemMeta(selectedEntry)}</span>
+                                </div>
+                                <DialogTitle className="text-xl leading-7">{itemTitle(selectedEntry)}</DialogTitle>
+                                <DialogDescription>
+                                    Full development wall details with rendered markdown.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="max-h-[58vh] overflow-y-auto px-6 py-5">
+                                {selectedEntryProgress ? (
+                                    <DevelopmentProgressLayer level={selectedEntryProgress} className="mb-4" />
+                                ) : null}
+                                {selectedEntry.kind === "suggestion" ? (
+                                    <button
+                                        type="button"
+                                        className="mb-4 text-left text-sm font-medium text-primary underline-offset-4 hover:underline"
+                                        onClick={() => {
+                                            setSelectedEntry(null);
+                                            openUserPanel(selectedEntry.item.userId, selectedEntry.item.username);
+                                        }}
+                                    >
+                                        {selectedEntry.item.userDisplayName ?? selectedEntry.item.username}
+                                    </button>
+                                ) : null}
+                                {selectedEntryBody ? (
+                                    <MarkdownRenderer content={selectedEntryBody} variant="compact" />
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No details were provided.</p>
+                                )}
+                            </div>
+
+                            <DialogFooter className="border-t px-6 py-4">
+                                {selectedEntryHref ? (
+                                    <Button asChild variant="outline">
+                                        <Link href={selectedEntryHref} target="_blank" rel="noreferrer">
+                                            Open source
+                                            <ArrowUpRight className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                ) : null}
+                                <Button type="button" onClick={() => setSelectedEntry(null)}>
+                                    Close
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
         </main>
     );
 }
