@@ -19,7 +19,7 @@ public sealed class BlogController(
 {
     [HttpGet]
     [CachedResponse(RedisCacheKeys.BlogList, TtlSeconds = 120, Scope = CacheScope.UserOrAnonymous, VaryByQuery = true)]
-    [ProducesResponseType(typeof(ApiResponse<List<BlogListItemResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyCollection<BlogListItemResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBlogs(
         [FromQuery] string? search,
         [FromQuery] DateTimeOffset? startDate,
@@ -32,7 +32,7 @@ public sealed class BlogController(
     {
         try
         {
-            var blogs = await blogService.GetBlogsAsync(
+            var result = await blogService.GetBlogsAsync(
                 search,
                 startDate,
                 endDate,
@@ -42,7 +42,7 @@ public sealed class BlogController(
                 pageSize,
                 cancellationToken);
 
-            return OkEnvelope(blogs);
+            return PagedOk(result.Blogs, result.Page, result.PageSize, result.Total);
         }
         catch (Exception ex)
         {
@@ -102,7 +102,7 @@ public sealed class BlogController(
     }
 
     [HttpGet("categories/{categorySlug}/blogs")]
-    [ProducesResponseType(typeof(ApiResponse<List<BlogListItemResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyCollection<BlogListItemResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBlogsByCategory(
         string categorySlug,
@@ -116,7 +116,7 @@ public sealed class BlogController(
 
             return result.Status switch
             {
-                BlogCategoryQueryStatus.Success => OkEnvelope(result.Blogs),
+                BlogCategoryQueryStatus.Success => PagedOk(result.Blogs, result.Page, result.PageSize, result.Total),
                 BlogCategoryQueryStatus.CategoryNotFound => NotFoundProblem("Category not found", result.ErrorMessage),
                 _ => Problem(
                     StatusCodes.Status500InternalServerError,

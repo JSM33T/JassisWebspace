@@ -74,4 +74,5 @@ export interface RequestConfig extends RequestInit {
     timeout?: number;
     correlationId?: string;
     credentials?: RequestCredentials;
+    unwrapData?: boolean;
 }

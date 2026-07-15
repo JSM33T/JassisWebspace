@@ -16,7 +16,7 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
 
     private readonly JassSpaceDbContext _dbContext = dbContext;
 
-    public async Task<List<BlogListItemResponse>> GetBlogsAsync(
+    public async Task<BlogListQueryResult> GetBlogsAsync(
         string? search,
         DateTimeOffset? startDate,
         DateTimeOffset? endDate,
@@ -165,6 +165,9 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             return new BlogCategoryBlogsResult(
                 BlogCategoryQueryStatus.CategoryNotFound,
                 [],
+                page,
+                pageSize,
+                0,
                 "No category found with the supplied slug.");
         }
 
@@ -177,6 +180,9 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             return new BlogCategoryBlogsResult(
                 BlogCategoryQueryStatus.CategoryNotFound,
                 [],
+                page,
+                pageSize,
+                0,
                 $"No category found with slug '{normalizedCategorySlug}'.");
         }
 
@@ -185,7 +191,12 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             .Where(b => b.IsPublished && b.CategoryId == category.Id);
 
         var blogs = await LoadBlogListPageAsync(query, page, pageSize, cancellationToken);
-        return new BlogCategoryBlogsResult(BlogCategoryQueryStatus.Success, blogs);
+        return new BlogCategoryBlogsResult(
+            BlogCategoryQueryStatus.Success,
+            blogs.Blogs,
+            blogs.Page,
+            blogs.PageSize,
+            blogs.Total);
     }
 
     public async Task<BlogCreateResult> CreateBlogAsync(
@@ -383,12 +394,14 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
         return query;
     }
 
-    private async Task<List<BlogListItemResponse>> LoadBlogListPageAsync(
+    private async Task<BlogListQueryResult> LoadBlogListPageAsync(
         IQueryable<Blog> query,
         int page,
         int pageSize,
         CancellationToken cancellationToken)
     {
+        var total = await query.CountAsync(cancellationToken);
+
         var blogRows = await query
             .OrderByDescending(b => b.PublishedAt ?? b.CreatedAt)
             .ThenByDescending(b => b.CreatedAt)
@@ -417,7 +430,7 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
 
         if (blogRows.Count == 0)
         {
-            return [];
+            return new BlogListQueryResult([], page, pageSize, total);
         }
 
         var blogIds = blogRows.Select(b => b.Id).ToList();
@@ -481,7 +494,7 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
             }
         }
 
-        return blogRows
+        var blogs = blogRows
             .Select(blog =>
             {
                 var likeCount = 0;
@@ -512,6 +525,8 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
                     viewCount);
             })
             .ToList();
+
+        return new BlogListQueryResult(blogs, page, pageSize, total);
     }
 
     private static void NormalizePagination(ref int page, ref int pageSize)

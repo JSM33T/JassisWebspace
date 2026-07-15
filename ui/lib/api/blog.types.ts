@@ -31,6 +31,13 @@ export interface BlogListItem {
     viewCount: number;
 }
 
+export interface BlogListPage {
+    blogs: BlogListItem[];
+    page: number;
+    pageSize: number;
+    total: number;
+}
+
 export interface BlogDetail {
     id: string;
     contentId: string; // The ID of the associated Content entity for comments/polymorphism

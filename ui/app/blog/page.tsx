@@ -45,6 +45,7 @@ export default function BlogHomePage() {
     const searchParams = useSearchParams();
 
     const [blogs, setBlogs] = useState<BlogListItem[]>([]);
+    const [totalBlogs, setTotalBlogs] = useState(0);
     const [categories, setCategories] = useState<BlogCategory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -68,6 +69,8 @@ export default function BlogHomePage() {
     } | null>(null);
 
     const hasActiveFilters = Boolean(search || selectedCategorySlug || selectedAuthor);
+    const hasNextPage = page * pageSize < totalBlogs;
+    const showPagination = page > 1 || totalBlogs > pageSize;
     const selectedCategory = selectedCategorySlug
         ? categories.find((category) => category.slug === selectedCategorySlug)
         : undefined;
@@ -99,7 +102,7 @@ export default function BlogHomePage() {
         if (isCategoryFilterPending || isCategoryFilterInvalid) return;
 
         try {
-            const data = await blogService.getBlogs({
+            const data = await blogService.getBlogsPage({
                 search: debouncedSearch || undefined,
                 authorUsername: selectedAuthor,
                 categoryId: selectedCategory?.id,
@@ -107,13 +110,15 @@ export default function BlogHomePage() {
                 pageSize,
             });
 
-            setBlogs(data);
+            setBlogs(data.blogs);
+            setTotalBlogs(data.total);
         } catch (err) {
             if (err instanceof ApiError) {
                 setError(err.problemDetails.detail || err.problemDetails.title);
             } else {
                 setError('Failed to load blogs');
             }
+            setTotalBlogs(0);
         } finally {
             setLoading(false);
         }
@@ -137,6 +142,7 @@ export default function BlogHomePage() {
         setLoadedBlogsKey(blogsQueryKey);
         if (isCategoryFilterInvalid) {
             setBlogs([]);
+            setTotalBlogs(0);
             setError(null);
             setLoading(false);
         } else if (!isCategoryFilterPending) {
@@ -338,8 +344,8 @@ export default function BlogHomePage() {
                             </div>
                         )}
 
-                        {!loading && blogs.length === pageSize && (
-                            <div className="mt-12 flex justify-center gap-4">
+                        {!loading && showPagination && (
+                            <div className="mt-12 flex items-center justify-center gap-4">
                                 <Button
                                     variant="outline"
                                     disabled={page === 1}
@@ -347,7 +353,11 @@ export default function BlogHomePage() {
                                 >
                                     Previous
                                 </Button>
-                                <Button variant="outline" onClick={() => setPage((prev) => prev + 1)}>
+                                <Button
+                                    variant="outline"
+                                    disabled={!hasNextPage}
+                                    onClick={() => setPage((prev) => prev + 1)}
+                                >
                                     Next
                                 </Button>
                             </div>

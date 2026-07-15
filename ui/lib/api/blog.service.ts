@@ -1,11 +1,13 @@
-import { get, post } from './client';
+import { get, getEnvelope, post } from './client';
 import { 
     BlogListItem, 
     BlogDetail, 
     BlogCategory, 
     CreateBlogRequest,
-    CreateBlogCategoryRequest 
+    CreateBlogCategoryRequest,
+    BlogListPage
 } from './blog.types';
+import { PagedMeta } from './types';
 
 /**
  * Blog Service
@@ -25,6 +27,19 @@ export const blogService = {
         page?: number;
         pageSize?: number;
     }): Promise<BlogListItem[]> {
+        const page = await this.getBlogsPage(params);
+        return page.blogs;
+    },
+
+    async getBlogsPage(params?: {
+        search?: string;
+        startDate?: string;
+        endDate?: string;
+        categoryId?: string;
+        authorUsername?: string;
+        page?: number;
+        pageSize?: number;
+    }): Promise<BlogListPage> {
         const queryParams = new URLSearchParams();
         if (params?.search) queryParams.append('search', params.search);
         if (params?.startDate) queryParams.append('startDate', params.startDate);
@@ -35,7 +50,8 @@ export const blogService = {
         if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
         
         const query = queryParams.toString();
-        return get<BlogListItem[]>(`/blog${query ? `?${query}` : ''}`);
+        const response = await getEnvelope<BlogListItem[]>(`/blog${query ? `?${query}` : ''}`);
+        return toBlogListPage(response.data, response.meta, params?.page, params?.pageSize);
     },
 
     /**
@@ -60,9 +76,19 @@ export const blogService = {
         page: number = 1,
         pageSize: number = 10
     ): Promise<BlogListItem[]> {
-        return get<BlogListItem[]>(
+        const result = await this.getBlogsByCategoryPage(categorySlug, page, pageSize);
+        return result.blogs;
+    },
+
+    async getBlogsByCategoryPage(
+        categorySlug: string,
+        page: number = 1,
+        pageSize: number = 10
+    ): Promise<BlogListPage> {
+        const response = await getEnvelope<BlogListItem[]>(
             `/blog/categories/${categorySlug}/blogs?page=${page}&pageSize=${pageSize}`
         );
+        return toBlogListPage(response.data, response.meta, page, pageSize);
     },
 
     /**
@@ -79,5 +105,21 @@ export const blogService = {
         return post<BlogCategory, CreateBlogCategoryRequest>('/blog/categories', request);
     },
 };
+
+function toBlogListPage(
+    blogs: BlogListItem[],
+    meta: PagedMeta | Record<string, unknown> | null | undefined,
+    fallbackPage: number = 1,
+    fallbackPageSize: number = blogs.length
+): BlogListPage {
+    const pageMeta = meta as Partial<PagedMeta> | null | undefined;
+
+    return {
+        blogs,
+        page: typeof pageMeta?.page === 'number' ? pageMeta.page : fallbackPage,
+        pageSize: typeof pageMeta?.pageSize === 'number' ? pageMeta.pageSize : fallbackPageSize,
+        total: typeof pageMeta?.total === 'number' ? pageMeta.total : blogs.length,
+    };
+}
 
 export default blogService;

@@ -383,7 +383,7 @@ async function request<T>(endpoint: string, config: RequestConfig = {}, isRetry:
         const contentType = response.headers.get('content-type');
         if (contentType?.includes('application/json')) {
             const json = await response.json();
-            if (json && typeof json === 'object' && 'data' in json) {
+            if (mergedConfig.unwrapData !== false && json && typeof json === 'object' && 'data' in json) {
                 const apiResponse = json as ApiResponse<T>;
                 return apiResponse.data;
             }
@@ -412,6 +412,10 @@ async function request<T>(endpoint: string, config: RequestConfig = {}, isRetry:
 
 export async function get<T>(endpoint: string, config: RequestConfig = {}): Promise<T> {
     return request<T>(endpoint, { ...config, method: 'GET' });
+}
+
+export async function getEnvelope<T>(endpoint: string, config: RequestConfig = {}): Promise<ApiResponse<T>> {
+    return request<ApiResponse<T>>(endpoint, { ...config, method: 'GET', unwrapData: false });
 }
 
 export async function post<T, D = unknown>(endpoint: string, data?: D, config: RequestConfig = {}): Promise<T> {

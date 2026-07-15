@@ -38,13 +38,23 @@ public enum BlogCategoryQueryStatus
 
 public sealed record BlogCategoryBlogsResult(
     BlogCategoryQueryStatus Status,
-    List<BlogListItemResponse> Blogs,
+    IReadOnlyCollection<BlogListItemResponse> Blogs,
+    int Page,
+    int PageSize,
+    int Total,
     string? ErrorMessage = null
+);
+
+public sealed record BlogListQueryResult(
+    IReadOnlyCollection<BlogListItemResponse> Blogs,
+    int Page,
+    int PageSize,
+    int Total
 );
 
 public interface IBlogService
 {
-    Task<List<BlogListItemResponse>> GetBlogsAsync(
+    Task<BlogListQueryResult> GetBlogsAsync(
         string? search,
         DateTimeOffset? startDate,
         DateTimeOffset? endDate,
