@@ -120,12 +120,12 @@ function getPendingActionCopy(action: PendingAction) {
 
     if (action.type === "closeIssue") {
         return {
-            title: "Close this GitHub issue?",
-            description: `This will close GitHub issue #${action.suggestion.githubIssueNumber} and archive "${action.suggestion.title}" locally.`,
-            confirmLabel: "Yes, close it",
-            busyLabel: "Closing...",
-            icon: X,
-            destructive: true,
+            title: "Mark this GitHub issue completed?",
+            description: `This will complete GitHub issue #${action.suggestion.githubIssueNumber} and archive "${action.suggestion.title}" locally.`,
+            confirmLabel: "Yes, complete it",
+            busyLabel: "Completing...",
+            icon: Check,
+            destructive: false,
         };
     }
 
@@ -281,11 +281,11 @@ export default function AdminDevelopmentPage() {
             setBusyId(suggestion.id);
             const updated = await adminDevelopmentService.closePromotedIssue(suggestion.id);
             setSuggestions((current) => current.map((item) => item.id === updated.id ? updated : item));
-            toast.success("GitHub issue closed and suggestion archived");
+            toast.success("GitHub issue completed and suggestion archived");
             setPendingAction(null);
         } catch (error) {
-            console.error("Failed to close GitHub issue", error);
-            toast.error(error instanceof ApiError ? error.message : "Could not close GitHub issue");
+            console.error("Failed to complete GitHub issue", error);
+            toast.error(error instanceof ApiError ? error.message : "Could not complete GitHub issue");
         } finally {
             setBusyId(null);
         }
@@ -592,8 +592,8 @@ export default function AdminDevelopmentPage() {
                                                                 disabled={isBusy}
                                                                 onClick={() => setPendingAction({ type: "closeIssue", suggestion })}
                                                             >
-                                                                <X className="h-4 w-4" />
-                                                                Close issue
+                                                                <Check className="h-4 w-4" />
+                                                                Complete issue
                                                             </Button>
                                                         ) : null}
                                                         <Button

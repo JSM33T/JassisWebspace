@@ -12,6 +12,7 @@ export interface DevelopmentIssue {
     createdAt: string;
     updatedAt: string;
     closedAt: string | null;
+    stateReason: string | null;
 }
 
 export interface DevelopmentRelease {

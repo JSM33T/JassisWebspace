@@ -664,7 +664,7 @@ public sealed class DevelopmentService(
         using var payload = JsonSerializer.SerializeToDocument(new
         {
             state = "closed",
-            state_reason = "not_planned"
+            state_reason = "completed"
         });
 
         using var _ = await SendGitHubJsonAsync(
@@ -753,7 +753,8 @@ public sealed class DevelopmentService(
             TryGetObjectString(item, "assignee", "login"),
             GetDate(item, "created_at") ?? DateTimeOffset.UtcNow,
             GetDate(item, "updated_at") ?? DateTimeOffset.UtcNow,
-            GetDate(item, "closed_at"));
+            GetDate(item, "closed_at"),
+            GetString(item, "state_reason"));
     }
 
     private static DevelopmentReleaseResponse ParseRelease(JsonElement item)

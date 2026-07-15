@@ -2,16 +2,13 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
     ArrowUpRight,
-    CheckCircle2,
-    CircleDot,
     GitPullRequest,
     MessageSquarePlus,
     RefreshCcw,
     Send,
-    Tag,
     X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -59,6 +56,8 @@ type FeedItem =
 
 const TITLE_LIMIT = 180;
 const BODY_LIMIT = 5000;
+const PAGE_SIZE = 8;
+
 const views: Array<{ id: DevelopmentView; label: string }> = [
     { id: "all", label: "All" },
     { id: "suggestions", label: "Suggestions" },
@@ -67,9 +66,20 @@ const views: Array<{ id: DevelopmentView; label: string }> = [
     { id: "notes", label: "Notes" },
 ];
 
+const issueStateFilters: Array<{ value: "open" | "closed" | "all"; label: string }> = [
+    { value: "open", label: "Open" },
+    { value: "closed", label: "Completed" },
+    { value: "all", label: "All" },
+];
+
 function formatDate(value: string | null | undefined) {
     if (!value) return "No date";
     return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+
+function parseDevelopmentPage(value: string | null): number {
+    const parsedPage = parseInt(value || "1", 10);
+    return Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 }
 
 function kindLabel(kind: FeedItem["kind"]) {
@@ -84,6 +94,18 @@ function kindBadgeVariant(kind: FeedItem["kind"]) {
     if (kind === "release") return "default" as const;
     if (kind === "suggestion") return "secondary" as const;
     return "outline" as const;
+}
+
+function issueStatusLabel(issue: DevelopmentIssue) {
+    return issue.state.toLowerCase() === "closed" || issue.stateReason?.toLowerCase() === "completed"
+        ? "Completed"
+        : "Open";
+}
+
+function issueStatusBadgeClass(issue: DevelopmentIssue) {
+    return issueStatusLabel(issue) === "Completed"
+        ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+        : "border-sky-500/30 bg-sky-500/15 text-sky-700 dark:text-sky-300";
 }
 
 function itemTitle(entry: FeedItem) {
@@ -107,7 +129,7 @@ function itemHref(entry: FeedItem) {
 
 function itemMeta(entry: FeedItem) {
     if (entry.kind === "issue") {
-        return `#${entry.item.number} - ${entry.item.state} - updated ${formatDate(entry.item.updatedAt)}`;
+        return `#${entry.item.number} - ${issueStatusLabel(entry.item)} - updated ${formatDate(entry.item.updatedAt)}`;
     }
 
     if (entry.kind === "release") {
@@ -122,16 +144,9 @@ function itemMeta(entry: FeedItem) {
 }
 
 function itemProgressLevel(entry: FeedItem): DevelopmentProgressLevel | null {
-    if (entry.kind === "issue") return issueProgressLevel(entry.item.state);
+    if (entry.kind === "issue") return issueProgressLevel(entry.item.state, entry.item.stateReason);
     if (entry.kind === "suggestion") return suggestionProgressLevel(entry.item.status);
     return null;
-}
-
-function KindIcon({ kind }: { kind: FeedItem["kind"] }) {
-    if (kind === "issue") return <CircleDot className="h-4 w-4" />;
-    if (kind === "release") return <Tag className="h-4 w-4" />;
-    if (kind === "suggestion") return <MessageSquarePlus className="h-4 w-4" />;
-    return <CheckCircle2 className="h-4 w-4" />;
 }
 
 function FeedRow({
@@ -145,30 +160,20 @@ function FeedRow({
 }) {
     const href = itemHref(entry);
     const body = itemBody(entry);
-    const progressLevel = itemProgressLevel(entry);
 
     return (
-        <article className="grid gap-3 rounded-lg border bg-card/70 p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md border bg-background text-muted-foreground">
-                <KindIcon kind={entry.kind} />
-            </div>
-            <div className="min-w-0 space-y-2">
+        <article className="grid gap-3 border-b py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="min-w-0 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={kindBadgeVariant(entry.kind)}>{kindLabel(entry.kind)}</Badge>
+                    {entry.kind === "issue" ? (
+                        <Badge variant="outline" className={issueStatusBadgeClass(entry.item)}>
+                            {issueStatusLabel(entry.item)}
+                        </Badge>
+                    ) : null}
                     <span className="text-xs text-muted-foreground">{itemMeta(entry)}</span>
                 </div>
                 <h2 className="text-base font-semibold leading-6">{itemTitle(entry)}</h2>
-                {body ? (
-                    <div className="relative max-h-32 overflow-hidden">
-                        <MarkdownRenderer
-                            content={body}
-                            variant="compact"
-                            className="text-muted-foreground"
-                        />
-                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-card/95 to-transparent" />
-                    </div>
-                ) : null}
-                {progressLevel ? <DevelopmentProgressLayer level={progressLevel} /> : null}
                 <div className="flex flex-wrap items-center gap-3">
                     {entry.kind === "suggestion" ? (
                         <button
@@ -187,7 +192,7 @@ function FeedRow({
                 </div>
             </div>
             {href ? (
-                <Button asChild variant="ghost" size="icon-sm" aria-label={`Open ${kindLabel(entry.kind).toLowerCase()}`}>
+                <Button asChild variant="ghost" size="icon-sm" className="self-start" aria-label={`Open ${kindLabel(entry.kind).toLowerCase()}`}>
                     <Link href={href} target="_blank" rel="noreferrer">
                         <ArrowUpRight className="h-4 w-4" />
                     </Link>
@@ -200,6 +205,8 @@ function FeedRow({
 export default function DevelopmentPage() {
     const { isAuthenticated } = useUser();
     const pathname = usePathname();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [view, setView] = useState<DevelopmentView>("all");
     const [summary, setSummary] = useState<DevelopmentSummary | null>(null);
     const [issues, setIssues] = useState<DevelopmentIssue[]>([]);
@@ -211,6 +218,8 @@ export default function DevelopmentPage() {
     const [showSuggestionForm, setShowSuggestionForm] = useState(false);
     const [issueState, setIssueState] = useState<"open" | "closed" | "all">("open");
     const [issueSearch, setIssueSearch] = useState("");
+    const [page, setPage] = useState(parseDevelopmentPage(searchParams.get("page")));
+    const [hasMoreServerItems, setHasMoreServerItems] = useState(false);
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -238,6 +247,7 @@ export default function DevelopmentPage() {
         setReleases(data.latestReleases);
         setNotes(data.notes);
         setSuggestions(data.suggestions);
+        setHasMoreServerItems(false);
     }, []);
 
     useEffect(() => {
@@ -251,6 +261,7 @@ export default function DevelopmentPage() {
                 setReleases(data.latestReleases);
                 setNotes(data.notes);
                 setSuggestions(data.suggestions);
+                setHasMoreServerItems(false);
             } catch (error) {
                 console.error("Failed to load development updates", error);
                 toast.error("Development updates are unavailable");
@@ -265,6 +276,16 @@ export default function DevelopmentPage() {
     }, []);
 
     useEffect(() => {
+        const params = new URLSearchParams();
+        if (page > 1) params.set("page", String(page));
+        router.replace(params.toString() ? `?${params}` : "/development", { scroll: false });
+    }, [page, router]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [issueSearch, issueState, view]);
+
+    useEffect(() => {
         if (view !== "issues") return;
         let ignore = false;
         void (async () => {
@@ -272,9 +293,13 @@ export default function DevelopmentPage() {
                 const data = await developmentService.getIssues({
                     state: issueState,
                     search: issueSearch || undefined,
-                    pageSize: 30,
+                    page,
+                    pageSize: PAGE_SIZE + 1,
                 });
-                if (!ignore) setIssues(data);
+                if (!ignore) {
+                    setIssues(data.slice(0, PAGE_SIZE));
+                    setHasMoreServerItems(data.length > PAGE_SIZE);
+                }
             } catch (error) {
                 console.error("Failed to load issues", error);
                 toast.error("Could not load issues");
@@ -284,17 +309,25 @@ export default function DevelopmentPage() {
         return () => {
             ignore = true;
         };
-    }, [issueSearch, issueState, view]);
+    }, [issueSearch, issueState, page, view]);
 
     useEffect(() => {
         if (view !== "releases" && view !== "notes") return;
         let ignore = false;
         void (async () => {
             try {
-                const data = await developmentService.getReleases({ pageSize: 30 });
+                const data = await developmentService.getReleases({
+                    page,
+                    pageSize: PAGE_SIZE + 1,
+                });
                 if (!ignore) {
-                    setReleases(data.releases);
-                    setNotes(data.notes);
+                    setReleases(data.releases.slice(0, PAGE_SIZE));
+                    setNotes(data.notes.slice(0, PAGE_SIZE));
+                    setHasMoreServerItems(
+                        view === "releases"
+                            ? data.releases.length > PAGE_SIZE
+                            : data.notes.length > PAGE_SIZE
+                    );
                 }
             } catch (error) {
                 console.error("Failed to load releases", error);
@@ -305,15 +338,21 @@ export default function DevelopmentPage() {
         return () => {
             ignore = true;
         };
-    }, [view]);
+    }, [page, view]);
 
     useEffect(() => {
         if (view !== "suggestions") return;
         let ignore = false;
         void (async () => {
             try {
-                const data = await developmentService.getSuggestions({ pageSize: 30 });
-                if (!ignore) setSuggestions(data);
+                const data = await developmentService.getSuggestions({
+                    page,
+                    pageSize: PAGE_SIZE + 1,
+                });
+                if (!ignore) {
+                    setSuggestions(data.slice(0, PAGE_SIZE));
+                    setHasMoreServerItems(data.length > PAGE_SIZE);
+                }
             } catch (error) {
                 console.error("Failed to load suggestions", error);
                 toast.error("Could not load suggestions");
@@ -323,7 +362,7 @@ export default function DevelopmentPage() {
         return () => {
             ignore = true;
         };
-    }, [view]);
+    }, [page, view]);
 
     const handleRefresh = async () => {
         try {
@@ -393,6 +432,15 @@ export default function DevelopmentPage() {
         });
     }, [allItems, view]);
 
+    const pagedItems = useMemo(() => {
+        if (view !== "all") return visibleItems.slice(0, PAGE_SIZE);
+        const start = (page - 1) * PAGE_SIZE;
+        return visibleItems.slice(start, start + PAGE_SIZE);
+    }, [page, view, visibleItems]);
+    const hasNextPage = view === "all"
+        ? page * PAGE_SIZE < visibleItems.length
+        : hasMoreServerItems;
+    const showPagination = page > 1 || hasNextPage;
     const selectedEntryBody = selectedEntry ? itemBody(selectedEntry) : null;
     const selectedEntryHref = selectedEntry ? itemHref(selectedEntry) : null;
     const selectedEntryProgress = selectedEntry ? itemProgressLevel(selectedEntry) : null;
@@ -529,15 +577,15 @@ export default function DevelopmentPage() {
             {view === "issues" ? (
                 <div className="mt-4 flex flex-col gap-3 rounded-lg border bg-card/60 p-3 sm:flex-row">
                     <div className="grid grid-cols-3 gap-1 rounded-md border bg-muted/30 p-1">
-                        {(["open", "closed", "all"] as const).map((state) => (
+                        {issueStateFilters.map((filter) => (
                             <Button
-                                key={state}
+                                key={filter.value}
                                 type="button"
                                 size="sm"
-                                variant={issueState === state ? "default" : "ghost"}
-                                onClick={() => setIssueState(state)}
+                                variant={issueState === filter.value ? "default" : "ghost"}
+                                onClick={() => setIssueState(filter.value)}
                             >
-                                {state}
+                                {filter.label}
                             </Button>
                         ))}
                     </div>
@@ -551,8 +599,9 @@ export default function DevelopmentPage() {
             ) : null}
 
             <section className="mt-4 space-y-3">
-                {visibleItems.length > 0 ? (
-                    visibleItems.map((entry) => {
+                {pagedItems.length > 0 ? (
+                    <div className="rounded-lg border bg-card/60 px-4">
+                    {pagedItems.map((entry) => {
                         const key =
                             entry.kind === "issue" ? `issue-${entry.item.number}` :
                             entry.kind === "release" ? `release-${entry.item.id}` :
@@ -567,11 +616,32 @@ export default function DevelopmentPage() {
                             />
                         );
                     })
+                    }
+                    </div>
                 ) : (
                     <div className="rounded-lg border bg-card/70 p-8 text-center text-sm text-muted-foreground">
                         Nothing to show here yet.
                     </div>
                 )}
+
+                {showPagination ? (
+                    <div className="flex items-center justify-center gap-4 pt-4">
+                        <Button
+                            variant="outline"
+                            disabled={page === 1}
+                            onClick={() => setPage((current) => Math.max(1, current - 1))}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            disabled={!hasNextPage}
+                            onClick={() => setPage((current) => current + 1)}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                ) : null}
             </section>
 
             {selectedUser ? (
@@ -591,6 +661,11 @@ export default function DevelopmentPage() {
                             <DialogHeader className="border-b px-6 pb-4 pt-6 pr-14">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <Badge variant={kindBadgeVariant(selectedEntry.kind)}>{kindLabel(selectedEntry.kind)}</Badge>
+                                    {selectedEntry.kind === "issue" ? (
+                                        <Badge variant="outline" className={issueStatusBadgeClass(selectedEntry.item)}>
+                                            {issueStatusLabel(selectedEntry.item)}
+                                        </Badge>
+                                    ) : null}
                                     <span className="text-xs text-muted-foreground">{itemMeta(selectedEntry)}</span>
                                 </div>
                                 <DialogTitle className="text-xl leading-7">{itemTitle(selectedEntry)}</DialogTitle>

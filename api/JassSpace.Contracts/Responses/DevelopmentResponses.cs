@@ -13,7 +13,9 @@ public sealed record DevelopmentIssueResponse(
     string? Assignee,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    DateTimeOffset? ClosedAt);
+    DateTimeOffset? ClosedAt,
+    [property: JsonPropertyName("stateReason")]
+    string? StateReason = null);
 
 public sealed record DevelopmentReleaseResponse(
     long Id,

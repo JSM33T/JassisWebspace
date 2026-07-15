@@ -1,9 +1,9 @@
-import { CheckCircle2, CircleDot, GitPullRequest, LockKeyhole } from "lucide-react";
+import { CheckCircle2, CircleDot, GitPullRequest } from "lucide-react";
 
 import { DevelopmentSuggestionStatus } from "@/lib/api/development.types";
 import { cn } from "@/lib/utils";
 
-export type DevelopmentProgressLevel = "pending" | "approved" | "promoted" | "closed";
+export type DevelopmentProgressLevel = "pending" | "approved" | "promoted" | "completed";
 
 const steps: Array<{
     id: DevelopmentProgressLevel;
@@ -34,23 +34,26 @@ const steps: Array<{
         softColor: "bg-violet-500/20 text-violet-700 dark:text-violet-300",
     },
     {
-        id: "closed",
-        label: "Closed",
-        icon: LockKeyhole,
-        color: "bg-zinc-500 text-zinc-950",
-        softColor: "bg-zinc-500/20 text-zinc-700 dark:text-zinc-300",
+        id: "completed",
+        label: "Completed",
+        icon: CheckCircle2,
+        color: "bg-emerald-500 text-emerald-950",
+        softColor: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
     },
 ];
 
 export function suggestionProgressLevel(status: DevelopmentSuggestionStatus): DevelopmentProgressLevel {
     if (status === "approved") return "approved";
     if (status === "promoted") return "promoted";
-    if (status === "archived" || status === "rejected") return "closed";
+    if (status === "archived" || status === "rejected") return "completed";
     return "pending";
 }
 
-export function issueProgressLevel(state: string): DevelopmentProgressLevel {
-    return state.toLowerCase() === "closed" ? "closed" : "promoted";
+export function issueProgressLevel(state: string, stateReason?: string | null): DevelopmentProgressLevel {
+    if (state.toLowerCase() === "closed" || stateReason?.toLowerCase() === "completed") {
+        return "completed";
+    }
+    return "promoted";
 }
 
 export function DevelopmentProgressLayer({
