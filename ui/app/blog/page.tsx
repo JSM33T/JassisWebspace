@@ -60,7 +60,7 @@ export default function BlogHomePage() {
     );
     const [page, setPage] = useState(parseInt(searchParams.get('page') || '1', 10));
 
-    const pageSize = 12;
+    const pageSize = 6;
 
     const [authorModalOpen, setAuthorModalOpen] = useState(false);
     const [selectedAuthorData, setSelectedAuthorData] = useState<{
