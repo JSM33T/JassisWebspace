@@ -20,11 +20,26 @@ public sealed class GalleryController(
     /// Gets all albums with their image counts.
     /// </summary>
     [HttpGet("albums")]
-    [ProducesResponseType(typeof(ApiResponse<List<AlbumResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAllAlbums(CancellationToken cancellationToken = default)
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyCollection<AlbumResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllAlbums(
+        [FromQuery] string? sortOrder,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        CancellationToken cancellationToken = default)
     {
         try
         {
+            if (page.HasValue || pageSize.HasValue)
+            {
+                var result = await galleryService.GetAlbumsPageAsync(
+                    sortOrder,
+                    page ?? 1,
+                    pageSize ?? 10,
+                    cancellationToken);
+
+                return PagedOk(result.Albums, result.Page, result.PageSize, result.Total);
+            }
+
             var albums = await galleryService.GetAllAlbumsAsync(cancellationToken);
             return OkEnvelope(albums);
         }

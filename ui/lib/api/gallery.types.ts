@@ -21,6 +21,15 @@ export interface Album {
     authors: GalleryAuthor[];
 }
 
+export type GallerySortOrder = 'newest' | 'oldest' | 'title';
+
+export interface AlbumListPage {
+    albums: Album[];
+    page: number;
+    pageSize: number;
+    total: number;
+}
+
 export interface Image {
     id: string;
     albumId: string;

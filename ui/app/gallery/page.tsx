@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -16,31 +17,65 @@ import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { PageBanner } from '@/components/page-banner';
 import { Image as ImageIcon } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
-import { Album } from '@/lib/api/gallery.types';
+import { Album, GallerySortOrder } from '@/lib/api/gallery.types';
 import { getVersionedGalleryCoverUrl } from '@/lib/gallery-media';
 import { ApiError } from '@/lib/api/types';
 
+function parseGallerySortOrder(value: string | null): GallerySortOrder {
+    return value === 'oldest' || value === 'title' ? value : 'newest';
+}
+
+function parseGalleryPage(value: string | null): number {
+    const parsedPage = parseInt(value || '1', 10);
+    return Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+}
+
 export default function GalleryPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
     const [albums, setAlbums] = useState<Album[]>([]);
+    const [totalAlbums, setTotalAlbums] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'title'>('newest');
+    const [sortOrder, setSortOrder] = useState<GallerySortOrder>(
+        parseGallerySortOrder(searchParams.get('sort'))
+    );
+    const [page, setPage] = useState(parseGalleryPage(searchParams.get('page')));
+
+    const pageSize = 6;
+    const hasNextPage = page * pageSize < totalAlbums;
+    const showPagination = page > 1 || totalAlbums > pageSize;
 
     const loadAlbums = useCallback(async () => {
         try {
-            const data = await galleryService.getAllAlbums();
-            setAlbums(data);
+            const data = await galleryService.getAlbumsPage({
+                sortOrder,
+                page,
+                pageSize,
+            });
+            setAlbums(data.albums);
+            setTotalAlbums(data.total);
         } catch (err) {
             if (err instanceof ApiError) {
                 setError(err.problemDetails.detail || err.problemDetails.title);
             } else {
                 setError('Failed to load albums');
             }
+            setTotalAlbums(0);
             console.error('Error loading albums:', err);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, pageSize, sortOrder]);
+
+    const updateUrlParams = useCallback(() => {
+        const params = new URLSearchParams();
+        if (sortOrder !== 'newest') params.set('sort', sortOrder);
+        if (page > 1) params.set('page', String(page));
+
+        router.replace(params.toString() ? `?${params}` : '/gallery', { scroll: false });
+    }, [page, router, sortOrder]);
 
     const handleRetry = () => {
         setError(null);
@@ -49,24 +84,16 @@ export default function GalleryPage() {
     };
 
     useEffect(() => {
+        updateUrlParams();
+    }, [updateUrlParams]);
+
+    useEffect(() => {
+        setLoading(true);
+        setError(null);
         void (async () => {
             await loadAlbums();
         })();
     }, [loadAlbums]);
-
-    const visibleAlbums = useMemo(() => {
-        const sorted = [...albums];
-
-        if (sortOrder === 'title') {
-            return sorted.sort((a, b) => a.name.localeCompare(b.name));
-        }
-
-        return sorted.sort((a, b) => {
-            const left = new Date(a.createdAt).getTime();
-            const right = new Date(b.createdAt).getTime();
-            return sortOrder === 'oldest' ? left - right : right - left;
-        });
-    }, [albums, sortOrder]);
 
     return (
         <div className="flex min-h-screen flex-col bg-background/50">
@@ -77,7 +104,13 @@ export default function GalleryPage() {
                 description="Explore my curated collection of albums and creative works."
                 maxWidth="max-w-7xl"
                 rightContent={
-                    <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as typeof sortOrder)}>
+                    <Select
+                        value={sortOrder}
+                        onValueChange={(value) => {
+                            setSortOrder(value as GallerySortOrder);
+                            setPage(1);
+                        }}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Sort albums" />
                         </SelectTrigger>
@@ -136,7 +169,7 @@ export default function GalleryPage() {
 
                     {!loading && !error && albums.length > 0 && (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {visibleAlbums.map((album, index) => (
+                            {albums.map((album, index) => (
                                 <motion.div
                                     key={album.id}
                                     initial={{ opacity: 0, y: 14 }}
@@ -156,7 +189,7 @@ export default function GalleryPage() {
                                             {/* Bottom label overlay */}
                                             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-5 pb-5 pt-16">
                                                 <p className="mb-0.5 font-mono text-[11px] font-medium uppercase tracking-widest text-white/60">
-                                                    {String(index + 1).padStart(2, '0')}
+                                                    {String((page - 1) * pageSize + index + 1).padStart(2, '0')}
                                                     {album.imageCount > 0 && (
                                                         <span className="ml-1">· {album.imageCount} photos</span>
                                                     )}
@@ -169,6 +202,25 @@ export default function GalleryPage() {
                                     </Link>
                                 </motion.div>
                             ))}
+                        </div>
+                    )}
+
+                    {!loading && showPagination && (
+                        <div className="mt-12 flex items-center justify-center gap-4">
+                            <Button
+                                variant="outline"
+                                disabled={page === 1}
+                                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                variant="outline"
+                                disabled={!hasNextPage}
+                                onClick={() => setPage((prev) => prev + 1)}
+                            >
+                                Next
+                            </Button>
                         </div>
                     )}
 

@@ -18,25 +18,44 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
 
     public async Task<List<AlbumResponse>> GetAllAlbumsAsync(CancellationToken cancellationToken = default)
     {
-        var albumRows = await _dbContext.Albums
-            .Where(a => a.IsActive)
-            .OrderBy(a => a.SortOrder)
-            .ThenByDescending(a => a.CreatedAt)
-            .Select(a => new
-            {
-                a.Id,
-                a.Name,
-                a.Slug,
-                a.Cover,
-                a.Description,
-                a.CreatedAt,
-                a.UpdatedAt,
-                ImageCount = a.Images.Count,
-                a.IsActive,
-                a.SortOrder
-            })
+        var albumRows = await SelectAlbumListProjection(_dbContext.Albums
+                .AsNoTracking()
+                .Where(a => a.IsActive)
+                .OrderBy(a => a.SortOrder)
+                .ThenByDescending(a => a.CreatedAt))
             .ToListAsync(cancellationToken);
 
+        return await MapAlbumRowsAsync(albumRows, cancellationToken);
+    }
+
+    public async Task<GalleryAlbumListQueryResult> GetAlbumsPageAsync(
+        string? sortOrder,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        NormalizePagination(ref page, ref pageSize);
+
+        var query = _dbContext.Albums
+            .AsNoTracking()
+            .Where(a => a.IsActive)
+            .AsQueryable();
+
+        var total = await query.CountAsync(cancellationToken);
+
+        var albumRows = await SelectAlbumListProjection(ApplyAlbumSort(query, sortOrder)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize))
+            .ToListAsync(cancellationToken);
+
+        var albums = await MapAlbumRowsAsync(albumRows, cancellationToken);
+        return new GalleryAlbumListQueryResult(albums, page, pageSize, total);
+    }
+
+    private async Task<List<AlbumResponse>> MapAlbumRowsAsync(
+        IReadOnlyCollection<AlbumListProjection> albumRows,
+        CancellationToken cancellationToken)
+    {
         var albumIds = albumRows.Select(a => a.Id).ToList();
         var contentMap = albumIds.Count == 0
             ? new List<(Guid ContentId, Guid AlbumId)>()
@@ -96,6 +115,42 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
             contentByAlbumId.TryGetValue(a.Id, out var contentId) ? contentId : null,
             a.IsActive,
             a.SortOrder)).ToList();
+    }
+
+    private static IQueryable<AlbumListProjection> SelectAlbumListProjection(IQueryable<Album> query)
+        => query.Select(a => new AlbumListProjection(
+            a.Id,
+            a.Name,
+            a.Slug,
+            a.Cover,
+            a.Description,
+            a.CreatedAt,
+            a.UpdatedAt,
+            a.Images.Count,
+            a.IsActive,
+            a.SortOrder));
+
+    private static IQueryable<Album> ApplyAlbumSort(IQueryable<Album> query, string? sortOrder)
+    {
+        return sortOrder?.Trim().ToLowerInvariant() switch
+        {
+            "oldest" => query.OrderBy(a => a.CreatedAt).ThenBy(a => a.Name),
+            "title" => query.OrderBy(a => a.Name).ThenByDescending(a => a.CreatedAt),
+            _ => query.OrderByDescending(a => a.CreatedAt).ThenBy(a => a.Name)
+        };
+    }
+
+    private static void NormalizePagination(ref int page, ref int pageSize)
+    {
+        if (page < 1)
+        {
+            page = 1;
+        }
+
+        if (pageSize < 1 || pageSize > 100)
+        {
+            pageSize = 10;
+        }
     }
 
     public async Task<GalleryAlbumQueryResult> GetAlbumByIdAsync(
@@ -471,4 +526,16 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
         blobName = relativeCandidate;
         return true;
     }
+
+    private sealed record AlbumListProjection(
+        Guid Id,
+        string Name,
+        string Slug,
+        string? Cover,
+        string? Description,
+        DateTimeOffset CreatedAt,
+        DateTimeOffset? UpdatedAt,
+        int ImageCount,
+        bool IsActive,
+        int SortOrder);
 }

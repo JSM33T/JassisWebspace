@@ -21,6 +21,13 @@ public sealed record GalleryImagesQueryResult(
     string? ErrorMessage = null
 );
 
+public sealed record GalleryAlbumListQueryResult(
+    IReadOnlyCollection<AlbumResponse> Albums,
+    int Page,
+    int PageSize,
+    int Total
+);
+
 public enum GalleryCreateAlbumStatus
 {
     Success,
@@ -49,6 +56,12 @@ public sealed record GalleryAddImageResult(
 public interface IGalleryService
 {
     Task<List<AlbumResponse>> GetAllAlbumsAsync(CancellationToken cancellationToken = default);
+
+    Task<GalleryAlbumListQueryResult> GetAlbumsPageAsync(
+        string? sortOrder,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default);
 
     Task<GalleryAlbumQueryResult> GetAlbumByIdAsync(
         Guid albumId,

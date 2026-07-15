@@ -1,5 +1,6 @@
-import { get, post } from './client';
-import { Album, AlbumWithImages, Image, CreateAlbumRequest, AddImageRequest } from './gallery.types';
+import { get, getEnvelope, post } from './client';
+import { Album, AlbumWithImages, Image, CreateAlbumRequest, AddImageRequest, AlbumListPage, GallerySortOrder } from './gallery.types';
+import { PagedMeta } from './types';
 
 /**
  * Gallery Service
@@ -12,6 +13,21 @@ export const galleryService = {
      */
     async getAllAlbums(): Promise<Album[]> {
         return get<Album[]>('/gallery/albums');
+    },
+
+    async getAlbumsPage(params?: {
+        sortOrder?: GallerySortOrder;
+        page?: number;
+        pageSize?: number;
+    }): Promise<AlbumListPage> {
+        const queryParams = new URLSearchParams();
+        if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+
+        const query = queryParams.toString();
+        const response = await getEnvelope<Album[]>(`/gallery/albums${query ? `?${query}` : ''}`);
+        return toAlbumListPage(response.data, response.meta, params?.page, params?.pageSize);
     },
 
     /**
@@ -42,5 +58,21 @@ export const galleryService = {
         return post<Image, AddImageRequest>(`/gallery/albums/${albumId}/images`, request);
     },
 };
+
+function toAlbumListPage(
+    albums: Album[],
+    meta: PagedMeta | Record<string, unknown> | null | undefined,
+    fallbackPage: number = 1,
+    fallbackPageSize: number = albums.length
+): AlbumListPage {
+    const pageMeta = meta as Partial<PagedMeta> | null | undefined;
+
+    return {
+        albums,
+        page: typeof pageMeta?.page === 'number' ? pageMeta.page : fallbackPage,
+        pageSize: typeof pageMeta?.pageSize === 'number' ? pageMeta.pageSize : fallbackPageSize,
+        total: typeof pageMeta?.total === 'number' ? pageMeta.total : albums.length,
+    };
+}
 
 export default galleryService;
