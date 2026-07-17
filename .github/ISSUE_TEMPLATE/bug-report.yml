@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a reproducible problem in the UI, API, or user workflow.
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for helping improve JassisWebspace. Please remove tokens, passwords, and personal data before submitting."
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Public website
+        - Account or authentication
+        - Admin area
+        - Blog, gallery, or music
+        - Development wall
+        - API
+        - Media upload or images
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Production
+        - Local development
+        - Staging or preview
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the problem and the impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Go to ...\n2. Click ...\n3. Observe ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, logs, or other evidence
+      description: Redact secrets and personal data. Include browser and device details when relevant.
+    validations:
+      required: false

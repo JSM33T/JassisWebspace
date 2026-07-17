@@ -1,0 +1,55 @@
+name: Deployment incident
+description: Report a production deployment or runtime incident that needs investigation.
+title: "incident: "
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include SSH keys, production secrets, full connection strings, or private customer data."
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Production
+        - Staging or preview
+        - Local development
+    validations:
+      required: true
+  - type: checkboxes
+    id: services
+    attributes:
+      label: Affected service
+      options:
+        - label: Next.js UI
+        - label: ASP.NET Core API
+        - label: PostgreSQL
+        - label: Redis
+        - label: Media storage
+        - label: GitHub Actions deployment
+  - type: input
+    id: detected_at
+    attributes:
+      label: Detected at
+      description: Include date, time, and timezone.
+      placeholder: "2026-07-17 14:30 IST"
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Customer or service impact
+    validations:
+      required: true
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline and observations
+      description: Include deployment run links, error summaries, and actions already taken. Redact secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: recovery
+    attributes:
+      label: Current status or recovery action
+    validations:
+      required: false

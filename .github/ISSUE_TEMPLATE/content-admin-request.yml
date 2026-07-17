@@ -1,0 +1,42 @@
+name: Content or admin request
+description: Request a content correction, moderation action, or admin workflow improvement.
+title: "content: "
+body:
+  - type: markdown
+    attributes:
+      value: "Do not publish personal data, passwords, private moderation details, or access tokens in this form."
+  - type: dropdown
+    id: request_type
+    attributes:
+      label: Request type
+      options:
+        - Content correction
+        - Content removal or moderation
+        - Metadata or SEO correction
+        - Media or image issue
+        - Admin workflow improvement
+        - User account administration
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Relevant page or resource URL
+      placeholder: "https://jassi.me/..."
+    validations:
+      required: false
+  - type: textarea
+    id: request
+    attributes:
+      label: Requested change
+      description: State what should change and why.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Supporting context
+      description: Include non-sensitive screenshots or references if useful.
+    validations:
+      required: false

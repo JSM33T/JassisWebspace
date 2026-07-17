@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose a useful product, content, or platform improvement.
+title: "feature: "
+body:
+  - type: markdown
+    attributes:
+      value: "Describe the user problem first. Do not include credentials, tokens, or private user information."
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Public website
+        - Account or authentication
+        - Admin area
+        - Blog, gallery, or music
+        - Development wall
+        - API or integration
+        - Developer experience
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Who needs this, and what is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+      description: Describe the result, not only a preferred implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add mockups, examples, or links if they help clarify the request.
+    validations:
+      required: false
