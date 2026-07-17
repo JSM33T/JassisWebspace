@@ -199,6 +199,41 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
     const active = spotlights[spotlightIndex] ?? spotlights[0] ?? null;
     const ActiveSpotlightIcon = active?.icon ?? Sparkles;
 
+    const startHereItems = [
+        {
+            href: "/projects?project=probeacon-self-hosted-infrastructure-monitor",
+            eyebrow: "Featured Project",
+            title: featuredWorkItems[0]?.title ?? "Projects",
+            description: "Start with the self-hosted infrastructure monitor and the engineering work behind it.",
+            icon: Folder,
+        },
+        {
+            href: latestGallery ? `/gallery/${latestGallery.slug}` : "/gallery",
+            eyebrow: "Best Visual Entry",
+            title: latestGallery?.name ?? "Gallery",
+            description: latestGallery
+                ? `A fast way into the photo archive with ${latestGallery.imageCount ?? 0} images.`
+                : "Browse the newest albums, field walks, and visual notes.",
+            icon: GalleryIcon,
+        },
+        {
+            href: featuredTrack ? `/music/${featuredTrack.slug}` : "/music",
+            eyebrow: "Now Playing",
+            title: featuredTrack?.title ?? "Music Shelf",
+            description: featuredTrack
+                ? `Hear ${formatArtists(featuredTrack)} and then explore the wider music shelf.`
+                : "Remixes, originals, snippets, and audio experiments live here.",
+            icon: Headphones,
+        },
+        {
+            href: latestBlog ? `/blog/${latestBlog.slug}` : "/blog",
+            eyebrow: "Latest Writing",
+            title: latestBlog?.title ?? "Blog",
+            description: latestBlog?.excerpt ?? "Implementation notes, product thinking, and small field essays.",
+            icon: BookOpen,
+        },
+    ];
+
     const showPrevSpotlight = () =>
         setSpotlightIndex((index) => (index - 1 + spotlights.length) % spotlights.length);
     const showNextSpotlight = () =>
@@ -255,22 +290,23 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             </h1>
 
                             <p className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
-                                Music, writing, visuals, and background details all sit in one simple flow.
+                                Engineering builds, field galleries, music experiments, and practical writing from one personal archive.
+                                Start with the strongest pieces, then wander deeper.
                             </p>
 
                             <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start">
                                 <Button asChild size="lg" className="h-12 rounded-full pl-2 pr-7">
-                                    <Link href="/about" className="gap-3">
+                                    <Link href="#start-here" className="gap-3">
                                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/15">
                                             <ArrowUpRight className="h-4 w-4" />
                                         </span>
-                                        Explore
+                                        Start Here
                                     </Link>
                                 </Button>
                                 <Button asChild size="lg" variant="secondary" className="h-12 rounded-full px-7">
-                                    <Link href="/gallery">
-                                        <GalleryIcon className="mr-2 h-4 w-4" />
-                                        View Gallery
+                                    <Link href="/projects">
+                                        <Folder className="mr-2 h-4 w-4" />
+                                        View Projects
                                     </Link>
                                 </Button>
                             </div>
@@ -301,9 +337,9 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                     <Sparkles className="h-5 w-5" />
                                 </span>
                                 <span className="text-left">
-                                    <span className="block text-xs text-muted-foreground">Curated picks</span>
+                                    <span className="block text-xs text-muted-foreground">Best first stop</span>
                                     <span className="flex items-center gap-1 text-sm font-semibold">
-                                        See recent work
+                                        Open the visual archive
                                         <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                                     </span>
                                 </span>
@@ -500,6 +536,57 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                         </div>
                     </motion.section>
 
+                    <motion.section
+                        id="start-here"
+                        variants={itemVariants}
+                        className="scroll-mt-24 pb-10 md:pb-14"
+                    >
+                        <div className="mb-5 flex flex-col gap-2 md:mb-6 md:flex-row md:items-end md:justify-between">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+                                    Start Here
+                                </p>
+                                <h2 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
+                                    Four quick doors into the archive.
+                                </h2>
+                            </div>
+                            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground md:text-right">
+                                A guided first pass for new visitors: one build, one visual story, one track, and one article.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-4">
+                            {startHereItems.map((item) => {
+                                const Icon = item.icon;
+                                return (
+                                    <Link
+                                        key={item.eyebrow}
+                                        href={item.href}
+                                        className="group flex min-h-56 flex-col rounded-2xl border border-border/60 bg-card/60 p-5 shadow-sm backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-card/85 hover:shadow-xl"
+                                    >
+                                        <div className="mb-5 flex items-center justify-between gap-3">
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-full border bg-background/70 text-muted-foreground transition-colors group-hover:text-foreground">
+                                                <Icon className="h-4 w-4" />
+                                            </span>
+                                            <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+                                        </div>
+                                        <div className="mt-auto min-w-0">
+                                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                                                {item.eyebrow}
+                                            </p>
+                                            <h3 className="mt-2 line-clamp-2 text-lg font-semibold tracking-tight">
+                                                {item.title}
+                                            </h3>
+                                            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+                                                {item.description}
+                                            </p>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </motion.section>
+
                     <motion.section variants={itemVariants} className="pb-8 md:pb-10">
                         <div className="grid overflow-hidden rounded-2xl border border-border/60 bg-card/55 backdrop-blur-sm sm:grid-cols-4">
                             {contentStats.map((stat) => {
@@ -535,7 +622,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                 <SectionHeader
                                     eyebrow="Featured Work"
                                     title="Standalone projects with real direction."
-                                    description="A compact look at ProBeacon, SurfSwift, and Linqyard as standalone project builds."
+                                    description="The engineering shelf: self-hosted monitoring, browser automation, and creator tooling with practical architecture notes."
                                     action={
                                         <Button asChild variant="secondary" className="rounded-full px-6">
                                             <Link href="/projects">
@@ -625,7 +712,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                 <SectionHeader
                                     eyebrow="Fresh Visuals"
                                     title="Recent Gallery Picks"
-                                    description="Latest captures and curated moments from the visual collection."
+                                    description="Field walks, travel fragments, ruins, roads, and small visual stories worth opening full-screen."
                                     action={
                                         <Button asChild variant="secondary" className="rounded-full px-6">
                                             <Link href="/gallery">
@@ -787,7 +874,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                 <SectionHeader
                                     eyebrow="Fresh Writing"
                                     title="Recent Blog Picks"
-                                    description="A visual showcase of my latest articles."
+                                    description="Implementation notes, platform refactors, debugging stories, and the occasional essay from the archive."
                                     action={
                                         <Button asChild variant="secondary" className="rounded-full px-6">
                                             <Link href="/blog">
@@ -864,8 +951,8 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                         Need hands-on engineering support?
                                     </h2>
                                     <p className="max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
-                                        Explore active services across web platforms, automation, and product delivery.
-                                        Share your scope and get a clear execution path.
+                                        Bring a narrow problem, a rough prototype, or a messy workflow. I can help turn it into a scoped,
+                                        production-minded delivery plan.
                                     </p>
                                     <div className="flex flex-wrap gap-3">
                                         <Button asChild size="lg" className="rounded-full px-7">

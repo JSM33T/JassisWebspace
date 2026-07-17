@@ -3,8 +3,8 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
     title: "Projects",
-    description: "Browse selected JassSpace projects and case-study highlights.",
-    tags: ["projects", "case studies", "portfolio", "engineering"],
+    description: "Explore Jassi's engineering projects across self-hosted infrastructure, automation, AI workflows, media systems, and developer tools.",
+    tags: ["projects", "engineering portfolio", "automation", "AI workflows", "self-hosted infrastructure"],
     canonicalPath: "/projects",
 });
 

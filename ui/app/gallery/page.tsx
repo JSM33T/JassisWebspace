@@ -101,7 +101,7 @@ export default function GalleryPage() {
                 badge="Creative Showcase"
                 badgeIcon={ImageIcon}
                 title="Gallery"
-                description="Explore my curated collection of albums and creative works."
+                description="Field walks, travel fragments, ruins, roads, and small visual stories collected as albums."
                 maxWidth="max-w-7xl"
                 rightContent={
                     <Select
