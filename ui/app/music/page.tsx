@@ -155,7 +155,7 @@ export default function MusicPage() {
                 badge="Audio Library"
                 badgeIcon={Music}
                 title="Music"
-                description="Explore all published tracks from the catalog."
+                description="Remixes, originals, snippets, radio features, collaborations, and small audio experiments from the shelf."
             >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-2">
