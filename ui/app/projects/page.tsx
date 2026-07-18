@@ -190,7 +190,7 @@ function ProjectsPageContent() {
                 badge="Portfolio"
                 badgeIcon={FolderCode}
                 title="Projects"
-                description="A showcase of my innovative projects and technical solutions."
+                description="Engineering builds across self-hosted infrastructure, automation, AI workflows, media systems, and developer tools."
             />
 
             <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
@@ -200,7 +200,7 @@ function ProjectsPageContent() {
                             <SectionHeader
                                 eyebrow={`${projects.length} technical builds`}
                                 title="Projects"
-                                description="Systems, tools, and experiments across media, automation, AI, and infrastructure."
+                                description="Case-study style notes on systems, tools, and experiments across media, automation, AI, and infrastructure."
                                 className="mb-5"
                             />
                             <div className="grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2">

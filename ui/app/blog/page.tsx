@@ -184,7 +184,7 @@ export default function BlogHomePage() {
                 badge="Blogs"
                 badgeIcon={BookOpen}
                 title="Blog"
-                description="Explore my latest articles, tutorials, and insights."
+                description="Implementation notes, platform refactors, debugging stories, product thinking, and essays from the archive."
                 maxWidth="max-w-7xl"
             />
 
