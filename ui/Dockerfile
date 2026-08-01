@@ -1,8 +1,10 @@
 
-FROM node:20-alpine AS base
+# FROM node:20-alpine AS base
+
+FROM node:20-alpine3.22 AS base
 
 # Upgrade openssl to patch CVE-2026-28389 (fixed in libcrypto3/libssl3 3.5.6-r0)
-RUN apk upgrade --no-cache openssl zlib
+# RUN apk upgrade --no-cache openssl zlib
 
 # Install dependencies only when needed
 FROM base AS deps

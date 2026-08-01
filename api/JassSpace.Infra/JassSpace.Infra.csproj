@@ -7,13 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.28.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.8" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.10" />
     <PackageReference Include="NetVips" Version="3.2.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <!--<PackageReference Include="SixLabors.ImageSharp" Version="4.0.0" />-->
   </ItemGroup>
 
   <ItemGroup>
