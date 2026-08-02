@@ -9,4 +9,3 @@ services:
       - ApplyMigrationsOnStartup=${APPLY_MIGRATIONS:-true}
     volumes:
       - ${DEPLOY_PATH:-/home/jassi/deployments/JassSpace}/.logs/dotnet:/app/logs/dotnet
-      - ${DEPLOY_PATH:-/home/jassi/deployments/JassSpace}/.cache:/app/cache

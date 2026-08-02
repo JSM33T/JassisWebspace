@@ -95,7 +95,10 @@ There are two common cache layers:
 | GitHub issues or releases appear old | Check `GitHub__CacheMinutes`; GitHub read models can remain cached for up to the configured duration. |
 | Media image looks old | Check the configured media cache directory and the current media provider before removing cached files. |
 
-Avoid deleting `.data/` as a cache reset. It also holds local PostgreSQL, Redis, Azurite, logs, and media data. Remove only the narrowly identified cache files after stopping the service that uses them.
+Avoid deleting `.data/` as a cache reset. It holds local PostgreSQL, Redis, Azurite,
+and logs. Media cache data is stored separately in the `dotnet-media-cache` Docker
+volume; remove only the narrowly identified cache after stopping the service that
+uses it.
 
 ## Media Upload Or Image Problems
 
