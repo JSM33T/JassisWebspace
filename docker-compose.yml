@@ -9,6 +9,8 @@ services:
       - .env
     environment:
       - ApplyMigrationsOnStartup=${APPLY_MIGRATIONS:-false}
+    volumes:
+      - dotnet-media-cache:/app/cache
     restart: unless-stopped
     cpus: "0.55"
     mem_limit: 384m
@@ -42,3 +44,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  dotnet-media-cache:

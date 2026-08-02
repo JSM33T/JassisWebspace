@@ -20,7 +20,6 @@ services:
       AzureBlobStorage__ContainerName: "local-media"
     volumes:
       - ./.data/logs/dotnet:/app/logs/dotnet
-      - ./.data/cache:/app/cache
     depends_on:
       - postgres
       - redis

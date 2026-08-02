@@ -90,8 +90,9 @@ likes, views, SEO, UI properties, and media. Administrative endpoints govern
 content management and other protected operations.
 
 Media operations use the configured media provider and local cache directory. The
-API may use Azure Blob Storage or Cloudinary configuration, while Docker persists
-cached media under `.data/cache/media` for local and production container setups.
+API may use Azure Blob Storage or Cloudinary configuration. Docker persists cached
+media in the `dotnet-media-cache` named volume for local and production container
+setups, allowing the volume to retain the non-root ownership set by the API image.
 
 ## Development Wall Flow
 
