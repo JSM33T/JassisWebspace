@@ -169,7 +169,7 @@ namespace JassSpace.Infra
             {
                 if (!await blobClient.ExistsAsync(cancellationToken))
                 {
-                    _logger.LogWarning("Blob {BlobName} not found in Azure Blob Storage", blobName);
+                    _logger.LogDebug("Blob candidate {BlobName} not found in Azure Blob Storage", blobName);
                     return null;
                 }
 
@@ -181,10 +181,30 @@ namespace JassSpace.Infra
                     // Download and cache
                     var extension = GetExtensionFromContentType(contentType);
                     var localPath = BuildLocalPath(blobName, extension);
+                    var tempPath = $"{localPath}.{Guid.NewGuid():N}.tmp";
 
-                    await using (var localFile = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                    try
                     {
-                        await blobClient.DownloadToAsync(localFile, cancellationToken);
+                        await using (var localFile = new FileStream(
+                            tempPath,
+                            FileMode.CreateNew,
+                            FileAccess.Write,
+                            FileShare.None,
+                            4096,
+                            FileOptions.Asynchronous | FileOptions.SequentialScan))
+                        {
+                            await blobClient.DownloadToAsync(localFile, cancellationToken);
+                        }
+
+                        // Publish only a complete download. Cache readers ignore *.tmp files.
+                        File.Move(tempPath, localPath, overwrite: true);
+                    }
+                    finally
+                    {
+                        if (File.Exists(tempPath))
+                        {
+                            File.Delete(tempPath);
+                        }
                     }
 
                     _logger.LogInformation("Cached blob {BlobName} to {LocalPath}", blobName, localPath);
@@ -393,15 +413,9 @@ namespace JassSpace.Infra
                     return;
                 }
 
-                await using var source = new FileStream(
+                await using var thumbStream = await _imageProcessingService.CreateThumbnailFromFileAsync(
                     originalLocalPath,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read,
-                    4096,
-                    FileOptions.Asynchronous | FileOptions.SequentialScan);
-
-                await using var thumbStream = await _imageProcessingService.CreateThumbnailAsync(source, cancellationToken);
+                    cancellationToken);
 
                 var tmpPath = $"{thumbPath}.tmp";
                 await using (var outFile = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
