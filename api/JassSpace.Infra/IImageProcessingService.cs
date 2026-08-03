@@ -18,4 +18,13 @@ public interface IImageProcessingService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Thumbnail image stream in WebP format</returns>
     Task<Stream> CreateThumbnailAsync(Stream sourceStream, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a thumbnail from a file-backed source. Prefer this for cached files so native
+    /// image decoders can seek directly instead of using a pipe-backed managed stream bridge.
+    /// </summary>
+    /// <param name="sourcePath">Absolute path to the source image.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Thumbnail image stream in WebP format.</returns>
+    Task<Stream> CreateThumbnailFromFileAsync(string sourcePath, CancellationToken cancellationToken = default);
 }

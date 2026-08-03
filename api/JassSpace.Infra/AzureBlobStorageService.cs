@@ -22,6 +22,7 @@ namespace JassSpace.Infra
         private readonly IImageProcessingService _imageProcessingService;
         private readonly string _cacheDirectory;
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> _thumbLocks = new();
+        private static readonly SemaphoreSlim _thumbnailGenerationSlot = new(1, 1);
 
         public AzureBlobStorageService(
             IOptions<AzureBlobStorageSettings> settings,
@@ -154,9 +155,6 @@ namespace JassSpace.Infra
                 {
                     _logger.LogDebug("Returning cached image for {BlobName}", blobName);
 
-                    // Best-effort: ensure thumb exists for this cached original.
-                    await EnsureThumbnailCachedAsync(blobName, existingPath!, cancellationToken);
-
                     return new CachedImageResult(
                         existingPath!, 
                         GetContentTypeFromExtension(Path.GetExtension(existingPath)), 
@@ -171,7 +169,7 @@ namespace JassSpace.Infra
             {
                 if (!await blobClient.ExistsAsync(cancellationToken))
                 {
-                    _logger.LogWarning("Blob {BlobName} not found in Azure Blob Storage", blobName);
+                    _logger.LogDebug("Blob candidate {BlobName} not found in Azure Blob Storage", blobName);
                     return null;
                 }
 
@@ -183,16 +181,33 @@ namespace JassSpace.Infra
                     // Download and cache
                     var extension = GetExtensionFromContentType(contentType);
                     var localPath = BuildLocalPath(blobName, extension);
+                    var tempPath = $"{localPath}.{Guid.NewGuid():N}.tmp";
 
-                    await using (var localFile = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                    try
                     {
-                        await blobClient.DownloadToAsync(localFile, cancellationToken);
+                        await using (var localFile = new FileStream(
+                            tempPath,
+                            FileMode.CreateNew,
+                            FileAccess.Write,
+                            FileShare.None,
+                            4096,
+                            FileOptions.Asynchronous | FileOptions.SequentialScan))
+                        {
+                            await blobClient.DownloadToAsync(localFile, cancellationToken);
+                        }
+
+                        // Publish only a complete download. Cache readers ignore *.tmp files.
+                        File.Move(tempPath, localPath, overwrite: true);
+                    }
+                    finally
+                    {
+                        if (File.Exists(tempPath))
+                        {
+                            File.Delete(tempPath);
+                        }
                     }
 
                     _logger.LogInformation("Cached blob {BlobName} to {LocalPath}", blobName, localPath);
-
-                    // Best-effort: create thumb variant.
-                    await EnsureThumbnailCachedAsync(blobName, localPath, cancellationToken);
 
                     return new CachedImageResult(localPath, contentType, Path.GetFileName(localPath));
                 }
@@ -372,6 +387,7 @@ namespace JassSpace.Infra
             var safeName = SanitizeBlobName(blobName);
             var gate = _thumbLocks.GetOrAdd(safeName, _ => new SemaphoreSlim(1, 1));
             await gate.WaitAsync(cancellationToken);
+            var hasGenerationSlot = false;
 
             try
             {
@@ -385,15 +401,21 @@ namespace JassSpace.Infra
                     return;
                 }
 
-                await using var source = new FileStream(
-                    originalLocalPath,
-                    FileMode.Open,
-                    FileAccess.Read,
-                    FileShare.Read,
-                    4096,
-                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                // libvips thumbnail creation can temporarily use substantially more memory
+                // than the output file. Keep cold-cache gallery requests from processing
+                // several different originals concurrently inside the constrained API container.
+                await _thumbnailGenerationSlot.WaitAsync(cancellationToken);
+                hasGenerationSlot = true;
 
-                await using var thumbStream = await _imageProcessingService.CreateThumbnailAsync(source, cancellationToken);
+                // Another request may have completed this thumbnail while this one waited.
+                if (File.Exists(thumbPath))
+                {
+                    return;
+                }
+
+                await using var thumbStream = await _imageProcessingService.CreateThumbnailFromFileAsync(
+                    originalLocalPath,
+                    cancellationToken);
 
                 var tmpPath = $"{thumbPath}.tmp";
                 await using (var outFile = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -411,6 +433,11 @@ namespace JassSpace.Infra
             }
             finally
             {
+                if (hasGenerationSlot)
+                {
+                    _thumbnailGenerationSlot.Release();
+                }
+
                 gate.Release();
             }
         }

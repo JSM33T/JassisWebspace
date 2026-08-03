@@ -237,6 +237,9 @@ public sealed class MediaController(
 
         if (cachedImage is null)
         {
+            logger.LogWarning(
+                "No image found after checking all storage candidates for requested blob {BlobName}",
+                blobName);
             return NotFoundProblem("Image not found", $"No image found for blob name '{blobName}'.");
         }
 
