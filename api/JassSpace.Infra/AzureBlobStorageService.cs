@@ -22,6 +22,7 @@ namespace JassSpace.Infra
         private readonly IImageProcessingService _imageProcessingService;
         private readonly string _cacheDirectory;
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> _thumbLocks = new();
+        private static readonly SemaphoreSlim _thumbnailGenerationSlot = new(1, 1);
 
         public AzureBlobStorageService(
             IOptions<AzureBlobStorageSettings> settings,
@@ -154,9 +155,6 @@ namespace JassSpace.Infra
                 {
                     _logger.LogDebug("Returning cached image for {BlobName}", blobName);
 
-                    // Best-effort: ensure thumb exists for this cached original.
-                    await EnsureThumbnailCachedAsync(blobName, existingPath!, cancellationToken);
-
                     return new CachedImageResult(
                         existingPath!, 
                         GetContentTypeFromExtension(Path.GetExtension(existingPath)), 
@@ -190,9 +188,6 @@ namespace JassSpace.Infra
                     }
 
                     _logger.LogInformation("Cached blob {BlobName} to {LocalPath}", blobName, localPath);
-
-                    // Best-effort: create thumb variant.
-                    await EnsureThumbnailCachedAsync(blobName, localPath, cancellationToken);
 
                     return new CachedImageResult(localPath, contentType, Path.GetFileName(localPath));
                 }
@@ -372,6 +367,7 @@ namespace JassSpace.Infra
             var safeName = SanitizeBlobName(blobName);
             var gate = _thumbLocks.GetOrAdd(safeName, _ => new SemaphoreSlim(1, 1));
             await gate.WaitAsync(cancellationToken);
+            var hasGenerationSlot = false;
 
             try
             {
@@ -381,6 +377,18 @@ namespace JassSpace.Infra
                 }
 
                 if (!File.Exists(originalLocalPath))
+                {
+                    return;
+                }
+
+                // libvips thumbnail creation can temporarily use substantially more memory
+                // than the output file. Keep cold-cache gallery requests from processing
+                // several different originals concurrently inside the constrained API container.
+                await _thumbnailGenerationSlot.WaitAsync(cancellationToken);
+                hasGenerationSlot = true;
+
+                // Another request may have completed this thumbnail while this one waited.
+                if (File.Exists(thumbPath))
                 {
                     return;
                 }
@@ -411,6 +419,11 @@ namespace JassSpace.Infra
             }
             finally
             {
+                if (hasGenerationSlot)
+                {
+                    _thumbnailGenerationSlot.Release();
+                }
+
                 gate.Release();
             }
         }
