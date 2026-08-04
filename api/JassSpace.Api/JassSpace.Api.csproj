@@ -6,7 +6,17 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>85d52bc4-b72b-4ff7-98d1-6a0ab6971fca</UserSecretsId>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<Product>sw-juniper</Product>
+		<AssemblyTitle>sw-juniper</AssemblyTitle>
+		<Version>1.0.0</Version>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="..\..\version.json" Link="version.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />

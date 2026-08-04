@@ -1,0 +1,10 @@
+{
+  "ui": {
+    "name": "sw-lavender",
+    "version": "1.0.1"
+  },
+  "api": {
+    "name": "sw-juniper",
+    "version": "1.0.0"
+  }
+}

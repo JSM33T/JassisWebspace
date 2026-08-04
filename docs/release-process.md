@@ -4,7 +4,19 @@ This process turns a validated change on `dev` into a production deployment on `
 
 ## Versioning
 
-Use annotated Semantic Versioning tags in the form `vMAJOR.MINOR.PATCH`.
+The UI (`sw-lavender`) and API (`sw-juniper`) use independent Semantic Versions. Select and increment the affected component from the repository root before merging the release:
+
+```powershell
+node scripts/bump-version.mjs ui patch
+node scripts/bump-version.mjs ui minor
+node scripts/bump-version.mjs ui major
+
+node scripts/bump-version.mjs api patch
+node scripts/bump-version.mjs api minor
+node scripts/bump-version.mjs api major
+
+node scripts/bump-version.mjs check
+```
 
 | Change type | Version change | Example |
 | --- | --- | --- |
@@ -12,7 +24,7 @@ Use annotated Semantic Versioning tags in the form `vMAJOR.MINOR.PATCH`.
 | New backward-compatible feature | Minor | `v1.4.0` |
 | Bug fix, documentation, or low-risk improvement | Patch | `v1.4.1` |
 
-Use a prerelease suffix only for an explicitly non-production milestone, for example `v1.5.0-rc.1`.
+The current version tool accepts stable `major.minor.patch` versions only. See [Component Versioning](version.md) for selection rules and complete command examples.
 
 ## Release Checklist
 
@@ -35,7 +47,7 @@ npm run build
 4. Merge `dev` into `main` using the normal reviewed branch workflow.
 5. Push `main` and wait for any path-matched production deployment workflows to finish.
 6. Verify the live UI, API, and affected user journey after deployment.
-7. Create the version tag and GitHub release after production verification.
+7. Create the component-prefixed version tag and GitHub release after production verification.
 
 ## Deployment Expectations
 
@@ -70,16 +82,19 @@ Avoid copying internal implementation details, secrets, or unverified claims int
 
 ## Creating A Tag
 
-After `main` is deployed and verified:
+After `main` is deployed and verified, tag the released component. For example:
 
 ```powershell
 git switch main
 git pull --ff-only origin main
-git tag -a v1.2.3 -m "Release v1.2.3"
-git push origin v1.2.3
+git tag -a sw-lavender-v1.2.3 -m "Release sw-lavender v1.2.3"
+git push origin sw-lavender-v1.2.3
+
+git tag -a sw-juniper-v1.4.0 -m "Release sw-juniper v1.4.0"
+git push origin sw-juniper-v1.4.0
 ```
 
-Create the matching GitHub Release using the tag. Mark a release as a prerelease only when the version itself is a prerelease and it is not intended as the normal production milestone.
+Create a matching GitHub Release using the tag for the component that was released. If both components were released, create and publish both component tags.
 
 ## Hotfixes
 

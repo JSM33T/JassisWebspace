@@ -26,35 +26,35 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy global.json first so the resolver picks the right SDK (and cache works)
-COPY global.json ./
+COPY api/global.json ./
 
 # Restore
-COPY JassSpace.Api/JassSpace.Api.csproj JassSpace.Api/
-COPY JassSpace.Tests/JassSpace.Tests.csproj JassSpace.Tests/
-COPY JassSpace.Contracts/JassSpace.Contracts.csproj JassSpace.Contracts/
-COPY JassSpace.Data/JassSpace.Data.csproj JassSpace.Data/
-COPY JassSpace.Entities/JassSpace.Entities.csproj JassSpace.Entities/
-COPY JassSpace.Infra/JassSpace.Infra.csproj JassSpace.Infra/
-COPY JassSpace.Repositories/JassSpace.Repositories.csproj JassSpace.Repositories/
-COPY JassSpace.Services/JassSpace.Services.csproj JassSpace.Services/
-RUN dotnet restore JassSpace.Api/JassSpace.Api.csproj
-RUN dotnet restore JassSpace.Tests/JassSpace.Tests.csproj
+COPY api/JassSpace.Api/JassSpace.Api.csproj api/JassSpace.Api/
+COPY api/JassSpace.Tests/JassSpace.Tests.csproj api/JassSpace.Tests/
+COPY api/JassSpace.Contracts/JassSpace.Contracts.csproj api/JassSpace.Contracts/
+COPY api/JassSpace.Data/JassSpace.Data.csproj api/JassSpace.Data/
+COPY api/JassSpace.Entities/JassSpace.Entities.csproj api/JassSpace.Entities/
+COPY api/JassSpace.Infra/JassSpace.Infra.csproj api/JassSpace.Infra/
+COPY api/JassSpace.Repositories/JassSpace.Repositories.csproj api/JassSpace.Repositories/
+COPY api/JassSpace.Services/JassSpace.Services.csproj api/JassSpace.Services/
+RUN dotnet restore api/JassSpace.Api/JassSpace.Api.csproj
+RUN dotnet restore api/JassSpace.Tests/JassSpace.Tests.csproj
 
 # Copy the rest and build
 COPY . .
-WORKDIR /src/JassSpace.Api
+WORKDIR /src/api/JassSpace.Api
 RUN dotnet build JassSpace.Api.csproj -c $BUILD_CONFIGURATION -o /app/build
 
 # Publish
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src/JassSpace.Api
+WORKDIR /src/api/JassSpace.Api
 RUN dotnet publish JassSpace.Api.csproj -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Test runner
 FROM build AS test
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
+WORKDIR /src/api
 ENTRYPOINT ["dotnet", "test", "JassSpace.Tests/JassSpace.Tests.csproj", "-c", "Release", "--no-restore", "--logger", "console;verbosity=normal"]
 
 # Final

@@ -202,6 +202,33 @@ Recommended branch usage:
 
 For feature work, prefer short-lived branches from `dev`, then merge back into `dev` before promoting to `main`.
 
+## Product Version
+
+The root [version.json](version.json) file is the source of truth for the independently released component versions and names:
+
+- The UI is named `sw-lavender` and has its own semantic version.
+- The API is named `sw-juniper` and has its own semantic version.
+- Changing one component does not increment the other component.
+
+Check that the shared manifest and UI package metadata agree:
+
+```powershell
+node scripts/bump-version.mjs check
+```
+
+Prepare a release by selecting the component and incrementing exactly one part:
+
+```powershell
+node scripts/bump-version.mjs ui patch
+node scripts/bump-version.mjs ui minor
+node scripts/bump-version.mjs api patch
+node scripts/bump-version.mjs api major
+```
+
+Use `patch` for compatible fixes, `minor` for new functionality, and `major` for breaking component changes. A UI bump synchronizes its package metadata; an API bump synchronizes its .NET project metadata. The UI embeds its identity during its build, and the API publishes the shared manifest with its output and exposes its identity at `/version`.
+
+See [Component Versioning](docs/version.md) for the complete command reference, examples, component tags, and release workflow.
+
 ## Useful Commands
 
 ```powershell
