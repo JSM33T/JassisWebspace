@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { LogoMark } from '@/components/logo-mark';
 import { Github, Instagram, Linkedin, Twitter } from 'lucide-react';
-import { productVersion } from '@/lib/product-version';
+import { VersionDialog } from '@/components/version-dialog';
 
 const exploreLinks = [
     { href: '/', label: 'Home' },
@@ -124,19 +124,11 @@ export function Footer() {
                     </div>
 
                     {/* Divider + bottom row */}
-                    <div className="mt-10 border-t border-border/40 pt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                    <div className="mt-10 flex justify-center border-t border-border/40 pt-6 text-center">
+                        <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground sm:flex-row sm:gap-3">
                             <span>© {new Date().getFullYear()} Jassis. All rights reserved.</span>
-                            <span className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider">
-                                {productVersion.software} · v{productVersion.version}
-                            </span>
+                            <VersionDialog />
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            Built with{' '}
-                            <span className="text-foreground/85">Next.js</span>,{' '}
-                            <span className="text-foreground/85">Tailwind</span> &{' '}
-                            <span className="text-foreground/85">.NET</span>
-                        </p>
                     </div>
                 </div>
 
