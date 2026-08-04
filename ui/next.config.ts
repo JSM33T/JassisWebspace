@@ -18,15 +18,19 @@ const productVersion = JSON.parse(
   readFileSync(versionManifestPath, "utf8"),
 ) as ProductVersionManifest;
 
-if (!/^\d+\.\d+\.\d+$/.test(productVersion.ui.version)) {
-  throw new Error(`Invalid UI version in ${versionManifestPath}: ${productVersion.ui.version}`);
+for (const [component, metadata] of Object.entries(productVersion)) {
+  if (!metadata.name.trim() || !/^\d+\.\d+\.\d+$/.test(metadata.version)) {
+    throw new Error(`Invalid ${component} metadata in ${versionManifestPath}`);
+  }
 }
 
 const nextConfig: NextConfig = {
   output: 'standalone',
   env: {
-    NEXT_PUBLIC_PRODUCT_VERSION: productVersion.ui.version,
-    NEXT_PUBLIC_SOFTWARE_NAME: productVersion.ui.name,
+    NEXT_PUBLIC_UI_SOFTWARE_NAME: productVersion.ui.name,
+    NEXT_PUBLIC_UI_VERSION: productVersion.ui.version,
+    NEXT_PUBLIC_API_SOFTWARE_NAME: productVersion.api.name,
+    NEXT_PUBLIC_API_VERSION: productVersion.api.version,
   },
   images: {
     unoptimized: process.env.NODE_ENV === 'development' || process.env.UNOPTIMIZED_IMAGES === 'true',
