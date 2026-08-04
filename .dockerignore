@@ -1,10 +1,16 @@
 # Dependencies
 node_modules
 .pnpm-store
+**/node_modules
+**/bin
+**/obj
+.data
 
 # Next.js build output
 .next
 out
+**/.next
+**/out
 
 # Debug logs
 npm-debug.log*

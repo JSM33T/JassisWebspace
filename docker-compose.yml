@@ -1,8 +1,8 @@
 services:
   dotnet:
     build:
-      context: ./api
-      dockerfile: ./JassSpace.Api/Dockerfile
+      context: .
+      dockerfile: ./api/JassSpace.Api/Dockerfile
     ports:
       - "5001:8080"
     env_file:
@@ -24,8 +24,8 @@ services:
 
   nextjs:
     build:
-      context: ./ui
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./ui/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5001}
     ports:

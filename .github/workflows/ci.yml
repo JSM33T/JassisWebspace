@@ -13,6 +13,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-version:
+    name: Validate product version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Check shared version metadata
+        run: node scripts/bump-version.mjs check
+
   validate-dotnet:
     name: Validate .NET
     runs-on: ubuntu-latest

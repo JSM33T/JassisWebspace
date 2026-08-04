@@ -239,7 +239,7 @@ namespace JassSpace.Infra
             }
 
             var thumbPath = BuildThumbLocalPath(blobName);
-            if (File.Exists(thumbPath))
+            if (IsUsableCacheFile(thumbPath, blobName))
             {
                 return new CachedImageResult(thumbPath, "image/webp", Path.GetFileName(thumbPath));
             }
@@ -253,7 +253,7 @@ namespace JassSpace.Infra
 
             await EnsureThumbnailCachedAsync(blobName, original.FilePath, cancellationToken);
 
-            if (File.Exists(thumbPath))
+            if (IsUsableCacheFile(thumbPath, blobName))
             {
                 return new CachedImageResult(thumbPath, "image/webp", Path.GetFileName(thumbPath));
             }
@@ -341,6 +341,11 @@ namespace JassSpace.Infra
                         continue;
                     }
 
+                    if (!IsUsableCacheFile(match, blobName))
+                    {
+                        continue;
+                    }
+
                     return match;
                 }
 
@@ -349,6 +354,38 @@ namespace JassSpace.Infra
             catch
             {
                 return null;
+            }
+        }
+
+        private bool IsUsableCacheFile(string filePath, string blobName)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                {
+                    return false;
+                }
+
+                if (new FileInfo(filePath).Length > 0)
+                {
+                    return true;
+                }
+
+                _logger.LogWarning(
+                    "Removing empty cached file {CachedPath} for blob {BlobName}",
+                    filePath,
+                    blobName);
+                File.Delete(filePath);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Failed to validate cached file {CachedPath} for blob {BlobName}",
+                    filePath,
+                    blobName);
+                return false;
             }
         }
 
@@ -373,7 +410,7 @@ namespace JassSpace.Infra
             }
 
             var thumbPath = BuildThumbLocalPath(blobName);
-            if (File.Exists(thumbPath))
+            if (IsUsableCacheFile(thumbPath, blobName))
             {
                 return;
             }
@@ -391,7 +428,7 @@ namespace JassSpace.Infra
 
             try
             {
-                if (File.Exists(thumbPath))
+                if (IsUsableCacheFile(thumbPath, blobName))
                 {
                     return;
                 }
@@ -408,7 +445,7 @@ namespace JassSpace.Infra
                 hasGenerationSlot = true;
 
                 // Another request may have completed this thumbnail while this one waited.
-                if (File.Exists(thumbPath))
+                if (IsUsableCacheFile(thumbPath, blobName))
                 {
                     return;
                 }

@@ -21,6 +21,7 @@ using Serilog;
 using Serilog.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
+var productVersion = ProductVersionManifest.Load();
 
 // --- 1. Bootstrap Serilog very early ---
 Log.Logger = new LoggerConfiguration()
@@ -28,6 +29,8 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .Enrich.WithExceptionDetails()
     .Enrich.WithProperty("Application", "JassSpace.Api")
+    .Enrich.WithProperty("Software", productVersion.Api.Name)
+    .Enrich.WithProperty("Version", productVersion.Api.Version)
     .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
     .CreateLogger();
 
@@ -38,10 +41,13 @@ builder.Host.UseSerilog((ctx, services, cfg) =>
        .Enrich.FromLogContext()
        .Enrich.WithExceptionDetails()
        .Enrich.WithProperty("Application", "JassSpace.Api")
+       .Enrich.WithProperty("Software", productVersion.Api.Name)
+       .Enrich.WithProperty("Version", productVersion.Api.Version)
        .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName);
 });
 
 // --- 2. Register services ---
+builder.Services.AddSingleton(productVersion);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi(); // built-in OpenAPI/Swagger
 
@@ -243,7 +249,10 @@ app.MapControllers();
 // --- 4. Start app with safe logging ---
 try
 {
-    Log.Information("Starting JassSpace.Api.");
+    Log.Information(
+        "Starting {Software} v{Version}.",
+        productVersion.Api.Name,
+        productVersion.Api.Version);
     if (applyMigrationsOnStartup)
     {
         await ApplyDatabaseMigrationsAsync(app);

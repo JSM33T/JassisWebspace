@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { LogoMark } from '@/components/logo-mark';
 import { Github, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { productVersion } from '@/lib/product-version';
 
 const exploreLinks = [
     { href: '/', label: 'Home' },
@@ -127,7 +128,7 @@ export function Footer() {
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
                             <span>© {new Date().getFullYear()} Jassis. All rights reserved.</span>
                             <span className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider">
-                                v1.0 · May 2026
+                                {productVersion.software} · v{productVersion.version}
                             </span>
                         </div>
                         <p className="text-xs text-muted-foreground">

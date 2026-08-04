@@ -24,6 +24,11 @@ namespace JassSpace.Contracts.Responses
         string Environment
         );
 
+    public sealed record SoftwareVersion(
+        string Name,
+        string Version
+        );
+
     public sealed record SystemDependencyStatus(
         string Name,
         string Status,
