@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { extractHeadings } from '@/lib/toc';
 
@@ -9,6 +10,7 @@ interface TableOfContentsProps {
 }
 
 export function TableOfContents({ content }: TableOfContentsProps) {
+    const pathname = usePathname();
     const headings = useMemo(() => extractHeadings(content), [content]);
     const [activeId, setActiveId] = useState('');
 
@@ -20,18 +22,25 @@ export function TableOfContents({ content }: TableOfContentsProps) {
     useEffect(() => {
         if (headings.length === 0) return;
 
-        const elements = headings
-            .map((h) => document.getElementById(h.id))
-            .filter((el): el is HTMLElement => el !== null);
-
-        if (elements.length === 0) return;
-
         // The y-line below the top of the viewport where a heading is "reached".
         const activeLine = 120;
         let frame = 0;
+        let headingObserver: MutationObserver | null = null;
 
         const update = () => {
             frame = 0;
+            // Resolve the elements at update time. During a client-side route
+            // transition the effect can run before the new article headings are
+            // available, so keeping a one-time snapshot leaves the TOC inert.
+            const elements = headings
+                .map((heading) => document.getElementById(heading.id))
+                .filter((element): element is HTMLElement => element !== null);
+
+            if (elements.length === 0) return;
+
+            headingObserver?.disconnect();
+            headingObserver = null;
+
             let currentId = elements[0].id;
             for (const el of elements) {
                 if (el.getBoundingClientRect().top - activeLine <= 0) {
@@ -43,20 +52,25 @@ export function TableOfContents({ content }: TableOfContentsProps) {
             setActiveId(currentId);
         };
 
-        const onScroll = () => {
+        const scheduleUpdate = () => {
             if (frame) return;
             frame = window.requestAnimationFrame(update);
         };
 
-        update(); // set initial highlight
-        window.addEventListener('scroll', onScroll, { passive: true });
-        window.addEventListener('resize', onScroll);
+        headingObserver = new MutationObserver(scheduleUpdate);
+        headingObserver.observe(document.body, { childList: true, subtree: true });
+
+        // Run after the route commit instead of during the transition frame.
+        scheduleUpdate();
+        window.addEventListener('scroll', scheduleUpdate, { passive: true });
+        window.addEventListener('resize', scheduleUpdate);
         return () => {
-            window.removeEventListener('scroll', onScroll);
-            window.removeEventListener('resize', onScroll);
+            window.removeEventListener('scroll', scheduleUpdate);
+            window.removeEventListener('resize', scheduleUpdate);
+            headingObserver?.disconnect();
             if (frame) window.cancelAnimationFrame(frame);
         };
-    }, [headings]);
+    }, [headings, pathname]);
 
     if (headings.length === 0) return null;
 
