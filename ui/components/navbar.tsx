@@ -62,8 +62,6 @@ import {
     Search,
     Users,
     Wrench,
-    GitPullRequest,
-    MessageSquarePlus,
 } from 'lucide-react';
 import { SearchModal } from '@/components/search-modal';
 import { useUser, userHelpers } from '@/contexts/UserContext';
@@ -75,8 +73,6 @@ import { cn } from '@/lib/utils';
 import { buildLoginHref } from '@/lib/auth-redirect';
 import { AudioSidebarVisualizer } from '@/components/audio-sidebar-visualizer';
 import { AnimatePresence, motion } from 'framer-motion';
-import { developmentService } from '@/lib/api/development.service';
-import { DevelopmentSummary } from '@/lib/api/development.types';
 
 const SIDEBAR_OPEN_EVENT = 'app-sidebar:set-open';
 
@@ -106,9 +102,6 @@ export function Navbar() {
     const [searchOpen, setSearchOpen] = useState(false);
     const [isNavbarHidden, setIsNavbarHidden] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
-    const [developmentSummary, setDevelopmentSummary] = useState<DevelopmentSummary | null>(null);
-    const [developmentSummaryLoading, setDevelopmentSummaryLoading] = useState(false);
-    const [developmentSummaryError, setDevelopmentSummaryError] = useState<string | null>(null);
 
     const handleLogout = async () => {
         setShowLogoutDialog(false);
@@ -131,7 +124,6 @@ export function Navbar() {
 
     const workMenuItems = [
         { href: '/projects', label: 'Projects', description: 'View our completed projects', icon: FolderCode },
-        { href: '/development', label: 'Development', description: 'Track issues, releases, and suggestions', icon: GitPullRequest },
         { href: '/services', label: 'Services', description: 'Explore the services we offer', icon: Briefcase },
     ];
 
@@ -143,7 +135,6 @@ export function Navbar() {
         { href: '/contact', label: 'Contact', description: 'Get in touch with our team', icon: Mail },
         { href: '/privacy', label: 'Privacy Policy', description: 'See how we handle your data', icon: Shield },
         { href: '/faq', label: 'FAQ', description: 'Common questions and answers', icon: BookOpen },
-        { href: '/development', label: 'Development', description: 'Track issues, releases, and suggestions', icon: GitPullRequest },
     ];
 
     const mobileMenuSections = [
@@ -321,31 +312,6 @@ export function Navbar() {
 
         return () => window.clearTimeout(timeoutId);
     }, [pathname, menuOpen, sidebarOpen]);
-
-    useEffect(() => {
-        if (!sidebarOpen || developmentSummary) return;
-
-        let ignore = false;
-        const loadDevelopmentSummary = async () => {
-            try {
-                setDevelopmentSummaryLoading(true);
-                setDevelopmentSummaryError(null);
-                const summary = await developmentService.getSummary();
-                if (!ignore) setDevelopmentSummary(summary);
-            } catch (error) {
-                console.error('Failed to load development summary for sidebar', error);
-                if (!ignore) setDevelopmentSummaryError('Development stats unavailable');
-            } finally {
-                if (!ignore) setDevelopmentSummaryLoading(false);
-            }
-        };
-
-        void loadDevelopmentSummary();
-
-        return () => {
-            ignore = true;
-        };
-    }, [sidebarOpen, developmentSummary]);
 
     const handleSidebarOpenChange = (open: boolean) => {
         setSidebarOpen(open);
@@ -957,60 +923,6 @@ export function Navbar() {
                         <SheetDescription>Appearance settings and quick controls</SheetDescription>
                     </SheetHeader>
                     <div className="mt-6 space-y-4 px-4">
-                        <div className="space-y-3 rounded-xl border bg-card/60 p-3">
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 space-y-0.5">
-                                    <p className="text-sm font-medium">Development</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Suggestions, issues, and release activity
-                                    </p>
-                                </div>
-                                <GitPullRequest className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                            </div>
-
-                            {developmentSummaryLoading ? (
-                                <div className="grid grid-cols-3 gap-2">
-                                    {Array.from({ length: 3 }).map((_, index) => (
-                                        <div key={index} className="h-16 animate-pulse rounded-lg bg-muted/50" />
-                                    ))}
-                                </div>
-                            ) : developmentSummary ? (
-                                <div className="grid grid-cols-3 gap-2">
-                                    <div className="rounded-lg border bg-background/45 p-2">
-                                        <p className="text-lg font-semibold leading-none">{developmentSummary.openIssueCount}</p>
-                                        <p className="mt-1 text-[11px] text-muted-foreground">Open</p>
-                                    </div>
-                                    <div className="rounded-lg border bg-background/45 p-2">
-                                        <p className="text-lg font-semibold leading-none">{developmentSummary.closedIssueCount}</p>
-                                        <p className="mt-1 text-[11px] text-muted-foreground">Closed</p>
-                                    </div>
-                                    <div className="rounded-lg border bg-background/45 p-2">
-                                        <p className="text-lg font-semibold leading-none">{developmentSummary.suggestions.length}</p>
-                                        <p className="mt-1 text-[11px] text-muted-foreground">Ideas</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="rounded-lg border bg-background/45 p-3 text-xs text-muted-foreground">
-                                    {developmentSummaryError ?? 'Open the development wall for current stats.'}
-                                </p>
-                            )}
-
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                <Button asChild size="sm" variant="outline" className="rounded-lg" onClick={() => setSidebarOpen(false)}>
-                                    <Link href="/development">
-                                        <GitPullRequest className="h-4 w-4" />
-                                        View
-                                    </Link>
-                                </Button>
-                                <Button asChild size="sm" className="rounded-lg" onClick={() => setSidebarOpen(false)}>
-                                    <Link href="/development">
-                                        <MessageSquarePlus className="h-4 w-4" />
-                                        Suggest
-                                    </Link>
-                                </Button>
-                            </div>
-                        </div>
-
                         <div className="space-y-3 rounded-xl border bg-card/60 p-3">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">

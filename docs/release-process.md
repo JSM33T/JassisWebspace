@@ -110,6 +110,6 @@ Use a source-controlled revert for a failed release when possible. The deploymen
 
 ## Ownership And Records
 
-The person merging to `main` owns verifying the matching deployment workflow. The person creating the tag owns ensuring the release notes describe the version that is actually deployed. Record any manual follow-up or known limitation in the GitHub release and, when user-facing, the development wall.
+The person merging to `main` owns verifying the matching deployment workflow. The person creating the tag owns ensuring the release notes describe the version that is actually deployed. Record any manual follow-up or known limitation in the GitHub release.
 
 For deployment details and rollback guidance, see [Deployment Guide](deployment.md). For common operational failures, see [Troubleshooting](troubleshooting.md).

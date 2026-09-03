@@ -60,13 +60,6 @@ The `NEXT_PUBLIC_*` variables are visible to browser code after build time. Neve
 | `OAuth__GitHub__ClientId` | When GitHub login is enabled | GitHub OAuth client identifier |
 | `OAuth__GitHub__ClientSecret` | When GitHub login is enabled | GitHub OAuth client secret |
 | `OAuth__GitHub__RedirectUri` | When GitHub login is enabled | Registered GitHub callback URL |
-| `GitHub__Owner` | Development wall | GitHub organization or user that owns the backing repository |
-| `GitHub__Repository` | Development wall | Repository used for development-wall issues and releases |
-| `GitHub__Token` | Issue promotion | Server-only token used to create or manage GitHub issues |
-| `GitHub__CacheMinutes` | Optional | Minutes to cache GitHub read models |
-
-The GitHub development wall can read public data without a token, but promoting a suggestion to an issue requires `GitHub__Token`. Grant the token the least privilege needed for the configured repository.
-
 ## Email, Jobs, And Streaming
 
 | Variable | Required | Purpose |
