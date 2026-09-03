@@ -105,9 +105,9 @@ export default function PublicUserPage() {
                     {error ?? "This public user profile is unavailable."}
                 </p>
                 <Button asChild variant="outline" className="mt-6">
-                    <Link href="/development">
+                    <Link href="/">
                         <ArrowLeft className="h-4 w-4" />
-                        Back to Development
+                        Back home
                     </Link>
                 </Button>
             </main>
@@ -122,7 +122,7 @@ export default function PublicUserPage() {
             <section className="border-b px-4 pb-10 pt-24 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-5xl">
                     <Button asChild variant="ghost" size="sm" className="mb-5">
-                        <Link href="/development">
+                        <Link href="/">
                             <ArrowLeft className="h-4 w-4" />
                             Back
                         </Link>

@@ -1,6 +1,6 @@
 # Jass Space
 
-Jass Space is a personal web platform made of a Next.js frontend and a .NET API backend. It powers public content pages, gallery and music browsing, blog content, user accounts, admin tools, contact flows, comments, likes, search, email workflows, and a GitHub-backed development wall.
+Jass Space is a personal web platform made of a Next.js frontend and a .NET API backend. It powers public content pages, gallery and music browsing, blog content, user accounts, admin tools, contact flows, comments, likes, search, and email workflows.
 
 ## At A Glance
 
@@ -43,10 +43,9 @@ Jass Space is a personal web platform made of a Next.js frontend and a .NET API 
 
 - Public portfolio-style pages for services, projects, blog, gallery, music, uses, and contact.
 - Authenticated account area with profile, security, preferences, and OAuth support.
-- Admin dashboard for content, blog, gallery, music, email, users, settings, and development management.
+- Admin dashboard for content, blog, gallery, music, email, users, and settings.
 - Blog and gallery content backed by the API, with search and pagination patterns in the UI.
 - Comments, likes, public user profiles, and anonymous content view tracking.
-- GitHub-backed development wall for suggestions, issues, releases, notes, and public progress tracking.
 - Email templates, SMTP delivery, contact handling, and background jobs.
 - Dockerized API and UI services with production-oriented resource limits.
 
@@ -75,7 +74,6 @@ Important groups in `.env.example`:
 - `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`, and `NEXT_PUBLIC_SITE_URL` for the frontend.
 - `JWT__*` for authentication tokens.
 - `OAuth__Google__*` and `OAuth__GitHub__*` for OAuth login.
-- `GitHub__Owner`, `GitHub__Repository`, and optional `GitHub__Token` for the development wall.
 - `Email__Smtp__*` for email delivery.
 - `Hangfire__DashboardAuth__*` for the Hangfire dashboard.
 

@@ -80,7 +80,6 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection("RateLimiting"));
 builder.Services.AddScoped<IRateLimiterService, RateLimiterService>();
 builder.Services.Configure<HangfireSettings>(builder.Configuration.GetSection(HangfireSettings.SectionName));
-builder.Services.Configure<DevelopmentGitHubOptions>(builder.Configuration.GetSection(DevelopmentGitHubOptions.SectionName));
 
 var hangfireSettings = builder.Configuration.GetSection(HangfireSettings.SectionName).Get<HangfireSettings>() ?? new HangfireSettings();
 var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -163,7 +162,6 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
 builder.Services.AddScoped<IContentViewService, ContentViewService>();
 builder.Services.AddScoped<IBootlegService, BootlegService>();
-builder.Services.AddHttpClient<IDevelopmentService, DevelopmentService>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.Configure<IpGeolocationOptions>(builder.Configuration.GetSection("IpGeolocation"));

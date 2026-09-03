@@ -1,6 +1,6 @@
 # JassSpace API
 
-The JassSpace API is the .NET backend for Jass Space. It serves public content, authentication, profiles, comments, likes, media, email workflows, admin tooling, and the GitHub-backed development wall used by the frontend.
+The JassSpace API is the .NET backend for Jass Space. It serves public content, authentication, profiles, comments, likes, media, email workflows, and admin tooling.
 
 ## Runtime
 
@@ -76,22 +76,6 @@ Startup fails deliberately if required database or Redis configuration is missin
 | `/media` | Media uploads, profile media, cached media, thumbnails |
 | `/bootleg` | Protected bootleg upload/admin flows and signed public streaming |
 
-### Development Wall Routes
-
-| Route Prefix | Purpose |
-| --- | --- |
-| `/development` | Public summary, GitHub issues, releases, suggestions |
-| `/admin/development` | Suggestion moderation, promotion to GitHub issue, completion, notes |
-
-The development wall uses the configured GitHub repository and optional token:
-
-- `GitHub__Owner`
-- `GitHub__Repository`
-- `GitHub__Token`
-- `GitHub__CacheMinutes`
-
-Read-only public issue and release views can work without a token. Promoting suggestions and completing GitHub issues requires a token with the correct repository permissions.
-
 ### Admin Routes
 
 Admin routes are protected by role-based authorization.
@@ -106,7 +90,6 @@ Admin routes are protected by role-based authorization.
 | `/admin/email` | `admin` | Email templates, tests, broadcasts |
 | `/admin/users` | `admin` | User management |
 | `/admin/contact` | `admin` | Contact message management |
-| `/admin/development` | `admin`, `mod` | Development wall management |
 
 ## Configuration
 
@@ -125,7 +108,6 @@ Important settings:
 | `JWT__RefreshTokenExpiryDays` | Refresh token lifetime |
 | `OAuth__Google__*` | Google OAuth client settings |
 | `OAuth__GitHub__*` | GitHub OAuth client settings |
-| `GitHub__*` | Development wall GitHub integration |
 | `Email__Smtp__*` | SMTP delivery settings |
 | `Redis__InstanceName` | Redis key prefix |
 | `Hangfire__*` | Hangfire schema, queue, dashboard, and basic auth |
@@ -198,12 +180,6 @@ Run all tests:
 dotnet test JassSpace.sln --configuration Release
 ```
 
-Run a focused test class:
-
-```powershell
-dotnet test JassSpace.Tests/JassSpace.Tests.csproj --filter DevelopmentServiceTests
-```
-
 ## OpenAPI
 
 OpenAPI is registered with `AddOpenApi()` and mapped only in development:
@@ -256,7 +232,6 @@ Current named policies include:
 - `auth-verification-resend`
 - `auth-forgot-password`
 - `profile-avatar-update`
-- `development-suggestion`
 - `content-view`
 
 Rate limit headers are applied through the shared controller helpers.

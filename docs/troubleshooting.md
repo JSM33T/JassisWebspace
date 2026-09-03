@@ -85,14 +85,13 @@ npm run build
 
 Run commands from `api/` or `ui/` as appropriate. Use `npm ci` rather than `npm install` when validating the committed lockfile. The API SDK is pinned by `api/global.json`.
 
-## Stale Content Or Development-Wall Data
+## Stale Content
 
 There are two common cache layers:
 
 | Symptom | Check |
 | --- | --- |
 | Home content, gallery, blog, or music appears old | Review the relevant `*_REVALIDATE_SECONDS` setting and rebuild/redeploy the UI when changing build-time public values. |
-| GitHub issues or releases appear old | Check `GitHub__CacheMinutes`; GitHub read models can remain cached for up to the configured duration. |
 | Media image looks old | Check the configured media cache directory and the current media provider before removing cached files. |
 
 Avoid deleting `.data/` as a cache reset. It holds local PostgreSQL, Redis, Azurite,
@@ -117,15 +116,6 @@ uses it.
 | Hangfire dashboard | Dashboard username/password and PostgreSQL availability |
 
 Provider redirect URI mismatches are usually configuration problems, not frontend routing bugs. Compare the active environment URL exactly, including scheme, port, and callback path.
-
-## GitHub Development Wall Is Unavailable
-
-Read-only issue and release views depend on the configured repository owner and name. Promotion and issue completion also require a valid `GitHub__Token` with repository permissions.
-
-1. Check API logs for the GitHub response status.
-2. Verify `GitHub__Owner`, `GitHub__Repository`, and `GitHub__CacheMinutes`.
-3. Verify the server-only token only when promotion or issue completion fails.
-4. Retry after correcting the configuration; the API leaves the local suggestion state unchanged when GitHub rejects the action.
 
 ## Production Deployment Fails
 

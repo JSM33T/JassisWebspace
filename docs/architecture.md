@@ -94,34 +94,6 @@ API may use Azure Blob Storage or Cloudinary configuration. Docker persists cach
 media in the `dotnet-media-cache` named volume for local and production container
 setups, allowing the volume to retain the non-root ownership set by the API image.
 
-## Development Wall Flow
-
-The development wall lets visitors submit product feedback that is represented as a
-GitHub issue. Its flow keeps the public-facing status separate from GitHub's issue
-state vocabulary.
-
-```mermaid
-sequenceDiagram
-    participant V as Visitor
-    participant U as Development UI
-    participant A as Development API
-    participant G as GitHub Issues API
-    participant C as Redis cache
-
-    V->>U: Submit suggestion or view progress
-    U->>A: Development request
-    A->>G: Create or read GitHub issue
-    G-->>A: Issue details and state
-    A->>C: Cache read models for configured duration
-    A-->>U: Normalized development item
-    U-->>V: Show open or completed status
-```
-
-The API uses the `GitHub__Owner`, `GitHub__Repository`, `GitHub__Token`, and
-`GitHub__CacheMinutes` settings for this integration. The UI presents resolved
-items as completed, even though GitHub's underlying closed issue state can carry a
-more technical reason.
-
 ## Background Work And Operations
 
 Hangfire is registered in the API and persists its state in PostgreSQL. The

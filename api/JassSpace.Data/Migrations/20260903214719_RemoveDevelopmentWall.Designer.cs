@@ -4,6 +4,7 @@ using System.Net;
 using JassSpace.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using NpgsqlTypes;
 namespace JassSpace.Data.Migrations
 {
     [DbContext(typeof(JassSpaceDbContext))]
-    partial class JassSpaceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903214719_RemoveDevelopmentWall")]
+    partial class RemoveDevelopmentWall
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

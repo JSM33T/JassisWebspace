@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, SlidersHorizontal, Send, ScanSearch, GitPullRequest } from "lucide-react";
+import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, SlidersHorizontal, Send, ScanSearch } from "lucide-react";
 import { LogoMark } from "@/components/logo-mark";
 
 const routes = [
@@ -41,11 +41,6 @@ const routes = [
         label: "Messages",
         icon: Mail,
         href: "/admin/messages",
-    },
-    {
-        label: "Development",
-        icon: GitPullRequest,
-        href: "/admin/development",
     },
     {
         label: "Music",
