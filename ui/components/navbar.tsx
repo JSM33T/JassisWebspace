@@ -60,6 +60,8 @@ import {
     Mail,
     House,
     Search,
+    Smile,
+    Frown,
     Users,
     Wrench,
 } from 'lucide-react';
@@ -72,7 +74,7 @@ import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { cn } from '@/lib/utils';
 import { buildLoginHref } from '@/lib/auth-redirect';
 import { AudioSidebarVisualizer } from '@/components/audio-sidebar-visualizer';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 
 const SIDEBAR_OPEN_EVENT = 'app-sidebar:set-open';
 
@@ -110,6 +112,8 @@ export function Navbar() {
     };
 
     const navRef = useRef<HTMLDivElement>(null);
+    const cancelIconControls = useAnimation();
+    const logoutIconControls = useAnimation();
     const previousPathnameRef = useRef(pathname);
     const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
 
@@ -601,7 +605,7 @@ export function Navbar() {
                         <button
                             type="button"
                             onClick={() => setSearchOpen(true)}
-                            className="flex h-9 items-center gap-2 rounded-full border border-border/60 bg-muted/20 pl-3.5 pr-2.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                            className="flex h-9 cursor-pointer items-center gap-2 rounded-full border border-border/60 bg-muted/20 pl-3.5 pr-2.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
                         >
                             <Search className="h-3.5 w-3.5 shrink-0" />
                             <span className="hidden text-xs xl:block">Search here</span>
@@ -643,7 +647,7 @@ export function Navbar() {
                                 <DropdownMenuTrigger asChild>
                                     <button
                                         type="button"
-                                        className="flex h-10 items-center gap-2.5 rounded-full border border-border/60 bg-muted/20 pl-1 pr-3 transition-colors hover:bg-muted/40"
+                                        className="flex h-10 cursor-pointer items-center gap-2.5 rounded-full border border-border/60 bg-muted/20 pl-1 pr-3 transition-colors hover:bg-muted/40"
                                     >
                                         <Avatar className="h-8 w-8 border border-border/60">
                                             <AvatarImage
@@ -1154,10 +1158,60 @@ export function Navbar() {
                         <DialogDescription>Are you sure you want to logout?</DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowLogoutDialog(false)}
+                            onMouseEnter={() =>
+                                cancelIconControls.start({
+                                    rotate: [0, -10, 10, 0],
+                                    scale: [1, 1.2, 1],
+                                    transition: { duration: 0.55, ease: 'easeInOut' },
+                                })
+                            }
+                            onMouseLeave={() =>
+                                cancelIconControls.start({
+                                    rotate: 0,
+                                    scale: 1,
+                                    transition: { duration: 0.15 },
+                                })
+                            }
+                        >
+                            <motion.span
+                                className="inline-flex"
+                                animate={cancelIconControls}
+                                aria-hidden="true"
+                            >
+                                <Smile className="h-4 w-4" />
+                            </motion.span>
                             Cancel
                         </Button>
-                        <Button variant="destructive" onClick={handleLogout}>
+                        <Button
+                            variant="destructive"
+                            onClick={handleLogout}
+                            onMouseEnter={() =>
+                                logoutIconControls.start({
+                                    y: [0, 2, 0],
+                                    rotate: [0, -5, 5, 0],
+                                    scale: [1, 1.12, 1],
+                                    transition: { duration: 0.55, ease: 'easeInOut' },
+                                })
+                            }
+                            onMouseLeave={() =>
+                                logoutIconControls.start({
+                                    y: 0,
+                                    rotate: 0,
+                                    scale: 1,
+                                    transition: { duration: 0.15 },
+                                })
+                            }
+                        >
+                            <motion.span
+                                className="inline-flex"
+                                animate={logoutIconControls}
+                                aria-hidden="true"
+                            >
+                                <Frown className="h-4 w-4" />
+                            </motion.span>
                             Logout
                         </Button>
                     </DialogFooter>

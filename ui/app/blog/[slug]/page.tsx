@@ -97,6 +97,16 @@ export default function BlogViewPage() {
         setAuthorModalOpen(true);
     };
 
+    const scrollToComments = () => {
+        const commentsSection = document.getElementById('comments');
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        commentsSection?.scrollIntoView({
+            behavior: prefersReducedMotion ? 'auto' : 'smooth',
+            block: 'start',
+        });
+    };
+
     const isInteractivityDisabled = !blog?.isPublished;
     const handleViewCountChange = useCallback((viewCount: number) => {
         setBlog((current) => current ? { ...current, viewCount } : current);
@@ -221,10 +231,15 @@ export default function BlogViewPage() {
                                 />
                             </div>
                         )}
-                        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
+                        <button
+                            type="button"
+                            onClick={scrollToComments}
+                            aria-label={`Scroll to ${blog.commentCount} ${blog.commentCount === 1 ? 'comment' : 'comments'}`}
+                            className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm transition-colors hover:border-primary/30 hover:bg-background/85 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
                             <MessageSquare className="h-4 w-4" />
                             <span>{blog.commentCount}</span>
-                        </div>
+                        </button>
                         <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
                             <Eye className="h-4 w-4" />
                             <span>{blog.viewCount}</span>
@@ -261,7 +276,7 @@ export default function BlogViewPage() {
 
                         <MarkdownRenderer content={blog.content} />
 
-                        <div className="mt-12">
+                        <div id="comments" className="mt-12 scroll-mt-24">
                             {isInteractivityDisabled ? (
                                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
                                     <p className="flex items-center gap-2 font-semibold">

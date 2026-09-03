@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { buildAuthRequiredLoginHref } from '@/lib/auth-redirect';
+import { motion, useAnimation, useReducedMotion } from 'framer-motion';
 
 interface LikeButtonProps {
     contentId: string;
@@ -24,6 +25,9 @@ export function LikeButton({ contentId, initialCount, initialLiked }: LikeButton
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [isLoading, setIsLoading] = useState(false);
     const [syncedContentId, setSyncedContentId] = useState(contentId);
+    const [likeBurstId, setLikeBurstId] = useState(0);
+    const heartControls = useAnimation();
+    const shouldReduceMotion = useReducedMotion();
 
     // Re-sync to the server-provided initial values when the content changes.
     if (contentId !== syncedContentId) {
@@ -77,6 +81,19 @@ export function LikeButton({ contentId, initialCount, initialLiked }: LikeButton
             const status = await likeService.toggleLike(contentId);
             setIsLiked(status.isLiked);
             setLikeCount(status.likeCount);
+
+            if (status.isLiked && !shouldReduceMotion) {
+                setLikeBurstId((current) => current + 1);
+                void heartControls.start({
+                    rotate: [0, -12, 9, 0],
+                    scale: [1, 1.45, 0.9, 1.15, 1],
+                    transition: {
+                        duration: 0.5,
+                        ease: 'easeOut',
+                        times: [0, 0.3, 0.55, 0.78, 1],
+                    },
+                });
+            }
         } catch (error) {
             console.error('Failed to toggle like', error);
             toast.error('Failed to update like status');
@@ -91,12 +108,31 @@ export function LikeButton({ contentId, initialCount, initialLiked }: LikeButton
             size="sm"
             onClick={handleToggleLike}
             disabled={isLoading}
+            aria-pressed={isLiked}
             className={cn(
                 "flex items-center gap-2 transition-colors",
                 isLiked ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-primary"
             )}
         >
-            <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
+            <span className="relative flex h-5 w-5 items-center justify-center">
+                {likeBurstId > 0 && (
+                    <motion.span
+                        key={likeBurstId}
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-full border-2 border-red-400"
+                        initial={{ opacity: 0.9, scale: 0.35 }}
+                        animate={{ opacity: 0, scale: 2.15 }}
+                        transition={{ duration: 0.45, ease: 'easeOut' }}
+                    />
+                )}
+                <motion.span
+                    aria-hidden="true"
+                    className="relative z-10 inline-flex"
+                    animate={heartControls}
+                >
+                    <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
+                </motion.span>
+            </span>
             <span>{likeCount}</span>
         </Button>
     );
