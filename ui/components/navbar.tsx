@@ -40,9 +40,9 @@ import {
     Settings,
     Shield,
     AtSign,
-    BookOpen,
     FileText,
     ChevronDown,
+    Check,
     Image,
     Music,
     LayoutDashboard,
@@ -60,6 +60,8 @@ import {
     Mail,
     House,
     Search,
+    Smile,
+    Frown,
     Users,
     Wrench,
 } from 'lucide-react';
@@ -72,7 +74,7 @@ import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { cn } from '@/lib/utils';
 import { buildLoginHref } from '@/lib/auth-redirect';
 import { AudioSidebarVisualizer } from '@/components/audio-sidebar-visualizer';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useAnimation, MotionConfig, useReducedMotion } from 'framer-motion';
 
 const SIDEBAR_OPEN_EVENT = 'app-sidebar:set-open';
 
@@ -96,7 +98,80 @@ export function Navbar() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const reduceMotion = useReducedMotion();
+    const [searchShortcut, setSearchShortcut] = useState('Ctrl K');
+    const [accountOpen, setAccountOpen] = useState(false);
+    const desktopTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const desktopContentRef = useRef<HTMLDivElement | null>(null);
+    useEffect(() => {
+        const updateShortcut = () => setSearchShortcut(/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K');
+        updateShortcut();
+    }, []);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [desktopMenu, setDesktopMenu] = useState<string | null>(null);
+    const desktopMenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const desktopMenuOpenedByHover = useRef(false);
+
+    const cancelDesktopMenuClose = () => {
+        if (desktopMenuCloseTimer.current !== null) {
+            clearTimeout(desktopMenuCloseTimer.current);
+            desktopMenuCloseTimer.current = null;
+        }
+    };
+
+    const scheduleDesktopMenuClose = () => {
+        cancelDesktopMenuClose();
+        // Allow the pointer to cross the gap between the trigger and menu.
+        desktopMenuCloseTimer.current = setTimeout(() => {
+            const focused = document.activeElement;
+            if (
+                desktopTriggerRef.current?.contains(focused) ||
+                desktopContentRef.current?.contains(focused) ||
+                desktopTriggerRef.current?.matches(':hover') ||
+                desktopContentRef.current?.matches(':hover')
+            ) return;
+            setDesktopMenu(null);
+        }, 250);
+    };
+
+    const handleDesktopMenuOpenChange = (name: string, open: boolean) => {
+        cancelDesktopMenuClose();
+        desktopMenuOpenedByHover.current = false;
+        setDesktopMenu((current) => open ? name : current === name ? null : current);
+    };
+
+    const handleDesktopMenuPointerEnter = (event: React.PointerEvent<HTMLButtonElement>, name: string) => {
+        if (event.pointerType !== 'mouse') return;
+        cancelDesktopMenuClose();
+        desktopTriggerRef.current = event.currentTarget;
+        desktopMenuOpenedByHover.current = true;
+        setDesktopMenu(name);
+    };
+
+    const handleDesktopMenuPointerLeave = (event: React.PointerEvent<HTMLElement>) => {
+        if (event.pointerType === 'mouse') scheduleDesktopMenuClose();
+    };
+
+    const desktopMenuContentProps = {
+        ref: desktopContentRef,
+        onFocusCapture: cancelDesktopMenuClose,
+        onBlurCapture: scheduleDesktopMenuClose,
+        onKeyDown: () => { desktopMenuOpenedByHover.current = false; },
+        onPointerEnter: cancelDesktopMenuClose,
+        onPointerLeave: (event: React.PointerEvent<HTMLDivElement>) => {
+            if (event.pointerType === 'mouse') scheduleDesktopMenuClose();
+        },
+        onOpenAutoFocus: (event: Event) => {
+            if (desktopMenuOpenedByHover.current) event.preventDefault();
+        },
+        onCloseAutoFocus: (event: Event) => {
+            if (desktopMenuOpenedByHover.current) event.preventDefault();
+        },
+    };
+
+    useEffect(() => () => {
+        if (desktopMenuCloseTimer.current !== null) clearTimeout(desktopMenuCloseTimer.current);
+    }, []);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
@@ -110,31 +185,27 @@ export function Navbar() {
     };
 
     const navRef = useRef<HTMLDivElement>(null);
+    const cancelIconControls = useAnimation();
+    const logoutIconControls = useAnimation();
     const previousPathnameRef = useRef(pathname);
     const [hoverStyle, setHoverStyle] = useState({ left: 0, width: 0, opacity: 0 });
 
     const normalizedRole = (user?.role ?? '').toLowerCase();
 
-    const blogMenuItem = { href: '/blog', label: 'Blog', description: 'Read our latest posts and updates', icon: FileText };
+    const blogMenuItem = { href: '/blog', label: 'Blog', description: 'Read my latest posts and updates', icon: FileText };
 
-    const studioMenuItems = [
-        { href: '/gallery', label: 'Gallery', description: 'View our creative gallery', icon: Image },
-        { href: '/music', label: 'Music', description: 'Explore our music collection', icon: Music },
+    const mediaMenuItems = [
+        { href: '/gallery', label: 'Gallery', description: 'Explore my photography and artwork', icon: Image },
+        { href: '/music', label: 'Music', description: 'Listen to my music collection', icon: Music },
     ];
 
-    const workMenuItems = [
-        { href: '/projects', label: 'Projects', description: 'View our completed projects', icon: FolderCode },
-        { href: '/services', label: 'Services', description: 'Explore the services we offer', icon: Briefcase },
-    ];
-
-    const miscMenuItems = [] as typeof workMenuItems;
+    const projectsMenuItem = { href: '/projects', label: 'Projects', description: 'Explore my projects', icon: FolderCode };
 
     const aboutMenuItems = [
-        { href: '/about', label: 'About', description: 'Learn about JassSpace and our mission', icon: UserCircle },
+        { href: '/about', label: 'About Me', description: 'Learn about me and JassSpace', icon: UserCircle },
         { href: '/uses', label: 'Uses', description: 'Tools, gear, and software I use daily', icon: Wrench },
-        { href: '/contact', label: 'Contact', description: 'Get in touch with our team', icon: Mail },
-        { href: '/privacy', label: 'Privacy Policy', description: 'See how we handle your data', icon: Shield },
-        { href: '/faq', label: 'FAQ', description: 'Common questions and answers', icon: BookOpen },
+        { href: '/services', label: 'Services', description: 'Explore the services I offer', icon: Briefcase },
+        { href: '/contact', label: 'Contact', description: 'Get in touch', icon: Mail },
     ];
 
     const mobileMenuSections = [
@@ -143,10 +214,10 @@ export function Navbar() {
             items: [
                 { href: '/', label: 'Home', icon: House },
                 blogMenuItem,
-                ...studioMenuItems,
+                projectsMenuItem,
             ],
         },
-        { title: 'Work', items: workMenuItems },
+        { title: 'Media', items: mediaMenuItems },
         { title: 'About', items: aboutMenuItems },
     ];
 
@@ -159,14 +230,14 @@ export function Navbar() {
         items.some((item) => isActivePath(item.href));
 
     const navDropdownContentClassName =
-        'w-[min(42rem,calc(100vw-2rem))] rounded-3xl border border-border/60 bg-background/75 p-3 text-foreground shadow-2xl shadow-black/15 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65';
+        'w-[min(42rem,calc(100vw-2rem))] rounded-3xl border border-border/60 bg-background/95 p-3 text-foreground shadow-lg shadow-black/10 backdrop-blur-xl';
 
     const navDropdownGridClassName = 'grid grid-cols-2 gap-2';
 
     const navDropdownItemClassName = (active: boolean) =>
         cn(
-            'group/menuitem flex h-full min-h-24 cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all duration-200',
-            'border-border/45 bg-background/45 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-accent/55 hover:shadow-sm',
+            'group/menuitem flex h-full min-h-24 cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-colors duration-150 motion-reduce:transition-none',
+            'border-transparent hover:border-primary/25 hover:bg-accent/55 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary data-[highlighted]:bg-accent data-[highlighted]:outline-2 data-[highlighted]:outline-primary',
             active && 'border-primary/30 bg-accent/70 shadow-sm'
         );
 
@@ -177,13 +248,13 @@ export function Navbar() {
             active && 'border-primary/35 bg-background text-foreground'
         );
 
-    const renderDesktopMenuItem = (item: (typeof workMenuItems)[number]) => {
+    const renderDesktopMenuItem = (item: (typeof aboutMenuItems)[number]) => {
         const Icon = item.icon;
         const isActive = isActivePath(item.href);
 
         return (
             <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent">
-                <Link href={item.href} className={navDropdownItemClassName(isActive)}>
+                <Link href={item.href} aria-current={isActive ? 'page' : undefined} className={navDropdownItemClassName(isActive)}>
                     <span className={navDropdownIconClassName(isActive)}>
                         <Icon className="h-5 w-5" />
                     </span>
@@ -251,7 +322,7 @@ export function Navbar() {
 
             setIsScrolled(currentScrollY > topThreshold);
 
-            if (menuOpen || sidebarOpen) {
+            if (menuOpen || sidebarOpen || desktopMenu !== null || accountOpen || searchOpen || showLogoutDialog || document.activeElement?.closest('[data-navbar]')) {
                 setIsNavbarHidden(false);
                 lastScrollY = currentScrollY;
                 return;
@@ -286,7 +357,7 @@ export function Navbar() {
             if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
             window.removeEventListener('scroll', handleScroll);
         };
-    }, [menuOpen, sidebarOpen]);
+    }, [menuOpen, sidebarOpen, desktopMenu, accountOpen, searchOpen, showLogoutDialog]);
 
     useEffect(() => {
         const handleSidebarState = (event: Event) => {
@@ -302,16 +373,18 @@ export function Navbar() {
 
         previousPathnameRef.current = pathname;
 
-        if (!menuOpen && !sidebarOpen) return;
+        if (!menuOpen && !sidebarOpen && desktopMenu === null && !accountOpen) return;
 
         const timeoutId = window.setTimeout(() => {
             setMenuOpen(false);
+            setDesktopMenu(null);
+            setAccountOpen(false);
             setSidebarOpen(false);
             window.dispatchEvent(new CustomEvent<boolean>(SIDEBAR_OPEN_EVENT, { detail: false }));
         }, 0);
 
         return () => window.clearTimeout(timeoutId);
-    }, [pathname, menuOpen, sidebarOpen]);
+    }, [pathname, menuOpen, sidebarOpen, desktopMenu, accountOpen]);
 
     const handleSidebarOpenChange = (open: boolean) => {
         setSidebarOpen(open);
@@ -330,10 +403,9 @@ export function Navbar() {
 
     const topNavLinkClass = (active: boolean) =>
         cn(
-            'relative flex cursor-pointer items-center gap-1 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] z-10 outline-none',
+            'relative z-10 flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
             'transition-[color,opacity] duration-200',
-            active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-            !active && 'group-hover/navlinks:opacity-55 hover:!opacity-100'
+            active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
         );
 
     const accountDropdownContent = (
@@ -419,16 +491,19 @@ export function Navbar() {
     );
 
     return (
-        <>
+        <MotionConfig reducedMotion="user">
             {/* ── Desktop horizontal top navbar ── */}
             <nav
+                data-navbar
+                aria-label="Main navigation"
+                onFocusCapture={() => setIsNavbarHidden(false)}
                 className={cn(
                     'fixed inset-x-0 top-0 z-50 hidden lg:block',
                     'bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55',
                     // Gradient hairline that fades at the edges
                     'after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px',
                     'after:bg-gradient-to-r after:from-transparent after:via-border/70 after:to-transparent',
-                    'transition-[transform,background-color,box-shadow] duration-300 ease-out',
+                    'transition-[transform,background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none [&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-offset-2 [&_a:focus-visible]:outline-primary [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-primary',
                     isScrolled &&
                         'shadow-lg shadow-black/10 bg-background/85 supports-[backdrop-filter]:bg-background/70',
                     isNavbarHidden ? '-translate-y-full' : 'translate-y-0'
@@ -437,13 +512,14 @@ export function Navbar() {
                 <div
                     className={cn(
                         'mx-auto flex max-w-7xl items-center gap-6 px-6 lg:px-10',
-                        'transition-[height] duration-300 ease-out',
+                        'transition-[height] duration-300 ease-out motion-reduce:transition-none',
                         isScrolled ? 'h-14' : 'h-[4.25rem]'
                     )}
                 >
                     {/* Logo */}
                     <Link
                         href="/"
+                        aria-label="JassSpace home"
                         className="flex shrink-0 items-center gap-2.5 text-foreground transition-colors hover:text-primary"
                     >
                         <LogoMark className="h-8 w-8" />
@@ -460,7 +536,7 @@ export function Navbar() {
                             {/* Sliding hover pill */}
                             <div
                                 aria-hidden="true"
-                                className="pointer-events-none absolute h-8 rounded-full bg-accent/60 transition-all duration-200 ease-out"
+                                className="pointer-events-none absolute h-8 rounded-full bg-accent/60 transition-all duration-200 ease-out motion-reduce:transition-none"
                                 style={{
                                     left: `${hoverStyle.left}px`,
                                     width: `${hoverStyle.width}px`,
@@ -473,6 +549,7 @@ export function Navbar() {
                             {/* Home */}
                             <Link
                                 href="/"
+                        aria-label="JassSpace home"
                                 aria-current={isActivePath('/') ? 'page' : undefined}
                                 className={topNavLinkClass(isActivePath('/'))}
                                 onMouseEnter={handleNavLinkHover}
@@ -494,60 +571,56 @@ export function Navbar() {
                                 Blog
                             </Link>
 
-                            {/* Work */}
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button
-                                        className={topNavLinkClass(isSectionActive(workMenuItems))}
-                                        onMouseEnter={handleNavLinkHover}
-                                    >
-                                        {isSectionActive(workMenuItems) && activeUnderline}
-                                        <Briefcase className="h-3.5 w-3.5" />
-                                        Work
-                                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    className={navDropdownContentClassName}
-                                    align="center"
-                                    sideOffset={14}
-                                    collisionPadding={16}
-                                >
-                                    <div className={navDropdownGridClassName}>
-                                        {workMenuItems.map(renderDesktopMenuItem)}
-                                    </div>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            {/* Projects */}
+                            <Link
+                                href={projectsMenuItem.href}
+                                aria-current={isActivePath(projectsMenuItem.href) ? 'page' : undefined}
+                                className={topNavLinkClass(isActivePath(projectsMenuItem.href))}
+                                onMouseEnter={handleNavLinkHover}
+                            >
+                                {isActivePath(projectsMenuItem.href) && activeUnderline}
+                                <FolderCode className="h-3.5 w-3.5" />
+                                Projects
+                            </Link>
 
                             {/* Media */}
-                            <DropdownMenu>
+                            <DropdownMenu modal={false} open={desktopMenu === 'media'} onOpenChange={(open) => handleDesktopMenuOpenChange('media', open)}>
                                 <DropdownMenuTrigger asChild>
                                     <button
-                                        className={topNavLinkClass(isSectionActive(studioMenuItems))}
+                                        onPointerEnter={(event) => handleDesktopMenuPointerEnter(event, 'media')}
+                                        onPointerLeave={handleDesktopMenuPointerLeave}
+                                        onFocus={(event) => { desktopTriggerRef.current = event.currentTarget; cancelDesktopMenuClose(); }}
+                                        onBlur={scheduleDesktopMenuClose}
+                                        className={topNavLinkClass(isSectionActive(mediaMenuItems))}
                                         onMouseEnter={handleNavLinkHover}
                                     >
-                                        {isSectionActive(studioMenuItems) && activeUnderline}
+                                        {isSectionActive(mediaMenuItems) && activeUnderline}
                                         <Library className="h-3.5 w-3.5" />
                                         Media
                                         <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                     </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
+                                    {...desktopMenuContentProps}
                                     className={navDropdownContentClassName}
                                     align="center"
                                     sideOffset={14}
                                     collisionPadding={16}
                                 >
                                     <div className={navDropdownGridClassName}>
-                                        {studioMenuItems.map(renderDesktopMenuItem)}
+                                        {mediaMenuItems.map(renderDesktopMenuItem)}
                                     </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
                             {/* About */}
-                            <DropdownMenu>
+                            <DropdownMenu modal={false} open={desktopMenu === 'about'} onOpenChange={(open) => handleDesktopMenuOpenChange('about', open)}>
                                 <DropdownMenuTrigger asChild>
                                     <button
+                                        onPointerEnter={(event) => handleDesktopMenuPointerEnter(event, 'about')}
+                                        onPointerLeave={handleDesktopMenuPointerLeave}
+                                        onFocus={(event) => { desktopTriggerRef.current = event.currentTarget; cancelDesktopMenuClose(); }}
+                                        onBlur={scheduleDesktopMenuClose}
                                         className={topNavLinkClass(isSectionActive(aboutMenuItems))}
                                         onMouseEnter={handleNavLinkHover}
                                     >
@@ -558,6 +631,7 @@ export function Navbar() {
                                     </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
+                                    {...desktopMenuContentProps}
                                     className={navDropdownContentClassName}
                                     align="center"
                                     sideOffset={14}
@@ -569,29 +643,6 @@ export function Navbar() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
-                            {/* Misc */}
-                            {miscMenuItems.length > 0 && <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button
-                                        className={topNavLinkClass(isSectionActive(miscMenuItems))}
-                                        onMouseEnter={handleNavLinkHover}
-                                    >
-                                        {isSectionActive(miscMenuItems) && activeUnderline}
-                                        Misc
-                                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    className={navDropdownContentClassName}
-                                    align="center"
-                                    sideOffset={14}
-                                    collisionPadding={16}
-                                >
-                                    <div className={navDropdownGridClassName}>
-                                        {miscMenuItems.map(renderDesktopMenuItem)}
-                                    </div>
-                                </DropdownMenuContent>
-                            </DropdownMenu>}
                         </div>
                     </div>
 
@@ -601,12 +652,14 @@ export function Navbar() {
                         <button
                             type="button"
                             onClick={() => setSearchOpen(true)}
-                            className="flex h-9 items-center gap-2 rounded-full border border-border/60 bg-muted/20 pl-3.5 pr-2.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                            aria-label="Search"
+                            title={`Search (${searchShortcut})`}
+                            className="flex h-10 cursor-pointer items-center gap-2 rounded-full border border-border/60 bg-muted/20 pl-3.5 pr-2.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
                         >
                             <Search className="h-3.5 w-3.5 shrink-0" />
-                            <span className="hidden text-xs xl:block">Search here</span>
+                            <span className="hidden text-xs xl:block">Search</span>
                             <kbd className="hidden rounded border border-border/60 bg-background/80 px-1.5 py-0.5 text-[10px] font-medium xl:ml-1 xl:block">
-                                ⌘K
+                                {searchShortcut}
                             </kbd>
                         </button>
 
@@ -615,7 +668,7 @@ export function Navbar() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="relative h-9 w-9 rounded-full hover:bg-accent/50"
+                            className="relative h-10 w-10 rounded-full hover:bg-accent/50"
                             onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
                             aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                             title={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -628,22 +681,27 @@ export function Navbar() {
                             variant="ghost"
                             size="icon"
                             className={cn(
-                                'h-9 w-9 rounded-full hover:bg-accent/50',
+                                'h-10 w-10 rounded-full hover:bg-accent/50',
                                 sidebarOpen && 'text-primary'
                             )}
                             onClick={() => handleSidebarOpenChange(true)}
-                            title="Player and theme"
+                            aria-label="Open player and appearance"
+                            aria-haspopup="dialog"
+                            aria-expanded={sidebarOpen}
+                            title="Player & appearance"
                         >
                             <PanelRight className="h-4 w-4" />
                         </Button>
 
                         {/* User */}
                         {isAuthenticated ? (
-                            <DropdownMenu>
+                            <DropdownMenu open={accountOpen} onOpenChange={setAccountOpen}>
                                 <DropdownMenuTrigger asChild>
                                     <button
                                         type="button"
-                                        className="flex h-10 items-center gap-2.5 rounded-full border border-border/60 bg-muted/20 pl-1 pr-3 transition-colors hover:bg-muted/40"
+                                        aria-label="Open account menu"
+                                        title="Account"
+                                        className="flex h-10 cursor-pointer items-center gap-2.5 rounded-full border border-border/60 bg-muted/20 pl-1 pr-3 transition-colors hover:bg-muted/40"
                                     >
                                         <Avatar className="h-8 w-8 border border-border/60">
                                             <AvatarImage
@@ -668,15 +726,9 @@ export function Navbar() {
                                 {accountDropdownContent}
                             </DropdownMenu>
                         ) : (
-                            <Link href={loginHref}>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 rounded-full px-5 text-[11px] font-semibold uppercase tracking-[0.08em]"
-                                >
-                                    Login
-                                </Button>
-                            </Link>
+                            <Button asChild variant="outline" size="sm" className="h-10 rounded-full px-5 text-sm font-medium">
+                                <Link href={loginHref}>Login</Link>
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -684,8 +736,11 @@ export function Navbar() {
 
             {/* ── Mobile top bar ── */}
             <nav
+                data-navbar
+                aria-label="Main navigation"
+                onFocusCapture={() => setIsNavbarHidden(false)}
                 className={cn(
-                    'fixed inset-x-0 top-0 z-50 transition-all duration-300 lg:hidden',
+                    'fixed inset-x-0 top-0 z-50 transition-all duration-300 motion-reduce:transition-none lg:hidden [&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-primary',
                     'border-b border-border/60 bg-background/95 shadow-sm shadow-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/88',
                     isNavbarHidden ? 'pointer-events-none -translate-y-14 opacity-0' : 'translate-y-0 opacity-100'
                 )}
@@ -693,8 +748,9 @@ export function Navbar() {
                 <div className="flex h-14 items-center justify-between px-4">
                     <Link
                         href="/"
+                        aria-label="JassSpace home"
                         aria-current={isActivePath('/') ? 'page' : undefined}
-                        className="flex items-center rounded-full text-foreground transition-colors hover:text-primary"
+                        className="flex h-11 min-w-11 items-center rounded-full text-foreground transition-colors hover:text-primary"
                     >
                         <LogoMark className="h-7 w-7" />
                     </Link>
@@ -704,49 +760,66 @@ export function Navbar() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="relative h-9 w-9 rounded-full hover:bg-accent/50"
+                            className="relative h-11 w-11 rounded-full hover:bg-accent/50"
                             onClick={() => setSearchOpen(true)}
                             aria-label="Search"
                         >
                             <Search className="h-4 w-4" />
                         </Button>
 
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="relative h-9 w-9 rounded-full hover:bg-accent/50"
-                            onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
-                            aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                        >
-                            {themeToggleIcon}
-                        </Button>
-
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn('h-9 w-9 rounded-full hover:bg-accent/50', sidebarOpen && 'text-primary')}
-                            onClick={() => handleSidebarOpenChange(true)}
-                            title="Open sidebar"
-                        >
-                            <PanelRight className="h-4 w-4" />
-                        </Button>
-
                         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                             <SheetTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full">
+                                <Button aria-label="Open navigation" variant="outline" size="icon" className="h-11 w-11 rounded-full">
                                     <Menu className="h-4 w-4" />
                                 </Button>
                             </SheetTrigger>
                             <SheetContent
                                 side="right"
-                                className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[340px] sm:max-w-[340px]"
+                                className="[&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-offset-2 [&_a:focus-visible]:outline-primary h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:w-[340px] sm:max-w-[340px]"
                             >
                                 <SheetHeader>
                                     <SheetTitle>Navigation</SheetTitle>
                                     <SheetDescription>Browse the site and open quick controls.</SheetDescription>
                                 </SheetHeader>
                                 <div className="mt-6 space-y-5 px-4 pb-6">
+                                    {mobileMenuSections.map((section) => (
+                                        <div
+                                            key={section.title}
+                                            className="rounded-3xl border border-border/60 bg-card/60 p-3"
+                                        >
+                                            <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                {section.title}
+                                            </p>
+                                            <div className="space-y-1">
+                                                {section.items.map((item) => {
+                                                    const Icon = item.icon;
+                                                    const isActive = isActivePath(item.href);
+                                                    return (
+                                                        <SheetClose key={item.href} asChild>
+                                                            <Link
+                                                                href={item.href}
+                                                                aria-current={isActive ? 'page' : undefined}
+                                                                className={cn(
+                                                                    'flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors',
+                                                                    isActive
+                                                                        ? 'bg-primary/12 text-foreground'
+                                                                        : 'hover:bg-accent/70'
+                                                                )}
+                                                            >
+                                                                <Icon
+                                                                    className={cn(
+                                                                        'h-4 w-4 text-primary',
+                                                                        isActive && 'text-foreground'
+                                                                    )}
+                                                                />
+                                                                <span>{item.label}</span>
+                                                            </Link>
+                                                        </SheetClose>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
                                     {isAuthenticated && user ? (
                                         <div className="rounded-3xl border border-border/60 bg-card/60 p-4">
                                             <div className="flex items-center gap-3">
@@ -806,46 +879,10 @@ export function Navbar() {
                                         }}
                                     >
                                         <PanelRight className="mr-2 h-4 w-4" />
-                                        Player and theme controls
+                                        Player & appearance
                                     </Button>
 
-                                    {mobileMenuSections.map((section) => (
-                                        <div
-                                            key={section.title}
-                                            className="rounded-3xl border border-border/60 bg-card/60 p-3"
-                                        >
-                                            <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                                {section.title}
-                                            </p>
-                                            <div className="space-y-1">
-                                                {section.items.map((item) => {
-                                                    const Icon = item.icon;
-                                                    const isActive = isActivePath(item.href);
-                                                    return (
-                                                        <SheetClose key={item.href} asChild>
-                                                            <Link
-                                                                href={item.href}
-                                                                className={cn(
-                                                                    'flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors',
-                                                                    isActive
-                                                                        ? 'bg-primary/12 text-foreground'
-                                                                        : 'hover:bg-accent/70'
-                                                                )}
-                                                            >
-                                                                <Icon
-                                                                    className={cn(
-                                                                        'h-4 w-4 text-primary',
-                                                                        isActive && 'text-foreground'
-                                                                    )}
-                                                                />
-                                                                <span>{item.label}</span>
-                                                            </Link>
-                                                        </SheetClose>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ))}
+
 
                                     {isAuthenticated ? (
                                         <div className="rounded-3xl border border-border/60 bg-card/60 p-3">
@@ -916,10 +953,10 @@ export function Navbar() {
             <Sheet open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
                 <SheetContent
                     side="right"
-                    className="h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:max-w-sm"
+                    className="[&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-offset-2 [&_a:focus-visible]:outline-primary h-[100dvh] w-screen max-w-none overflow-y-auto data-[side=right]:w-screen data-[side=right]:max-w-none sm:h-full sm:max-w-sm"
                 >
                     <SheetHeader>
-                        <SheetTitle>Sidebar</SheetTitle>
+                        <SheetTitle>Player & appearance</SheetTitle>
                         <SheetDescription>Appearance settings and quick controls</SheetDescription>
                     </SheetHeader>
                     <div className="mt-6 space-y-4 px-4">
@@ -931,7 +968,7 @@ export function Navbar() {
                                         {hasSource ? 'Control playback directly here' : 'Select a track to start playback'}
                                     </p>
                                 </div>
-                                <Button type="button" variant="outline" size="icon" asChild className="h-8 w-8 rounded-full">
+                                <Button type="button" variant="outline" size="icon" asChild className="h-11 w-11 rounded-full">
                                     <Link href="/music" aria-label="Open music library">
                                         <Library className="h-4 w-4" />
                                     </Link>
@@ -945,7 +982,7 @@ export function Navbar() {
                                             {currentArtist || 'Unknown Artist'}
                                         </p>
                                     </div>
-                                    {sidebarOpen ? (
+                                    {sidebarOpen && !reduceMotion ? (
                                         <AudioSidebarVisualizer
                                             isOpen={sidebarOpen}
                                             isPlaying={isPlaying}
@@ -954,6 +991,10 @@ export function Navbar() {
                                     ) : null}
                                     <div className="space-y-2">
                                         <Slider
+                                            thumbProps={{
+                                                'aria-label': 'Playback position',
+                                                'aria-valuetext': `${Math.floor(currentTime / 60)} minutes ${Math.floor(currentTime % 60)} seconds of ${Math.floor(duration / 60)} minutes ${Math.floor(duration % 60)} seconds`,
+                                            }}
                                             value={[Math.min(currentTime, duration > 0 ? duration : 1)]}
                                             min={0}
                                             max={duration > 0 ? duration : 1}
@@ -970,7 +1011,9 @@ export function Navbar() {
                                             type="button"
                                             size="icon"
                                             variant="outline"
-                                            className="rounded-full"
+                                            className="h-11 w-11 rounded-full"
+                                            aria-label="Rewind 10 seconds"
+                                            title="Rewind 10 seconds"
                                             onClick={() => seekBy(-10)}
                                         >
                                             <SkipBack className="h-4 w-4" />
@@ -978,7 +1021,9 @@ export function Navbar() {
                                         <Button
                                             type="button"
                                             size="icon"
-                                            className="h-10 w-10 rounded-full"
+                                            className="h-11 w-11 rounded-full"
+                                            aria-label={isPlaying ? 'Pause' : 'Play'}
+                                            title={isPlaying ? 'Pause' : 'Play'}
                                             onClick={playPause}
                                         >
                                             {isPlaying ? (
@@ -991,7 +1036,9 @@ export function Navbar() {
                                             type="button"
                                             size="icon"
                                             variant="outline"
-                                            className="rounded-full"
+                                            className="h-11 w-11 rounded-full"
+                                            aria-label="Stop playback"
+                                            title="Stop playback"
                                             onClick={stop}
                                         >
                                             <Square className="h-4 w-4" />
@@ -1000,7 +1047,9 @@ export function Navbar() {
                                             type="button"
                                             size="icon"
                                             variant="outline"
-                                            className="rounded-full"
+                                            className="h-11 w-11 rounded-full"
+                                            aria-label="Forward 10 seconds"
+                                            title="Forward 10 seconds"
                                             onClick={() => seekBy(10)}
                                         >
                                             <SkipForward className="h-4 w-4" />
@@ -1028,9 +1077,10 @@ export function Navbar() {
                                             <button
                                                 key={mode}
                                                 type="button"
+                                                aria-pressed={isActive}
                                                 onClick={() => setTheme(mode)}
                                                 className={cn(
-                                                    'relative flex h-9 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors',
+                                                    'relative flex h-11 focus-visible:outline-2 focus-visible:outline-primary items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors',
                                                     isActive
                                                         ? 'text-foreground'
                                                         : 'text-muted-foreground hover:text-foreground'
@@ -1090,6 +1140,7 @@ export function Navbar() {
                                                 'border-border/60 bg-background/40 hover:border-border hover:bg-accent/50',
                                                 isActiveTheme && 'border-primary/40 bg-accent/60 ring-1 ring-primary/20'
                                             )}
+                                            aria-pressed={isActiveTheme}
                                             onClick={() => setActiveThemeSetId(themeSet.id)}
                                         >
                                             <span className="relative isolate mr-3 block h-10 w-14 shrink-0 overflow-hidden rounded-md border border-border/70">
@@ -1097,28 +1148,11 @@ export function Navbar() {
                                                     className="block h-full w-full"
                                                     style={{ background: getThemePreviewBackground(themeSet) }}
                                                 />
-                                                <AnimatePresence>
-                                                    {isActiveTheme ? (
-                                                        <motion.span
-                                                            className="pointer-events-none absolute inset-0"
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            exit={{ opacity: 0 }}
-                                                            transition={{ duration: 0.22, ease: 'easeOut' }}
-                                                        >
-                                                            <motion.span
-                                                                className="absolute -inset-y-2 -left-1/3 w-1/2 rotate-12 bg-gradient-to-r from-transparent via-white/45 to-transparent mix-blend-screen"
-                                                                animate={{ x: ['-140%', '180%'] }}
-                                                                transition={{
-                                                                    duration: 1.8,
-                                                                    repeat: Infinity,
-                                                                    repeatDelay: 1.2,
-                                                                    ease: 'easeInOut',
-                                                                }}
-                                                            />
-                                                        </motion.span>
-                                                    ) : null}
-                                                </AnimatePresence>
+                                                {isActiveTheme && (
+                                                    <span className="absolute right-1 top-1 rounded-full bg-primary p-0.5 text-primary-foreground">
+                                                        <Check className="h-3 w-3" aria-hidden="true" />
+                                                    </span>
+                                                )}
                                             </span>
                                             <span className="min-w-0 flex-1 text-left">
                                                 <span className="block truncate text-sm font-medium leading-none">
@@ -1154,15 +1188,65 @@ export function Navbar() {
                         <DialogDescription>Are you sure you want to logout?</DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowLogoutDialog(false)}
+                            onMouseEnter={() =>
+                                !reduceMotion && cancelIconControls.start({
+                                    rotate: [0, -10, 10, 0],
+                                    scale: [1, 1.2, 1],
+                                    transition: { duration: 0.55, ease: 'easeInOut' },
+                                })
+                            }
+                            onMouseLeave={() =>
+                                !reduceMotion && cancelIconControls.start({
+                                    rotate: 0,
+                                    scale: 1,
+                                    transition: { duration: 0.15 },
+                                })
+                            }
+                        >
+                            <motion.span
+                                className="inline-flex"
+                                animate={cancelIconControls}
+                                aria-hidden="true"
+                            >
+                                <Smile className="h-4 w-4" />
+                            </motion.span>
                             Cancel
                         </Button>
-                        <Button variant="destructive" onClick={handleLogout}>
+                        <Button
+                            variant="destructive"
+                            onClick={handleLogout}
+                            onMouseEnter={() =>
+                                !reduceMotion && logoutIconControls.start({
+                                    y: [0, 2, 0],
+                                    rotate: [0, -5, 5, 0],
+                                    scale: [1, 1.12, 1],
+                                    transition: { duration: 0.55, ease: 'easeInOut' },
+                                })
+                            }
+                            onMouseLeave={() =>
+                                !reduceMotion && logoutIconControls.start({
+                                    y: 0,
+                                    rotate: 0,
+                                    scale: 1,
+                                    transition: { duration: 0.15 },
+                                })
+                            }
+                        >
+                            <motion.span
+                                className="inline-flex"
+                                animate={logoutIconControls}
+                                aria-hidden="true"
+                            >
+                                <Frown className="h-4 w-4" />
+                            </motion.span>
                             Logout
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </>
+        </MotionConfig>
     );
 }
