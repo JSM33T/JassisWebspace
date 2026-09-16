@@ -115,7 +115,7 @@ public sealed class GalleryController(
     /// Creates a new album and automatically creates a Content entry for it.
     /// </summary>
     [HttpPost("albums")]
-    [Authorize]
+    [Authorize(Roles = "admin")]
     [ProducesResponseType(typeof(ApiResponse<AlbumResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateAlbum([FromBody] CreateAlbumRequest request, CancellationToken cancellationToken = default)
@@ -145,7 +145,7 @@ public sealed class GalleryController(
     /// Adds an image to an existing album.
     /// </summary>
     [HttpPost("albums/{albumId:guid}/images")]
-    [Authorize]
+    [Authorize(Roles = "admin")]
     [ProducesResponseType(typeof(ApiResponse<ImageResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

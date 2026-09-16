@@ -7,13 +7,15 @@ using JassSpace.Entities;
 using JassSpace.Entities.Enums;
 using JassSpace.Infra;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace JassSpace.Services;
 
 public sealed class AdminGalleryService(
     JassSpaceDbContext dbContext,
     IAzureBlobStorageService blobStorageService,
-    IImageProcessingService imageProcessingService) : IAdminGalleryService
+    IImageProcessingService imageProcessingService,
+    ILogger<AdminGalleryService>? logger = null) : IAdminGalleryService
 {
     private const string GalleryBlobPrefix = "gallery/";
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
@@ -511,6 +513,69 @@ public sealed class AdminGalleryService(
             MapImage(image));
     }
 
+    public async Task<AdminGalleryImageMutationResult> ReplaceImageAsync(
+        Guid imageId, AdminMediaUploadInput file, string mediaBaseUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var image = await _dbContext.Images.Include(i => i.Album)
+            .FirstOrDefaultAsync(i => i.Id == imageId, cancellationToken);
+        if (image is null)
+            return new(AdminGalleryOperationStatus.ImageNotFound, ErrorMessage: "Image not found.");
+
+        Stream processed;
+        try
+        {
+            processed = await _imageProcessingService.ProcessImageAsync(file.Content, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new(AdminGalleryOperationStatus.InvalidImage, ErrorMessage: "The file could not be decoded as an image.");
+        }
+
+        var oldBlob = ExtractBlobNameFromUrl(image.Url);
+        await using var processedStream = processed;
+        var upload = await _blobStorageService.UploadImageAsync(processedStream, file.FileName,
+            "image/webp", $"gallery/images/{image.AlbumId}-{Guid.NewGuid()}", cancellationToken);
+        var newUrl = GetFullMediaUrl(mediaBaseUrl, upload.BlobName);
+
+        // Save the new reference before retiring the old file. Failed saves leave an
+        // unreferenced upload discoverable by the existing gallery audit.
+        image.Url = newUrl;
+        image.Album.UpdatedAt = DateTimeOffset.UtcNow;
+        if (oldBlob is not null)
+        {
+            var covers = await _dbContext.Albums.Where(a => a.Cover != null).ToListAsync(cancellationToken);
+            foreach (var album in covers.Where(a => ExtractBlobNameFromUrl(a.Cover) == oldBlob))
+            {
+                album.Cover = newUrl;
+                album.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            var contents = await _dbContext.Contents.Where(c => c.Cover != null).ToListAsync(cancellationToken);
+            foreach (var content in contents.Where(c => ExtractBlobNameFromUrl(c.Cover) == oldBlob))
+                content.Cover = newUrl;
+        }
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Cleanup is best effort; the audit retains visibility of any orphan.
+        if (oldBlob is not null)
+        {
+            try
+            {
+                var urls = await _dbContext.Images.Select(i => i.Url).ToListAsync(CancellationToken.None);
+                var covers = await _dbContext.Albums.Select(a => a.Cover).ToListAsync(CancellationToken.None);
+                var contentCovers = await _dbContext.Contents.Select(c => c.Cover).ToListAsync(CancellationToken.None);
+                if (!urls.Concat(covers).Concat(contentCovers).Any(url => ExtractBlobNameFromUrl(url) == oldBlob))
+                    await _blobStorageService.DeleteBlobAsync(oldBlob, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Old gallery blob {BlobName} remains for audit cleanup", oldBlob);
+                // A cleanup failure must not turn a committed replacement into a failed save.
+            }
+        }
+        return new(AdminGalleryOperationStatus.Success, MapImage(image));
+    }
+
     public async Task<AdminGalleryDeleteResult> DeleteImageAsync(
         Guid imageId,
         CancellationToken cancellationToken = default)
@@ -760,7 +825,8 @@ public sealed class AdminGalleryService(
         List<Guid>? authorIds,
         CancellationToken cancellationToken)
     {
-        var requestAuthorIds = authorIds ?? [];
+        if (authorIds is null) return;
+        var requestAuthorIds = authorIds;
 
         await _dbContext.ContentAuthors
             .Where(ca => ca.ContentId == contentId && !requestAuthorIds.Contains(ca.UserId))

@@ -277,6 +277,7 @@ public sealed class AdminGalleryController(
         [FromForm] bool? isActive,
         [FromForm] int? sortOrder,
         [FromForm] List<Guid>? authorIds,
+        [FromForm] bool? clearAuthors,
         CancellationToken cancellationToken = default)
     {
         var openedStreams = new List<Stream>();
@@ -288,11 +289,11 @@ public sealed class AdminGalleryController(
                 new AdminGalleryUpdateAlbumRequest(
                     name,
                     slug,
-                    description,
+                    Request.Form.ContainsKey("description") ? description ?? "" : null,
                     createdAt,
                     isActive,
                     sortOrder,
-                    authorIds),
+                    clearAuthors == true ? [] : authorIds),
                 coverInput,
                 GetBaseUrl(),
                 cancellationToken);
@@ -365,8 +366,8 @@ public sealed class AdminGalleryController(
         {
             var result = await adminGalleryService.UpdateImageAsync(
                 imageId,
-                title,
-                description,
+                Request.Form.ContainsKey("title") ? title ?? "" : null,
+                Request.Form.ContainsKey("description") ? description ?? "" : null,
                 order,
                 cancellationToken);
 
@@ -385,6 +386,32 @@ public sealed class AdminGalleryController(
                 StatusCodes.Status500InternalServerError,
                 "Failed to update image",
                 "An unexpected error occurred while updating the image.");
+        }
+    }
+
+    [HttpPut("images/{imageId:guid}/file")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(26 * 1024 * 1024)]
+    public async Task<IActionResult> ReplaceImage(
+        Guid imageId, [FromForm] IFormFile? imageFile, CancellationToken cancellationToken = default)
+    {
+        if (imageFile is null || imageFile.Length == 0 || imageFile.Length > 25 * 1024 * 1024)
+            return BadRequestProblem("Invalid image", "Choose a non-empty image up to 25 MB.");
+        try
+        {
+            await using var stream = imageFile.OpenReadStream();
+            var result = await adminGalleryService.ReplaceImageAsync(imageId,
+                new AdminMediaUploadInput(stream, imageFile.FileName, null), GetBaseUrl(), cancellationToken);
+            if (result.Status != AdminGalleryOperationStatus.Success)
+                return MapGalleryProblem(result.Status, result.ErrorMessage);
+            await InvalidateGalleryCacheAsync(cancellationToken);
+            return OkEnvelope(result.Image!);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to replace image {ImageId}", imageId);
+            return Problem(StatusCodes.Status500InternalServerError, "Replacement failed",
+                "The image could not be replaced.");
         }
     }
 
@@ -510,6 +537,7 @@ public sealed class AdminGalleryController(
     {
         return status switch
         {
+            AdminGalleryOperationStatus.InvalidImage => BadRequestProblem("Invalid image", errorMessage),
             AdminGalleryOperationStatus.InvalidName => BadRequestProblem("Invalid album name", errorMessage),
             AdminGalleryOperationStatus.AlbumNotFound => NotFoundProblem("Album not found", errorMessage),
             AdminGalleryOperationStatus.ImageNotFound => NotFoundProblem("Image not found", errorMessage),

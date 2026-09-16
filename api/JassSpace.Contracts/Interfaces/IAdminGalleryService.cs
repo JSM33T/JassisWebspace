@@ -7,6 +7,7 @@ public enum AdminGalleryOperationStatus
 {
     Success,
     InvalidName,
+    InvalidImage,
     AlbumNotFound,
     ImageNotFound
 }
@@ -96,6 +97,10 @@ public interface IAdminGalleryService
         string? title,
         string? description,
         int? order,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminGalleryImageMutationResult> ReplaceImageAsync(
+        Guid imageId, AdminMediaUploadInput file, string mediaBaseUrl,
         CancellationToken cancellationToken = default);
 
     Task<AdminGalleryDeleteResult> DeleteImageAsync(

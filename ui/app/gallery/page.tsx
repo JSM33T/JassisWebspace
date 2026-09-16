@@ -19,6 +19,8 @@ import { Image as ImageIcon } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
 import { Album, GallerySortOrder } from '@/lib/api/gallery.types';
 import { getVersionedGalleryCoverUrl } from '@/lib/gallery-media';
+import { useUser } from '@/contexts/UserContext';
+import { GalleryEditDialog } from '@/components/gallery/gallery-edit-dialog';
 import { ApiError } from '@/lib/api/types';
 
 function parseGallerySortOrder(value: string | null): GallerySortOrder {
@@ -31,6 +33,8 @@ function parseGalleryPage(value: string | null): number {
 }
 
 export default function GalleryPage() {
+    const { user } = useUser();
+    const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -97,6 +101,11 @@ export default function GalleryPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background/50">
+            {editingAlbum && user?.role === 'admin' && <GalleryEditDialog
+                target={{ kind: 'album', album: editingAlbum }}
+                onClose={() => setEditingAlbum(null)}
+                onSaved={() => { void loadAlbums(); }}
+            />}
             <PageBanner
                 badge="Creative Showcase"
                 badgeIcon={ImageIcon}
@@ -200,6 +209,7 @@ export default function GalleryPage() {
                                             </div>
                                         </article>
                                     </Link>
+                                    {user?.role === 'admin' && <Button variant="outline" size="sm" className="mt-2" onClick={() => setEditingAlbum(album)}>Edit album</Button>}
                                 </motion.div>
                             ))}
                         </div>
