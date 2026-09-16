@@ -153,9 +153,14 @@ class AdminGalleryService {
         return put<Image>(`/admin/gallery/images/${imageId}`, formData);
     }
 
-    async replaceImage(imageId: string, imageFile: File): Promise<Image> {
+    async replaceImage(imageId: string, imageFile: File, details?: { title: string; description: string; order: number }): Promise<Image> {
         const formData = new FormData();
         formData.append('imageFile', imageFile);
+        if (details) {
+            formData.append('title', details.title);
+            formData.append('description', details.description);
+            formData.append('order', details.order.toString());
+        }
         return put<Image>(`/admin/gallery/images/${imageId}/file`, formData);
     }
 

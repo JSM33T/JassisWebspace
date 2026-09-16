@@ -36,6 +36,30 @@ public sealed class AdminGalleryServiceTests
     }
 
     [Fact]
+    public async Task ReplacementSavesDetailsAndFileTogether()
+    {
+        await using var db = CreateDb();
+        var image = Seed(db);
+        await db.SaveChangesAsync();
+        var storage = new Storage();
+        var result = await new AdminGalleryService(db, storage, new Processor())
+            .ReplaceImageAsync(image.Id, Input(), "https://example.test",
+                new AdminGalleryUpdateImageRequest("New title", "", 9));
+
+        Assert.Equal(AdminGalleryOperationStatus.Success, result.Status);
+        Assert.Equal("New title", result.Image!.Title);
+        Assert.Equal("", result.Image.Description);
+        Assert.Equal(9, result.Image.Order);
+        db.ChangeTracker.Clear();
+        var saved = await db.Images.SingleAsync();
+        Assert.Equal("New title", saved.Title);
+        Assert.Equal("", saved.Description);
+        Assert.Equal(9, saved.Order);
+        Assert.NotEqual("https://example.test/media/images/old", saved.Url);
+        Assert.Single(storage.Deleted);
+    }
+
+    [Fact]
     public async Task SharedImageBlobIsNotDeleted()
     {
         await using var db = CreateDb();
@@ -62,7 +86,8 @@ public sealed class AdminGalleryServiceTests
             Assert.Equal(AdminGalleryOperationStatus.InvalidImage,
                 (await service.ReplaceImageAsync(image.Id, Input(), "https://example.test")).Status);
         else
-            await Assert.ThrowsAsync<IOException>(() => service.ReplaceImageAsync(image.Id, Input(), "https://example.test"));
+            await Assert.ThrowsAsync<IOException>(() => service.ReplaceImageAsync(image.Id, Input(), "https://example.test",
+                new AdminGalleryUpdateImageRequest("Unsaved title", "", 99)));
         db.ChangeTracker.Clear();
         Assert.Equal(oldUrl, (await db.Images.SingleAsync()).Url);
         Assert.Empty(storage.Deleted);
@@ -77,9 +102,14 @@ public sealed class AdminGalleryServiceTests
         var oldUrl = image.Url;
         var storage = new Storage { AfterUpload = () => db.FailSave = true };
         await Assert.ThrowsAsync<IOException>(() => new AdminGalleryService(db, storage, new Processor())
-            .ReplaceImageAsync(image.Id, Input(), "https://example.test"));
+            .ReplaceImageAsync(image.Id, Input(), "https://example.test",
+                new AdminGalleryUpdateImageRequest("Unsaved title", "", 99)));
         db.ChangeTracker.Clear();
-        Assert.Equal(oldUrl, (await db.Images.SingleAsync()).Url);
+        var saved = await db.Images.SingleAsync();
+        Assert.Equal(oldUrl, saved.Url);
+        Assert.Equal("Original", saved.Title);
+        Assert.Equal("Description", saved.Description);
+        Assert.Equal(4, saved.Order);
         Assert.Empty(storage.Deleted);
     }
 

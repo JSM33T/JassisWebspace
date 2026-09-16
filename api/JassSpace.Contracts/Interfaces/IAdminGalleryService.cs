@@ -101,6 +101,7 @@ public interface IAdminGalleryService
 
     Task<AdminGalleryImageMutationResult> ReplaceImageAsync(
         Guid imageId, AdminMediaUploadInput file, string mediaBaseUrl,
+        AdminGalleryUpdateImageRequest? details = null,
         CancellationToken cancellationToken = default);
 
     Task<AdminGalleryDeleteResult> DeleteImageAsync(

@@ -49,6 +49,8 @@ export function GalleryEditDialog({ target, onClose, onSaved }: {
             } else if (target.kind === 'replace') {
                 if (!file) throw new Error('Choose an image first.');
                 result = await adminGalleryService.replaceImage(target.image.id, file);
+            } else if (file) {
+                result = await adminGalleryService.replaceImage(target.image.id, file, { title, description, order });
             } else {
                 result = await adminGalleryService.updateImage(target.image.id, { title, description, order });
             }
@@ -66,7 +68,7 @@ export function GalleryEditDialog({ target, onClose, onSaved }: {
         <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}>
             <DialogContent className="max-h-[90dvh] overflow-y-auto" showCloseButton={!busy}>
                 <DialogTitle>{replacing ? 'Replace image' : target.kind === 'album' ? 'Edit album' : 'Edit image'}</DialogTitle>
-                <DialogDescription>{replacing ? 'Choose a new file. The image link and details will stay the same.' : 'Save changes directly from the gallery.'}</DialogDescription>
+                <DialogDescription>{replacing ? 'Choose a new file. The image link and details will stay the same.' : target.kind === 'image' ? 'Edit details and optionally choose a replacement image. Changes apply when you save.' : 'Save changes directly from the gallery.'}</DialogDescription>
                 <form onSubmit={save} className="space-y-4">
                     <fieldset disabled={busy} className="space-y-4">
                         {!replacing && <>
@@ -80,8 +82,8 @@ export function GalleryEditDialog({ target, onClose, onSaved }: {
                                 <Input type="number" step="1" required value={order} onChange={e => setOrder(e.target.valueAsNumber)} />
                             </label>}
                         </>}
-                        {(replacing || target.kind === 'album') && <label className="block space-y-2">
-                            <span>{replacing ? 'New image (up to 25 MB)' : 'Cover image'}</span>
+                        <label className="block space-y-2">
+                            <span>{target.kind === 'album' ? 'Cover image' : replacing ? 'New image (up to 25 MB)' : 'Replace image (optional, up to 25 MB)'}</span>
                             <Input type="file" accept="image/*" required={replacing} onChange={e => {
                                 const selected = e.target.files?.[0];
                                 if (selected && selected.size > 25 * 1024 * 1024) {
@@ -95,7 +97,7 @@ export function GalleryEditDialog({ target, onClose, onSaved }: {
                                 setFile(selected);
                                 setPreview(undefined);
                             }} />
-                        </label>}
+                        </label>
                         {preview && (
                             // Local upload previews must not go through the image optimizer.
                             // eslint-disable-next-line @next/next/no-img-element

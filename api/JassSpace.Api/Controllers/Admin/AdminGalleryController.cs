@@ -393,7 +393,11 @@ public sealed class AdminGalleryController(
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(26 * 1024 * 1024)]
     public async Task<IActionResult> ReplaceImage(
-        Guid imageId, [FromForm] IFormFile? imageFile, CancellationToken cancellationToken = default)
+        Guid imageId, [FromForm] IFormFile? imageFile,
+        [FromForm] string? title = null,
+        [FromForm] string? description = null,
+        [FromForm] int? order = null,
+        CancellationToken cancellationToken = default)
     {
         if (imageFile is null || imageFile.Length == 0 || imageFile.Length > 25 * 1024 * 1024)
             return BadRequestProblem("Invalid image", "Choose a non-empty image up to 25 MB.");
@@ -401,7 +405,12 @@ public sealed class AdminGalleryController(
         {
             await using var stream = imageFile.OpenReadStream();
             var result = await adminGalleryService.ReplaceImageAsync(imageId,
-                new AdminMediaUploadInput(stream, imageFile.FileName, null), GetBaseUrl(), cancellationToken);
+                new AdminMediaUploadInput(stream, imageFile.FileName, null), GetBaseUrl(),
+                new AdminGalleryUpdateImageRequest(
+                    Request.Form.ContainsKey("title") ? title ?? "" : null,
+                    Request.Form.ContainsKey("description") ? description ?? "" : null,
+                    order),
+                cancellationToken);
             if (result.Status != AdminGalleryOperationStatus.Success)
                 return MapGalleryProblem(result.Status, result.ErrorMessage);
             await InvalidateGalleryCacheAsync(cancellationToken);

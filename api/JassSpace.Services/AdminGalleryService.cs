@@ -515,6 +515,7 @@ public sealed class AdminGalleryService(
 
     public async Task<AdminGalleryImageMutationResult> ReplaceImageAsync(
         Guid imageId, AdminMediaUploadInput file, string mediaBaseUrl,
+        AdminGalleryUpdateImageRequest? details = null,
         CancellationToken cancellationToken = default)
     {
         var image = await _dbContext.Images.Include(i => i.Album)
@@ -541,6 +542,9 @@ public sealed class AdminGalleryService(
         // Save the new reference before retiring the old file. Failed saves leave an
         // unreferenced upload discoverable by the existing gallery audit.
         image.Url = newUrl;
+        if (details?.Title is not null) image.Title = details.Title;
+        if (details?.Description is not null) image.Description = details.Description;
+        if (details?.Order is not null) image.Order = details.Order.Value;
         image.Album.UpdatedAt = DateTimeOffset.UtcNow;
         if (oldBlob is not null)
         {
