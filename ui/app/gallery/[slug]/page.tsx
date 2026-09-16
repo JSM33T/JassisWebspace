@@ -1,20 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, Eye, ImageIcon, MessageSquare, RefreshCw, Share2, ZoomIn } from 'lucide-react';
+import { ArrowLeft, Calendar, Eye, ImageIcon, MessageSquare, Pencil, RefreshCw, Replace, Share2, ZoomIn } from 'lucide-react';
 import { galleryService } from '@/lib/api/gallery.service';
 import { adminGalleryService } from '@/lib/api/admin-gallery.service';
-import { AlbumWithImages } from '@/lib/api/gallery.types';
+import { AlbumWithImages, Image as GalleryImage } from '@/lib/api/gallery.types';
 import { ApiError } from '@/lib/api/types';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useUser } from '@/contexts/UserContext';
 import { applyCacheBustingParam } from '@/lib/cacheBust';
 
+import { GalleryEditDialog, GalleryEditTarget } from '@/components/gallery/gallery-edit-dialog';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { LikeButton } from '@/components/likes/LikeButton';
@@ -67,6 +68,24 @@ export default function AlbumDetailPage() {
     const { user } = useUser();
     const isAdmin = user?.role === 'admin';
 
+    const [editTarget, setEditTarget] = useState<GalleryEditTarget | null>(null);
+    const editTrigger = useRef<HTMLElement | null>(null);
+    const openEditor = async (target: GalleryEditTarget) => {
+        editTrigger.current = document.activeElement as HTMLElement;
+        if (document.fullscreenElement) {
+            try { await document.exitFullscreen(); }
+            catch { toast.error('Exit fullscreen to edit this image.'); return; }
+        }
+        setEditTarget(target);
+    };
+    const closeEditor = () => {
+        setEditTarget(null);
+        const label = editTrigger.current?.getAttribute('aria-label');
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (editTrigger.current?.isConnected) editTrigger.current.focus();
+            else if (label) document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)?.focus();
+        }));
+    };
     const [album, setAlbum] = useState<AlbumWithImages | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -98,6 +117,7 @@ export default function AlbumDetailPage() {
             // Then fetch the full album with images
             const albumData = await galleryService.getAlbumById(matchedAlbum.id);
             setAlbum(albumData);
+            setError(null);
         } catch (err) {
             if (err instanceof ApiError) {
                 setError(err.problemDetails.detail || err.problemDetails.title);
@@ -127,10 +147,9 @@ export default function AlbumDetailPage() {
 
     const handleImageRefresh = async (e: React.MouseEvent, imageId: string) => {
         e.stopPropagation();
-        setImageVersions(prev => ({ ...prev, [imageId]: Date.now() }));
         try {
             await adminGalleryService.evictImageCache(imageId);
-            await adminGalleryService.invalidateCache();
+            setImageVersions(prev => ({ ...prev, [imageId]: Date.now() }));
             toast.success('Cache cleared');
         } catch {
             toast.error('Failed to clear cache');
@@ -146,8 +165,8 @@ export default function AlbumDetailPage() {
     };
 
     const slides = album?.images.map(image => ({
-        src: image.url,
-        thumbnail: toGalleryThumbUrl(image.url),
+        src: applyCacheBustingParam(image.url, imageVersions[image.id]) ?? image.url,
+        thumbnail: applyCacheBustingParam(toGalleryThumbUrl(image.url), imageVersions[image.id]) ?? toGalleryThumbUrl(image.url),
         title: image.title,
         description: image.description
     })) ?? [];
@@ -246,6 +265,24 @@ export default function AlbumDetailPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
+            {editTarget && isAdmin && <GalleryEditDialog
+                key={editTarget.kind + (editTarget.kind === 'album' ? editTarget.album.id : editTarget.image.id)}
+                target={editTarget}
+                onClose={closeEditor}
+                onSaved={result => {
+                    if ('albumId' in result) {
+                        const updated = result as GalleryImage;
+                        setAlbum(current => current ? {
+                            ...current,
+                            cover: current.cover === current.images.find(i => i.id === updated.id)?.url ? updated.url : current.cover,
+                            images: current.images.map(i => i.id === updated.id ? updated : i).sort((a, b) => a.order - b.order),
+                        } : current);
+                    } else {
+                        setAlbum(current => current ? { ...current, ...result } : current);
+                    }
+                    void loadAlbum();
+                }}
+            />}
             {album.contentId && (
                 <ContentViewTracker
                     contentId={album.contentId}
@@ -267,6 +304,7 @@ export default function AlbumDetailPage() {
                         <ImageIcon className="h-3.5 w-3.5 text-primary" />
                         Creative Showcase
                     </Badge>
+                    {isAdmin && <Button variant="outline" className="mt-4" onClick={() => void openEditor({ kind: 'album', album })}>Edit album</Button>}
                     <h1 className="mt-5 text-5xl font-bold tracking-tight md:text-6xl">{album.name}</h1>
                     {album.description && (
                         <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{album.description}</p>
@@ -360,6 +398,7 @@ export default function AlbumDetailPage() {
                                         </div>
                                     </div>
 
+                                    {isAdmin && <Button size="sm" variant="secondary" className="absolute top-2 left-2 z-10" onClick={() => void openEditor({ kind: 'image', image })}>Edit image</Button>}
                                     {/* Admin-only cache refresh button */}
                                     {isAdmin && (
                                         <button
@@ -393,7 +432,7 @@ export default function AlbumDetailPage() {
 
             <Lightbox
                 className="jass-gallery-lightbox"
-                open={isLightboxOpen}
+                open={isLightboxOpen && !editTarget}
                 index={isLightboxOpen ? selectedIndex : 0}
                 close={() => setImageParam(null)}
                 slides={slides}
@@ -418,6 +457,10 @@ export default function AlbumDetailPage() {
                 counter={{ container: { style: { top: 0, bottom: "unset" } } }}
                 toolbar={{
                     buttons: [
+                        ...(isAdmin && selectedImage ? [
+                            <button key="edit" className="yarl__button" title="Edit details" aria-label="Edit image details" onClick={() => void openEditor({ kind: 'image', image: selectedImage })}><Pencil className="h-5 w-5" /></button>,
+                            <button key="replace" className="yarl__button" title="Replace image" aria-label="Replace image" onClick={() => void openEditor({ kind: 'replace', image: selectedImage })}><Replace className="h-5 w-5" /></button>,
+                        ] : []),
                         "fullscreen",
                         <button
                             key="share-image"

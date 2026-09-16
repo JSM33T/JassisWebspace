@@ -14,3 +14,9 @@ public record AddImageToAlbumRequest(
     string? Description,
     int Order
 );
+
+public record AdminGalleryUpdateImageRequest(
+    string? Title,
+    string? Description,
+    int? Order
+);

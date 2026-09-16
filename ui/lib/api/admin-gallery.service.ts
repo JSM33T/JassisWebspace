@@ -91,6 +91,7 @@ class AdminGalleryService {
         if (data.description !== undefined) formData.append('description', data.description);
         if (data.createdAt !== undefined) formData.append('createdAt', data.createdAt);
         if (data.authorIds) {
+            if (data.authorIds.length === 0) formData.append('clearAuthors', 'true');
             data.authorIds.forEach((authorId) => {
                 formData.append('authorIds', authorId);
             });
@@ -150,6 +151,17 @@ class AdminGalleryService {
         if (data.order !== undefined) formData.append('order', data.order.toString());
 
         return put<Image>(`/admin/gallery/images/${imageId}`, formData);
+    }
+
+    async replaceImage(imageId: string, imageFile: File, details?: { title: string; description: string; order: number }): Promise<Image> {
+        const formData = new FormData();
+        formData.append('imageFile', imageFile);
+        if (details) {
+            formData.append('title', details.title);
+            formData.append('description', details.description);
+            formData.append('order', details.order.toString());
+        }
+        return put<Image>(`/admin/gallery/images/${imageId}/file`, formData);
     }
 
     async deleteAlbum(albumId: string): Promise<void> {
