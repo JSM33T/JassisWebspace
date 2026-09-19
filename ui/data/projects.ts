@@ -76,8 +76,10 @@ Unlike hosted uptime services, ProBeacon gives teams a Uptime-Kuma-style experie
 	{
 		title: "Linqyard - Link Management Platform",
 		description:
-			"A production-ready link-in-bio and link management platform with real-time analytics, subscription monetization, and enterprise-grade performance optimization.",
+			"Deprecating — a link-in-bio and link management platform with real-time analytics, subscription monetization, and enterprise-grade performance optimization.",
 		details: `
+> **Status: Deprecating.**
+
 ## Overview
 
 Linqyard is a production-ready link-in-bio and link management platform designed for creators and businesses to consolidate multiple links into a single, customizable landing page. The platform features real-time analytics, subscription-based monetization, and enterprise-grade performance optimization.
@@ -137,7 +139,7 @@ The system separates read-heavy public traffic from write-intensive analytics us
 			"/images/projects/linqyard/2.png",
             "/images/projects/linqyard/1.png"
 		],
-		highlight: "Standalone Project",
+		highlight: "Deprecating",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/linqyard.jpg"
 	},
 	{
