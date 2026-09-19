@@ -8,6 +8,8 @@ type PageBannerProps = {
     title: string;
     description: string;
     maxWidth?: 'max-w-6xl' | 'max-w-7xl';
+    /** Compact spacing for collection pages that prioritize browsing. */
+    variant?: 'default' | 'compact';
     /** Rendered below the description, full width */
     children?: React.ReactNode;
     /** Rendered to the right of the title block on sm+ screens */
@@ -21,6 +23,7 @@ export function PageBanner({
     title,
     description,
     maxWidth = 'max-w-6xl',
+    variant = 'default',
     children,
     rightContent,
     className,
@@ -28,7 +31,8 @@ export function PageBanner({
     return (
         <div
             className={cn(
-                'relative overflow-hidden border-b border-border/30 px-4 pb-10 pt-24 sm:px-6 md:px-10 md:pb-14 md:pt-32',
+                'relative overflow-hidden border-b border-border/30 px-4 sm:px-6 md:px-10',
+                variant === 'compact' ? 'py-7 md:py-9' : 'pb-10 pt-24 md:pb-14 md:pt-32',
                 className,
             )}
         >
@@ -48,8 +52,8 @@ export function PageBanner({
                         <BadgeIcon className="h-3.5 w-3.5 text-primary" />
                         {badge}
                     </Badge>
-                    <h1 className="mt-5 break-words text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">{title}</h1>
-                    <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">{description}</p>
+                    <h1 className={cn('break-words text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl', variant === 'compact' ? 'mt-3' : 'mt-5')}>{title}</h1>
+                    <p className={cn('max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg', variant === 'compact' ? 'mt-2' : 'mt-3')}>{description}</p>
                     {children ? <div className="mt-6">{children}</div> : null}
                 </div>
                 {rightContent ? <div className="w-full shrink-0 sm:w-[200px]">{rightContent}</div> : null}

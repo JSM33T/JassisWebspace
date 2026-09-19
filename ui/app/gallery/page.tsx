@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlbumCard } from '@/components/gallery/album-card';
 import { GalleryEditDialog } from '@/components/gallery/gallery-edit-dialog';
+import { PageBanner } from '@/components/page-banner';
 import { galleryService } from '@/lib/api/gallery.service';
 import { type Album, type GallerySortOrder } from '@/lib/api/gallery.types';
 import { ApiError } from '@/lib/api/types';
@@ -131,22 +132,23 @@ export default function GalleryPage() {
             {editingAlbum && user?.role === 'admin' && (
                 <GalleryEditDialog target={{ kind: 'album', album: editingAlbum }} onClose={() => setEditingAlbum(null)} onSaved={() => { void loadAlbums(); }} />
             )}
-            <header className="border-b border-border/40 px-4 py-7 sm:px-6 md:px-10 md:py-9">
-                <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
-                    <div>
-                        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Images className="size-3.5" aria-hidden="true" />The photo journal</p>
-                        <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">Gallery</h1>
-                        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">Places, journeys, and everyday moments, collected in albums.</p>
-                    </div>
-                    {!loading && !error && albums.length > 0 && (
-                        <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <PageBanner
+                variant="default"
+                badge="The photo journal"
+                badgeIcon={Images}
+                title="Gallery"
+                description="Places, journeys, and everyday moments, collected in albums."
+                maxWidth="max-w-7xl"
+                rightContent={
+                    !loading && !error && albums.length > 0 ? (
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground sm:justify-end">
                             <span><strong className="font-semibold text-foreground">{albums.length.toLocaleString()}</strong> {albums.length === 1 ? 'album' : 'albums'}</span>
                             <span aria-hidden="true" className="size-1 rounded-full bg-border" />
                             <span><strong className="font-semibold text-foreground">{totalPhotos.toLocaleString()}</strong> {totalPhotos === 1 ? 'photo' : 'photos'}</span>
                         </div>
-                    )}
-                </div>
-            </header>
+                    ) : undefined
+                }
+            />
 
             <main className="flex-1 px-4 pb-12 pt-5 sm:px-6 md:px-10 md:pt-6">
                 <div className="mx-auto max-w-7xl">
