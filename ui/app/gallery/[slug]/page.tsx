@@ -22,18 +22,21 @@ import { LikeButton } from '@/components/likes/LikeButton';
 import { ContentViewTracker } from '@/components/views/ContentViewTracker';
 import { Badge } from '@/components/ui/badge';
 import { toGalleryThumbUrl } from '@/lib/gallery-media';
-import Lightbox from "yet-another-react-lightbox";
+import Lightbox, { type SlideImage } from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
-import Captions from "yet-another-react-lightbox/plugins/captions";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Counter from "yet-another-react-lightbox/plugins/counter";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
-import "yet-another-react-lightbox/plugins/captions.css";
 import "yet-another-react-lightbox/plugins/counter.css";
 
 const PHONE_LIGHTBOX_THUMBNAILS_QUERY = "(max-width: 640px)";
+
+interface GallerySlide extends SlideImage {
+    title?: string | null;
+    description?: string | null;
+}
 
 function usePhoneLightboxThumbnails() {
     const [isPhone, setIsPhone] = useState(false);
@@ -164,7 +167,7 @@ export default function AlbumDetailPage() {
         });
     };
 
-    const slides = album?.images.map(image => ({
+    const slides: GallerySlide[] = album?.images.map(image => ({
         src: applyCacheBustingParam(image.url, imageVersions[image.id]) ?? image.url,
         thumbnail: applyCacheBustingParam(toGalleryThumbUrl(image.url), imageVersions[image.id]) ?? toGalleryThumbUrl(image.url),
         title: image.title,
@@ -436,10 +439,22 @@ export default function AlbumDetailPage() {
                 index={isLightboxOpen ? selectedIndex : 0}
                 close={() => setImageParam(null)}
                 slides={slides}
-                plugins={[Zoom, Thumbnails, Captions, Fullscreen, Counter]}
+                plugins={[Zoom, Thumbnails, Fullscreen, Counter]}
                 animation={{ fade: 0 }}
                 controller={{ closeOnBackdropClick: true }}
-                captions={{ descriptionTextAlign: 'center' }}
+                render={{
+                    slideFooter: ({ slide }) => {
+                        const { title, description } = slide as GallerySlide;
+                        if (!title && !description) return null;
+
+                        return (
+                            <div className="jass-gallery-caption">
+                                {title && <h2 className="jass-gallery-caption-title" title={title}>{title}</h2>}
+                                {description && <p className="jass-gallery-caption-description">{description}</p>}
+                            </div>
+                        );
+                    },
+                }}
                 carousel={{ finite: true }}
                 thumbnails={{
                     position: "bottom",
@@ -454,7 +469,6 @@ export default function AlbumDetailPage() {
                     hidden: false,
                     showToggle: false,
                 }}
-                counter={{ container: { style: { top: 0, bottom: "unset" } } }}
                 toolbar={{
                     buttons: [
                         ...(isAdmin && selectedImage ? [

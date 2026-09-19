@@ -280,7 +280,7 @@ export function GalleryThumb({
                     unoptimized
                     className={cn(
                         fill ? 'h-full w-full object-cover' : 'block h-auto w-full',
-                        'transition-[transform,filter] duration-700',
+                        'transition-[transform,scale,filter] duration-700',
                         isLoaded ? 'scale-100 blur-0' : 'scale-110 blur-xl',
                         imageClassName,
                     )}
