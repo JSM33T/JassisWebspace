@@ -70,14 +70,16 @@ Unlike hosted uptime services, ProBeacon gives teams a Uptime-Kuma-style experie
 		],
 		icon: "Activity",
 		links: { repo: "", live: "" },
-		screenshots: [],
+		screenshots: ["/images/projects/probeacon/1.png"],
 		highlight: "Standalone Project"
 	},
 	{
 		title: "Linqyard - Link Management Platform",
 		description:
-			"A production-ready link-in-bio and link management platform with real-time analytics, subscription monetization, and enterprise-grade performance optimization.",
+			"Deprecating — a link-in-bio and link management platform with real-time analytics, subscription monetization, and enterprise-grade performance optimization.",
 		details: `
+> **Status: Deprecating.**
+
 ## Overview
 
 Linqyard is a production-ready link-in-bio and link management platform designed for creators and businesses to consolidate multiple links into a single, customizable landing page. The platform features real-time analytics, subscription-based monetization, and enterprise-grade performance optimization.
@@ -137,7 +139,7 @@ The system separates read-heavy public traffic from write-intensive analytics us
 			"/images/projects/linqyard/2.png",
             "/images/projects/linqyard/1.png"
 		],
-		highlight: "Standalone Project",
+		highlight: "Deprecating",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/linqyard.jpg"
 	},
 	{
@@ -178,8 +180,7 @@ The platform supports horizontal scale-out with node-aware balancing, automatic 
 		icon: "Cpu",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/iot_platform.jpg",
 		screenshots: [
-			// "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80",
-			// "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1600&q=80"
+			"/images/projects/iot-platform/1.png"
 		],
 		// links: {
 		//     repo: "",
@@ -240,8 +241,7 @@ The architecture combines CDN edge delivery with lightweight gateway validation,
 		],
 		icon: "Music",
 		screenshots: [
-			// "https://images.unsplash.com/photo-1454165205744-3b78555e5572?auto=format&fit=crop&w=1600&q=80",
-			// "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80"
+			"/images/projects/audio-delivery/1.png"
 		],
 		highlight: "Secure Streaming"
 	},
@@ -296,8 +296,7 @@ Unlike basic text-only RAG systems, this platform handles real-world knowledge f
 		icon: "BrainCircuit",
 		links: { repo: "", live: "" },
 		screenshots: [
-			// "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1600&q=80",
-			// "https://images.unsplash.com/photo-1507143550189-fed454f93097?auto=format&fit=crop&w=1600&q=80"
+			"/images/projects/rag/1.png"
 		],
 		highlight: "Multimodal RAG",
 	},
@@ -347,8 +346,7 @@ The architecture minimizes origin load and improves delivery speed through aggre
 		tech: ["CDN", "libvips", "SkiaSharp", "On-the-Fly Transformations", "Rule Engine", "Edge Detection", "Transparency Processing", "Edge Caching", "S3"],
 		icon: "Image",
 		screenshots: [
-			// "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1600&q=80",
-			// "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80"
+			"/images/projects/cdn-pipeline/1.png"
 		],
 		highlight: "Dynamic Media Transformation"
 	},
@@ -491,7 +489,7 @@ ResumeFlow provides structured candidate profiles, job-fit scoring, rule-based r
 		icon: "FileSearch",
 		links: { repo: "", live: "" },
 		screenshots: [
-			
+			"/images/projects/resume-flow/1.png",
 		],
 		highlight: "AI-Powered ATS & Resume Intelligence",
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/resumeflow.jpg"
@@ -523,8 +521,7 @@ A Linux workspace and storage control suite that abstracts complex system operat
 		icon: "Cloud",
 		links: { repo: "", live: "" },
 		screenshots: [
-			// "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
-			// "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80"
+			"/images/projects/cli-wrapper/1.png"
 		],
 		highlight: "DevTools",
 		// coverImage omitted for this item (optional)
@@ -638,7 +635,9 @@ SurfSwift models workflows as composable graphs where nodes represent operations
 			repo: "https://github.com/JSM33T/SurfSwift",
 			live: ""
 		},
-		screenshots: [],
+		screenshots: [
+			"/images/projects/surfswift/1.png"
+		],
 		highlight: "Standalone Project"
 	},
 	{
@@ -675,8 +674,7 @@ A configurable workflow engine built for enterprise process orchestration across
 		icon: "Workflow",
 		links: { repo: "", live: "" },
 		screenshots: [
-			// "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80",
-			// "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1600&q=80"
+			"/images/projects/workflow/1.png"
 		],
 		highlight: "Orchestration",
 	},
@@ -705,7 +703,7 @@ A robust facial authentication product powered entirely by OpenCV for both ident
 		icon: "Cpu",
 		links: { repo: "", live: "" },
 		screenshots: [
-            "/images/projects/face-biometric/1.jpg",
+            "/images/projects/face-biometric/1.png",
 		],
 		highlight: "Security",
 	},
@@ -751,7 +749,7 @@ A context-aware chatbot platform designed for support and operational ticket han
 		icon: "BrainCircuit",
 		links: { repo: "", live: "" },
 		screenshots: [
-			
+			"/images/projects/context-chatbot/1.png"
 		],
 		highlight: "AI Ops",
 	}
