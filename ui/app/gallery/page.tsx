@@ -1,239 +1,237 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Grid2X2, Grid3X3, Images, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { GalleryThumb } from '@/components/gallery/gallery-thumb';
-import { PageBanner } from '@/components/page-banner';
-import { Image as ImageIcon } from 'lucide-react';
-import { galleryService } from '@/lib/api/gallery.service';
-import { Album, GallerySortOrder } from '@/lib/api/gallery.types';
-import { getVersionedGalleryCoverUrl } from '@/lib/gallery-media';
-import { useUser } from '@/contexts/UserContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlbumCard } from '@/components/gallery/album-card';
 import { GalleryEditDialog } from '@/components/gallery/gallery-edit-dialog';
+import { galleryService } from '@/lib/api/gallery.service';
+import { type Album, type GallerySortOrder } from '@/lib/api/gallery.types';
 import { ApiError } from '@/lib/api/types';
+import { cn } from '@/lib/utils';
+import { useUser } from '@/contexts/UserContext';
+
+const PAGE_SIZE = 12;
 
 function parseGallerySortOrder(value: string | null): GallerySortOrder {
     return value === 'oldest' || value === 'title' ? value : 'newest';
 }
 
 function parseGalleryPage(value: string | null): number {
-    const parsedPage = parseInt(value || '1', 10);
-    return Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const page = Number(value || 1);
+    return Number.isSafeInteger(page) && page > 0 ? page : 1;
 }
 
 export default function GalleryPage() {
     const { user } = useUser();
-    const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
     const router = useRouter();
     const searchParams = useSearchParams();
-
+    const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
     const [albums, setAlbums] = useState<Album[]>([]);
-    const [totalAlbums, setTotalAlbums] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [sortOrder, setSortOrder] = useState<GallerySortOrder>(
-        parseGallerySortOrder(searchParams.get('sort'))
-    );
-    const [page, setPage] = useState(parseGalleryPage(searchParams.get('page')));
+    const requestId = useRef(0);
+    const resultsRef = useRef<HTMLElement>(null);
 
-    const pageSize = 6;
-    const hasNextPage = page * pageSize < totalAlbums;
-    const showPagination = page > 1 || totalAlbums > pageSize;
+    const query = searchParams.get('q')?.trim() || '';
+    const sortOrder = parseGallerySortOrder(searchParams.get('sort'));
+    const requestedPage = parseGalleryPage(searchParams.get('page'));
+    const compact = searchParams.get('view') === 'compact';
+    const [searchInput, setSearchInput] = useState(query);
+
+    useEffect(() => { setSearchInput(query); }, [query]);
 
     const loadAlbums = useCallback(async () => {
-        try {
-            const data = await galleryService.getAlbumsPage({
-                sortOrder,
-                page,
-                pageSize,
-            });
-            setAlbums(data.albums);
-            setTotalAlbums(data.total);
-        } catch (err) {
-            if (err instanceof ApiError) {
-                setError(err.problemDetails.detail || err.problemDetails.title);
-            } else {
-                setError('Failed to load albums');
-            }
-            setTotalAlbums(0);
-            console.error('Error loading albums:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [page, pageSize, sortOrder]);
-
-    const updateUrlParams = useCallback(() => {
-        const params = new URLSearchParams();
-        if (sortOrder !== 'newest') params.set('sort', sortOrder);
-        if (page > 1) params.set('page', String(page));
-
-        router.replace(params.toString() ? `?${params}` : '/gallery', { scroll: false });
-    }, [page, router, sortOrder]);
-
-    const handleRetry = () => {
-        setError(null);
+        const currentRequest = ++requestId.current;
         setLoading(true);
+        setError(null);
+        try {
+            // Album metadata only; cover images remain lazy loaded by GalleryThumb.
+            const data = await galleryService.getAllAlbums();
+            if (currentRequest === requestId.current) setAlbums(data);
+        } catch (err) {
+            if (currentRequest !== requestId.current) return;
+            setError(err instanceof ApiError
+                ? err.problemDetails.detail || err.problemDetails.title
+                : 'We couldn’t load the albums. Please try again.');
+        } finally {
+            if (currentRequest === requestId.current) setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
         void loadAlbums();
+        return () => { requestId.current += 1; };
+    }, [loadAlbums]);
+
+    const filteredAlbums = useMemo(() => {
+        const words = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
+        return albums.filter(album => {
+            const text = [album.name, album.description, ...album.authors.flatMap(author => [author.displayName, author.username])]
+                .filter(Boolean).join(' ').toLocaleLowerCase();
+            return words.every(word => text.includes(word));
+        }).sort((a, b) => {
+            const dateDifference = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            const titleDifference = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+            if (sortOrder === 'title') return titleDifference || -dateDifference;
+            return (sortOrder === 'oldest' ? dateDifference : -dateDifference) || titleDifference;
+        });
+    }, [albums, query, sortOrder]);
+
+    const pageCount = Math.max(1, Math.ceil(filteredAlbums.length / PAGE_SIZE));
+    const page = Math.min(requestedPage, pageCount);
+    const offset = (page - 1) * PAGE_SIZE;
+    const visibleAlbums = filteredAlbums.slice(offset, offset + PAGE_SIZE);
+    const singleAlbum = albums.length === 1;
+    const smallCollection = albums.length <= 2;
+    const totalPhotos = albums.reduce((total, album) => total + album.imageCount, 0);
+    const pageNumbers = [...new Set([1, page - 1, page, page + 1, pageCount])]
+        .filter(value => value >= 1 && value <= pageCount).sort((a, b) => a - b);
+    const gridClassName = cn('grid gap-4 sm:gap-5 lg:gap-6',
+        singleAlbum ? 'mx-auto max-w-4xl grid-cols-1'
+            : albums.length === 2 ? 'grid-cols-1 sm:grid-cols-2'
+                : compact ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3');
+
+    const updateParams = (updates: Record<string, string | null>) => {
+        const params = new URLSearchParams(searchParams.toString());
+        for (const [key, value] of Object.entries(updates)) {
+            if (value) params.set(key, value);
+            else params.delete(key);
+        }
+        router.push(params.size ? `/gallery?${params}` : '/gallery', { scroll: false });
     };
 
+    // Old bookmarks or an edited collection can point beyond the last page.
     useEffect(() => {
-        updateUrlParams();
-    }, [updateUrlParams]);
+        if (loading || error || requestedPage <= pageCount) return;
+        const params = new URLSearchParams(searchParams.toString());
+        if (pageCount > 1) params.set('page', String(pageCount));
+        else params.delete('page');
+        router.replace(params.size ? `/gallery?${params}` : '/gallery', { scroll: false });
+    }, [loading, error, requestedPage, pageCount, router, searchParams]);
 
-    useEffect(() => {
-        setLoading(true);
-        setError(null);
-        void (async () => {
-            await loadAlbums();
-        })();
-    }, [loadAlbums]);
+    const goToPage = (nextPage: number) => {
+        updateParams({ page: nextPage > 1 ? String(nextPage) : null });
+        resultsRef.current?.scrollIntoView({ block: 'start' });
+        resultsRef.current?.focus({ preventScroll: true });
+    };
+
+    const clearSearch = () => {
+        setSearchInput('');
+        updateParams({ q: null, page: null });
+    };
 
     return (
         <div className="flex min-h-screen flex-col bg-background/50">
-            {editingAlbum && user?.role === 'admin' && <GalleryEditDialog
-                target={{ kind: 'album', album: editingAlbum }}
-                onClose={() => setEditingAlbum(null)}
-                onSaved={() => { void loadAlbums(); }}
-            />}
-            <PageBanner
-                badge="Creative Showcase"
-                badgeIcon={ImageIcon}
-                title="Gallery"
-                description="Field walks, travel fragments, ruins, roads, and small visual stories collected as albums."
-                maxWidth="max-w-7xl"
-                rightContent={
-                    <Select
-                        value={sortOrder}
-                        onValueChange={(value) => {
-                            setSortOrder(value as GallerySortOrder);
-                            setPage(1);
-                        }}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Sort albums" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="newest">Newest first</SelectItem>
-                            <SelectItem value="oldest">Oldest first</SelectItem>
-                            <SelectItem value="title">Title A-Z</SelectItem>
-                        </SelectContent>
-                    </Select>
-                }
-            />
-
-            <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
-                <div className="mx-auto max-w-7xl pt-4">
-                    <section>
-                    {loading && (
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {Array.from({ length: 6 }).map((_, index) => (
-                                <div key={index} className="h-full">
-                                    <div className="relative overflow-hidden rounded-3xl bg-card/40">
-                                        <Skeleton className="aspect-[4/3] w-full rounded-none" />
-                                    </div>
-                                    <div className="mt-3 rounded-2xl bg-background/60 px-4 py-3 backdrop-blur-md">
-                                        <Skeleton className="mb-2 h-5 w-3/4" />
-                                        <Skeleton className="h-3.5 w-full" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {error && (
-                        <div className="py-20 text-center">
-                            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-                                <ImageIcon className="h-8 w-8 text-destructive" />
-                            </div>
-                            <h3 className="mb-2 text-xl font-semibold">Failed to Load Albums</h3>
-                            <p className="mb-6 text-muted-foreground">{error}</p>
-                            <Button onClick={handleRetry} size="lg">
-                                Try Again
-                            </Button>
-                        </div>
-                    )}
-
-                    {!loading && !error && albums.length === 0 && (
-                        <div className="py-20 text-center">
-                            <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-muted">
-                                <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                            </div>
-                            <h3 className="mb-2 text-xl font-semibold">No Albums Yet</h3>
-                            <p className="mx-auto max-w-md text-muted-foreground">
-                                Check back soon for new albums and creative works.
-                            </p>
-                        </div>
-                    )}
-
+            {editingAlbum && user?.role === 'admin' && (
+                <GalleryEditDialog target={{ kind: 'album', album: editingAlbum }} onClose={() => setEditingAlbum(null)} onSaved={() => { void loadAlbums(); }} />
+            )}
+            <header className="border-b border-border/40 px-4 py-7 sm:px-6 md:px-10 md:py-9">
+                <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+                    <div>
+                        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Images className="size-3.5" aria-hidden="true" />The photo journal</p>
+                        <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">Gallery</h1>
+                        <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">Places, journeys, and everyday moments, collected in albums.</p>
+                    </div>
                     {!loading && !error && albums.length > 0 && (
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {albums.map((album, index) => (
-                                <motion.div
-                                    key={album.id}
-                                    initial={{ opacity: 0, y: 14 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                                >
-                                    <Link href={`/gallery/${album.slug}`} className="group block">
-                                        <article className="relative aspect-square overflow-hidden rounded-3xl bg-muted shadow-sm transition-shadow duration-300 group-hover:shadow-xl">
-                                            <GalleryThumb
-                                                src={getVersionedGalleryCoverUrl(album)}
-                                                alt={album.name}
-                                                fill
-                                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                                imageClassName="transition-transform duration-500 group-hover:scale-105"
-                                            />
-
-                                            {/* Bottom label overlay */}
-                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-5 pb-5 pt-16">
-                                                <p className="mb-0.5 font-mono text-[11px] font-medium uppercase tracking-widest text-white/60">
-                                                    {String((page - 1) * pageSize + index + 1).padStart(2, '0')}
-                                                    {album.imageCount > 0 && (
-                                                        <span className="ml-1">· {album.imageCount} photos</span>
-                                                    )}
-                                                </p>
-                                                <h3 className="line-clamp-1 text-base font-semibold text-white">
-                                                    {album.name}
-                                                </h3>
-                                            </div>
-                                        </article>
-                                    </Link>
-                                    {user?.role === 'admin' && <Button variant="outline" size="sm" className="mt-2" onClick={() => setEditingAlbum(album)}>Edit album</Button>}
-                                </motion.div>
-                            ))}
+                        <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                            <span><strong className="font-semibold text-foreground">{albums.length.toLocaleString()}</strong> {albums.length === 1 ? 'album' : 'albums'}</span>
+                            <span aria-hidden="true" className="size-1 rounded-full bg-border" />
+                            <span><strong className="font-semibold text-foreground">{totalPhotos.toLocaleString()}</strong> {totalPhotos === 1 ? 'photo' : 'photos'}</span>
                         </div>
                     )}
+                </div>
+            </header>
 
-                    {!loading && showPagination && (
-                        <div className="mt-12 flex items-center justify-center gap-4">
-                            <Button
-                                variant="outline"
-                                disabled={page === 1}
-                                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                            >
-                                Previous
-                            </Button>
-                            <Button
-                                variant="outline"
-                                disabled={!hasNextPage}
-                                onClick={() => setPage((prev) => prev + 1)}
-                            >
-                                Next
-                            </Button>
+            <main className="flex-1 px-4 pb-12 pt-5 sm:px-6 md:px-10 md:pt-6">
+                <div className="mx-auto max-w-7xl">
+                    <div className="mb-6 flex flex-col gap-3 border-b border-border/40 pb-5 md:flex-row md:items-center md:justify-between">
+                        <form role="search" aria-label="Search albums" className="flex min-w-0 flex-1 gap-2 md:max-w-md" onSubmit={event => {
+                            event.preventDefault();
+                            updateParams({ q: searchInput.trim() || null, page: null });
+                        }}>
+                            <div className="relative min-w-0 flex-1">
+                                <label htmlFor="album-search" className="sr-only">Search album titles, descriptions, or authors</label>
+                                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                                <Input id="album-search" type="search" value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Find an album…" className="h-11 border-border/70 bg-background pl-9 pr-10 [&::-webkit-search-cancel-button]:appearance-none" />
+                                {searchInput && <button type="button" className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring" onClick={clearSearch} aria-label="Clear search"><X className="size-4" /></button>}
+                            </div>
+                            <Button type="submit" variant="outline" className="h-11 px-4">Search</Button>
+                        </form>
+                        {albums.length > 1 && <div className="flex items-center justify-between gap-3">
+                            <Select value={sortOrder} onValueChange={value => updateParams({ sort: value === 'newest' ? null : value, page: null })}>
+                                <SelectTrigger aria-label="Sort albums" className="h-11 min-w-40 flex-1 border-border/70 bg-background lg:flex-none"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">Newest first</SelectItem>
+                                    <SelectItem value="oldest">Oldest first</SelectItem>
+                                    <SelectItem value="title">Title A–Z</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {!smallCollection && <div role="group" aria-label="Album layout" className="flex shrink-0 gap-1 rounded-lg bg-muted/50 p-1">
+                                <Button variant={compact ? 'ghost' : 'secondary'} size="icon" className="size-9" aria-label="Roomy album view" aria-pressed={!compact} title="Roomy view" onClick={() => updateParams({ view: null })}><Grid2X2 className="size-4" /></Button>
+                                <Button variant={compact ? 'secondary' : 'ghost'} size="icon" className="size-9" aria-label="Compact album view" aria-pressed={compact} title="Compact view" onClick={() => updateParams({ view: 'compact' })}><Grid3X3 className="size-4" /></Button>
+                            </div>}
+                        </div>}
+                    </div>
+
+                    <section ref={resultsRef} tabIndex={-1} aria-labelledby="album-results-heading" aria-busy={loading} className="scroll-mt-24 outline-none">
+                        <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+                            <h2 id="album-results-heading" className="text-base font-semibold tracking-tight">{query ? 'Search results' : singleAlbum ? 'Explore the album' : 'Explore the albums'}</h2>
+                            <p role="status" className={cn('text-sm text-muted-foreground', !loading && !error && !query && 'sr-only')}>{loading ? 'Loading albums…' : error ? 'Albums unavailable' : `${filteredAlbums.length} ${filteredAlbums.length === 1 ? 'album' : 'albums'}${query ? ' found' : ''}`}</p>
                         </div>
-                    )}
+                        {query && <p className="mb-5 break-words text-sm text-muted-foreground">Results for <span className="font-medium text-foreground">“{query}”</span></p>}
 
+                        {loading ? (
+                            <div className={gridClassName} aria-hidden="true">
+                                {Array.from({ length: singleAlbum ? 1 : albums.length === 2 ? 2 : 6 }, (_, index) => (
+                                    <div key={index} className="overflow-hidden rounded-2xl border border-border/60 bg-card p-2">
+                                        <Skeleton className={cn('w-full rounded-xl', singleAlbum ? 'aspect-[4/3] sm:aspect-[16/9]' : compact && !smallCollection ? 'aspect-square' : 'aspect-[4/3]')} />
+                                        <div className="space-y-3 px-3 py-5"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-3 w-full" /><Skeleton className="h-3 w-1/3" /></div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : error ? (
+                            <div role="alert" className="rounded-2xl border border-dashed border-border py-16 text-center">
+                                <Images className="mx-auto mb-4 size-9 text-muted-foreground" />
+                                <h3 className="text-xl font-semibold">The albums couldn’t be loaded</h3>
+                                <p className="mx-auto mb-6 mt-2 max-w-md px-4 text-muted-foreground">{error}</p>
+                                <Button onClick={() => void loadAlbums()}>Try again</Button>
+                            </div>
+                        ) : visibleAlbums.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-border px-5 py-20 text-center">
+                                {query ? <Search className="mx-auto mb-5 size-9 text-muted-foreground" /> : <Images className="mx-auto mb-5 size-9 text-muted-foreground" />}
+                                <h3 className="text-xl font-semibold">{query ? 'No matching albums' : 'Stories are on their way'}</h3>
+                                <p className="mx-auto mt-2 max-w-md text-muted-foreground">{query ? 'Try a different title, a place, or an author’s name.' : 'Check back soon for new albums and moments worth keeping.'}</p>
+                                {query && <Button variant="outline" className="mt-6" onClick={clearSearch}>View all albums</Button>}
+                            </div>
+                        ) : (
+                            <div className={gridClassName}>
+                                {visibleAlbums.map(album => <AlbumCard key={album.id} album={album} compact={compact && !smallCollection} prominent={singleAlbum} onEdit={user?.role === 'admin' ? setEditingAlbum : undefined} />)}
+                            </div>
+                        )}
+
+                        {!loading && !error && visibleAlbums.length > 0 && pageCount > 1 && (
+                            <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-6 sm:flex-row">
+                                <p className="text-sm text-muted-foreground">Showing {offset + 1}–{offset + visibleAlbums.length} of {filteredAlbums.length} albums</p>
+                                {pageCount > 1 && (
+                                    <nav aria-label="Album pages" className="flex flex-wrap items-center justify-center gap-1">
+                                        <Button variant="ghost" size="icon" aria-label="Previous page" disabled={page === 1} onClick={() => goToPage(page - 1)}><ArrowLeft className="size-4" /></Button>
+                                        {pageNumbers.map((number, index) => (
+                                            <span key={number} className="inline-flex items-center gap-1">
+                                                {index > 0 && number - pageNumbers[index - 1] > 1 && <span className="px-1 text-muted-foreground" aria-hidden="true">…</span>}
+                                                <Button variant={number === page ? 'default' : 'ghost'} size="icon" aria-label={`Page ${number}`} aria-current={number === page ? 'page' : undefined} onClick={() => goToPage(number)}>{number}</Button>
+                                            </span>
+                                        ))}
+                                        <Button variant="ghost" size="icon" aria-label="Next page" disabled={page === pageCount} onClick={() => goToPage(page + 1)}><ArrowRight className="size-4" /></Button>
+                                    </nav>
+                                )}
+                            </div>
+                        )}
                     </section>
                 </div>
             </main>
