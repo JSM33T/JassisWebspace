@@ -12,8 +12,8 @@ const faqs = [
         answer: "JassSpace is a platform for showcasing projects, content, and creative work.",
     },
     {
-        question: "How do I contact your team?",
-        answer: "Use the contact page and send your request. We review messages and reply through email.",
+        question: "How do I contact you?",
+        answer: "Use the contact page and send your request. I review messages and reply by email.",
     },
     {
         question: "How does account sign-in work?",
@@ -21,7 +21,7 @@ const faqs = [
     },
     {
         question: "Where can I read about data handling?",
-        answer: "Please see our Privacy Policy page for a plain-language overview.",
+        answer: "Please see the Privacy Policy page for a plain-language overview.",
     },
 ];
 

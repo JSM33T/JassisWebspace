@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, ArrowLeft, Send, CheckCircle2, MoveUpRight } from 'lucide-react';
+import { getServiceBySlug } from '@/data/services';
 
 type TurnstileSiteKeyApiResponse = {
     data?: {
@@ -46,8 +47,17 @@ declare global {
 export default function ContactPage() {
     const searchParams = useSearchParams();
     const ref = searchParams.get('ref') || '';
+    const selectedService = getServiceBySlug(searchParams.get('service'));
     const formRef = useRef<HTMLFormElement>(null);
     const inferredPurpose = useMemo(() => {
+        const requestedPurpose = searchParams.get('purpose');
+        const validPurposes = ['New Project', 'Service Request', 'General Inquiry', 'Technical Support', 'Other'];
+        if (requestedPurpose && validPurposes.includes(requestedPurpose)) {
+            return requestedPurpose;
+        }
+        if (selectedService) {
+            return 'Service Request';
+        }
         if (!ref) {
             return '';
         }
@@ -55,22 +65,22 @@ export default function ContactPage() {
         try {
             const sourceUrl = new URL(ref);
             if (sourceUrl.pathname.startsWith('/projects')) {
-                return 'Project';
+                return 'New Project';
             }
             if (sourceUrl.pathname.startsWith('/services')) {
-                return 'Service';
+                return 'Service Request';
             }
         } catch {
             if (ref.includes('/projects')) {
-                return 'Project';
+                return 'New Project';
             }
             if (ref.includes('/services')) {
-                return 'Service';
+                return 'Service Request';
             }
         }
 
         return '';
-    }, [ref]);
+    }, [ref, searchParams, selectedService]);
     const [submitted, setSubmitted] = useState(false);
     const [submissionMode, setSubmissionMode] = useState<'email' | 'saved' | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,6 +98,11 @@ export default function ContactPage() {
         purpose: inferredPurpose,
         message: ''
     });
+
+    useEffect(() => {
+        if (!inferredPurpose) return;
+        setFormData((current) => ({ ...current, purpose: inferredPurpose }));
+    }, [inferredPurpose]);
 
     useEffect(() => {
         window.onContactTurnstileSuccess = (token: string) => {
@@ -278,10 +293,12 @@ export default function ContactPage() {
 
         const recipient = 'mail@jsm33t.com';
         const subject = encodeURIComponent(`Contact Form: ${formData.purpose} from ${formData.name}`);
+        const serviceContext = selectedService ? `Service: ${selectedService.title}\n` : '';
         const body = encodeURIComponent(
             `Name: ${formData.name}\n` +
             `Email: ${formData.email}\n` +
             `Purpose: ${formData.purpose}\n\n` +
+            serviceContext +
             `Message:\n${formData.message}\n\n` +
             `Ref: ${ref || 'N/A'}`
         );
@@ -298,8 +315,9 @@ export default function ContactPage() {
             return;
         }
 
+        const serviceContext = selectedService ? `\nSelected service: ${selectedService.title}\n` : '';
         const professionalMessage =
-            `Hello JassSpace Team,\n\nI am reaching out regarding "${formData.purpose}".\n\nProject context:\n${formData.message}\n\nExpected outcome:\n- High-quality, production-ready implementation\n- Strong communication and delivery clarity\n\nPlease share next steps, estimated timeline, and engagement model.\n\nThanks,\n${formData.name}`;
+            `Hello Jassi,\n\nI am reaching out regarding "${formData.purpose}".${serviceContext}\nContext:\n${formData.message}\n\nPlease share a practical next step for discussing this request.\n\nThanks,\n${formData.name}`;
 
         try {
             setIsSubmitting(true);
@@ -338,8 +356,8 @@ export default function ContactPage() {
                         </CardTitle>
                         <CardDescription className="text-lg pt-4 leading-relaxed">
                             {submissionMode === 'saved'
-                                ? 'Your professional message has been saved to our system.'
-                                : <>We&apos;ve opened your email client to send the message to <strong className="text-foreground">mail@jsm33t.com</strong>.</>}
+                                ? 'Your message has been saved. I will review it and reply by email.'
+                                : <>Your email client is ready to send the message to <strong className="text-foreground">mail@jsm33t.com</strong>.</>}
                         </CardDescription>
                     </CardHeader>
                     <CardFooter className="flex justify-center pt-8">
@@ -397,11 +415,13 @@ export default function ContactPage() {
                         <CardHeader className="px-0 pt-0 pb-6">
                             <CardTitle className="text-2xl font-semibold tracking-tight">Send a Message</CardTitle>
                             <CardDescription className="text-base pt-2">
-                                Fill out the form below and I&apos;ll respond via email.
+                                {selectedService
+                                    ? <>Your enquiry is linked to <strong className="text-foreground">{selectedService.title}</strong>. Add the context I should review.</>
+                                    : 'Choose a purpose and share as much context as you have. A complete project brief is optional.'}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="px-0">
-                            <form ref={formRef} className="space-y-5">
+                            <form ref={formRef} data-selected-service={selectedService?.slug} className="space-y-5">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2.5">
                                         <label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</label>
@@ -438,11 +458,9 @@ export default function ContactPage() {
                                             <SelectValue placeholder="Select a purpose" />
                                         </SelectTrigger>
                                         <SelectContent className="rounded-2xl border-border/60 backdrop-blur-xl">
-                                            <SelectItem value="Project">Project</SelectItem>
-                                            <SelectItem value="Service">Service</SelectItem>
-                                            <SelectItem value="General Inquiry">General Inquiry</SelectItem>
                                             <SelectItem value="New Project">New Project</SelectItem>
                                             <SelectItem value="Service Request">Service Request</SelectItem>
+                                            <SelectItem value="General Inquiry">General Inquiry</SelectItem>
                                             <SelectItem value="Technical Support">Technical Support</SelectItem>
                                             <SelectItem value="Other">Other</SelectItem>
                                         </SelectContent>
@@ -450,10 +468,10 @@ export default function ContactPage() {
                                 </div>
 
                                 <div className="space-y-2.5">
-                                    <label htmlFor="ref" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reference URL</label>
+                                    <label htmlFor="ref" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Request context</label>
                                     <Input
                                         id="ref"
-                                        value={ref || 'N/A'}
+                                        value={selectedService ? `Service: ${selectedService.title}` : ref || 'General enquiry'}
                                         readOnly
                                         className="h-12 rounded-2xl border-dashed border-border/60 bg-muted/40 px-4 text-muted-foreground shadow-sm"
                                     />
@@ -463,7 +481,7 @@ export default function ContactPage() {
                                     <label htmlFor="message" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Message</label>
                                     <Textarea
                                         id="message"
-                                        placeholder="Tell us more about what's on your mind..."
+                                        placeholder="Tell me what you are trying to do, what is getting in the way, and any constraints I should know."
                                         className="min-h-[130px] resize-none rounded-2xl border-border/60 bg-background/70 p-4 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40"
                                         required
                                         value={formData.message}
