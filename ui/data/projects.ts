@@ -2,6 +2,7 @@
 // Icons are stored as string names and mapped to lucide-react in the component.
 
 export interface Project {
+	slug: string;
 	title: string;
 	description: string;
 	details?: string;
@@ -15,6 +16,7 @@ export interface Project {
 
 export const projects: Project[] = [
 	{
+		slug: "probeacon-self-hosted-infrastructure-monitor",
 		title: "ProBeacon - Self-Hosted Infrastructure Monitor",
 		description:
 			"In development — open-source, self-hosted .NET monitoring platform for tracking the health of your entire stack — web APIs, sites, databases, and background services — with real-time status, history, and multi-channel alerting.",
@@ -74,6 +76,7 @@ Unlike hosted uptime services, ProBeacon gives teams a Uptime-Kuma-style experie
 		highlight: "Standalone Project"
 	},
 	{
+		slug: "linqyard-link-management-platform",
 		title: "Linqyard - Link Management Platform",
 		description:
 			"Deprecating — a link-in-bio and link management platform with real-time analytics, subscription monetization, and enterprise-grade performance optimization.",
@@ -143,6 +146,7 @@ The system separates read-heavy public traffic from write-intensive analytics us
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/linqyard.jpg"
 	},
 	{
+		slug: "real-time-iot-data-platform-with-listener-orchestration",
 		title: "Real-Time IoT Data Platform with Listener Orchestration",
 		description:
 			"Distributed IoT ingestion platform with dynamic MQTT listener activation, Cassandra time-series storage, and fault-tolerant orchestration.",
@@ -190,6 +194,7 @@ The platform supports horizontal scale-out with node-aware balancing, automatic 
 	},
 
 	{
+		slug: "secure-audio-delivery-platform",
 		title: "Secure Audio Delivery Platform",
 		description:
 			"Secure chunk-based audio streaming platform with per-session encryption, signed segment URLs, and backend-enforced access control.",
@@ -246,6 +251,7 @@ The architecture combines CDN edge delivery with lightweight gateway validation,
 		highlight: "Secure Streaming"
 	},
 	{
+		slug: "ai-based-rag-knowledge-workspace",
 		title: "AI-Based RAG Knowledge Workspace",
 		description:
 			"Advanced multimodal RAG platform with VLM-powered OCR, deep document/table ingestion, and scoped chat across file, project, and global contexts.",
@@ -301,6 +307,7 @@ Unlike basic text-only RAG systems, this platform handles real-world knowledge f
 		highlight: "Multimodal RAG",
 	},
 	{
+		slug: "dynamic-media-cdn-pipeline",
 		title: "Dynamic Media CDN Pipeline",
 		description:
 			"Cloudinary-style on-the-fly media transformation pipeline powered by libvips, with rule-based automation, transparency-aware processing, and edge-detection-driven optimization.",
@@ -352,6 +359,7 @@ The architecture minimizes origin load and improves delivery speed through aggre
 	},
 
 	{
+		slug: "modular-video-conferencing-system",
 		title: "Modular Video Conferencing System",
 		description:
 			"Embeddable enterprise video conferencing platform with WebRTC media, SignalR + Node.js signaling, Windows tray management, and pluggable local/Twilio TURN-STUN.",
@@ -432,6 +440,7 @@ This local-plus-cloud relay strategy provides operational control for private de
 		highlight: "Realtime Collaboration"
 	},
 	{
+		slug: "resumeflow-intelligent-resume-screening-ats-agent",
 		title: "ResumeFlow – Intelligent Resume Screening & ATS Agent",
 		description:
 			"AI-powered ATS and resume intelligence platform with multi-job-post screening pipelines and automated flagging for career gaps, job hopping, and education inaccuracies.",
@@ -495,6 +504,7 @@ ResumeFlow provides structured candidate profiles, job-fit scoring, rule-based r
 		coverImage: "https://cdn.jsm33t.com/media/project_covers/resumeflow.jpg"
 	},
 	{
+		slug: "cli-wrapper-based-device-control-suite",
 		title: "CLI Wrapper based Device Control Suite",
 		description:
 			"Linux workspace storage and ZFS partition management platform with a no-CLI workflow for operators.",
@@ -527,6 +537,7 @@ A Linux workspace and storage control suite that abstracts complex system operat
 		// coverImage omitted for this item (optional)
 	},
 	{
+		slug: "surfswift-intelligent-automation-framework",
 		title: "SurfSwift - Intelligent Automation Framework",
 		description:
 			"Modular workflow automation platform for orchestrating complex multi-step processes across distributed services and browser-based tasks.",
@@ -641,6 +652,7 @@ SurfSwift models workflows as composable graphs where nodes represent operations
 		highlight: "Standalone Project"
 	},
 	{
+		slug: "workflow-engine",
 		title: "Workflow Engine",
 		description:
 			"Node-based workflow orchestration platform with actions, actors, role-mapped stages, and multi-stage execution control.",
@@ -680,6 +692,7 @@ A configurable workflow engine built for enterprise process orchestration across
 	},
 
 	{
+		slug: "faceauth-biometric-auth-with-liveness",
 		title: "FaceAuth – Biometric Auth with Liveness",
 		description:
 			"OpenCV-powered face vector authentication with privacy-focused embedding matching and multi-layer anti-spoofing.",
@@ -708,6 +721,7 @@ A robust facial authentication product powered entirely by OpenCV for both ident
 		highlight: "Security",
 	},
 	{
+		slug: "context-aware-chatbot-ticket-handling",
 		title: "Context-Aware Chatbot - Ticket Handling",
 		description:
 			"Autonomous AI operations assistant integrating multi-LLM + VLM reasoning, NLP-first retrieval, and MCP server execution for complex workflows.",

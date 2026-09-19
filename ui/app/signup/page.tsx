@@ -11,8 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Loader2, Mail, Lock, User, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import authService, { ApiError } from '@/lib/api';
-import GoogleOAuthButton from '@/components/GoogleOAuthButton';
-import GitHubOAuthButton from '@/components/GitHubOAuthButton';
+import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
 
 export default function SignupPage() {
     const router = useRouter();
@@ -85,11 +84,7 @@ export default function SignupPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Social Signup Buttons */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <GoogleOAuthButton className="w-full" />
-                        <GitHubOAuthButton className="w-full" />
-                    </div>
+                    <SocialAuthButtons disabled={loading} />
 
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">

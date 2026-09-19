@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { getSignInDescription } from "@/lib/auth-providers";
+
 const faqs = [
     {
         question: "What is JassSpace?",
@@ -15,7 +17,7 @@ const faqs = [
     },
     {
         question: "How does account sign-in work?",
-        answer: "You can sign in with email/password or supported social providers such as Google and GitHub.",
+        answer: getSignInDescription(),
     },
     {
         question: "Where can I read about data handling?",

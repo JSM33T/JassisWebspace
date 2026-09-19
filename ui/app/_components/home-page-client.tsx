@@ -5,13 +5,14 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
-import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Clock3, Disc3, Folder, Headphones, Image as GalleryIcon, Info, Layers, Mail, Music, Play, Radio, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Clock3, Disc3, Folder, Headphones, Image as GalleryIcon, Layers, Mail, Play, Radio, Sparkles, type LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContentRail } from "@/components/content-rail";
 import { SectionHeader } from "@/components/section-header";
 import { VisualFallback } from "@/components/visual-fallback";
+import { homeNavigationLinks as defaultLinks, resumeNavigationLinks as resumeLinks } from "@/lib/site-navigation";
 import { cn } from "@/lib/utils";
 import { useTrackPlayer } from "@/hooks/use-audio-player";
 import projects from "@/data/projects";
@@ -56,27 +57,6 @@ const HERO_FLOAT_DOTS = [
     { left: "22%", top: "70%", size: 8, color: "var(--secondary)", dur: 5.5, range: 12 },
     { left: "86%", top: "58%", size: 6, color: "var(--accent)", dur: 4.5, range: -10 },
 ] as const;
-
-const defaultLinks = [
-    { href: "/about", label: "About", icon: Info },
-    { href: "/projects", label: "Projects", icon: Folder },
-    { href: "/blog", label: "Blog", icon: BookOpen },
-    { href: "/gallery", label: "Gallery", icon: GalleryIcon },
-    { href: "/music", label: "Music", icon: Music },
-];
-
-const resumeLinks = [
-    { href: "/about", label: "About", icon: Info },
-    { href: "/projects", label: "Projects", icon: Folder },
-    { href: "/services", label: "Services", icon: Layers },
-    { href: "/contact", label: "Contact", icon: Mail },
-];
-
-const makeProjectId = (title: string) =>
-    title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
 
 const featuredProjectNames = ["ProBeacon", "SurfSwift", "Linqyard"];
 const featuredWorkItems = featuredProjectNames
@@ -201,7 +181,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
 
     const startHereItems = [
         {
-            href: "/projects?project=probeacon-self-hosted-infrastructure-monitor",
+            href: "/projects/probeacon-self-hosted-infrastructure-monitor",
             eyebrow: "Featured Project",
             title: featuredWorkItems[0]?.title ?? "Projects",
             description: "Start with the self-hosted infrastructure monitor and the engineering work behind it.",
@@ -638,11 +618,10 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             <div className="grid gap-3 md:grid-cols-3">
                                 {featuredWorkItems.map((project) => {
                                     const preview = project.screenshots?.[0] ?? null;
-                                    const projectId = makeProjectId(project.title);
                                     return (
                                         <Link
-                                            key={project.title}
-                                            href={`/projects?project=${projectId}`}
+                                            key={project.slug}
+                                            href={`/projects/${project.slug}`}
                                             className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-background/65 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:bg-background/85 hover:shadow-xl"
                                         >
                                             <div className="relative aspect-[16/10] overflow-hidden rounded-xl border bg-muted/40">

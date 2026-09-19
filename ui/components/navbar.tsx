@@ -40,14 +40,9 @@ import {
     Settings,
     Shield,
     AtSign,
-    FileText,
     ChevronDown,
     Check,
-    Image,
-    Music,
     LayoutDashboard,
-    Briefcase,
-    FolderCode,
     PanelRight,
     Pause,
     Play,
@@ -57,14 +52,11 @@ import {
     Library,
     Sun,
     Moon,
-    Mail,
-    House,
     Search,
     Smile,
     Frown,
-    Users,
-    Wrench,
 } from 'lucide-react';
+import { primaryNavigation, navigationSections, isNavigationActive, navigationAriaCurrent, type NavigationItem } from '@/lib/site-navigation';
 import { SearchModal } from '@/components/search-modal';
 import { useUser, userHelpers } from '@/contexts/UserContext';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -192,42 +184,7 @@ export function Navbar() {
 
     const normalizedRole = (user?.role ?? '').toLowerCase();
 
-    const blogMenuItem = { href: '/blog', label: 'Blog', description: 'Read my latest posts and updates', icon: FileText };
-
-    const mediaMenuItems = [
-        { href: '/gallery', label: 'Gallery', description: 'Explore my photography and artwork', icon: Image },
-        { href: '/music', label: 'Music', description: 'Listen to my music collection', icon: Music },
-    ];
-
-    const projectsMenuItem = { href: '/projects', label: 'Projects', description: 'Explore my projects', icon: FolderCode };
-
-    const aboutMenuItems = [
-        { href: '/about', label: 'About Me', description: 'Learn about me and JassSpace', icon: UserCircle },
-        { href: '/uses', label: 'Uses', description: 'Tools, gear, and software I use daily', icon: Wrench },
-        { href: '/services', label: 'Services', description: 'Explore the services I offer', icon: Briefcase },
-        { href: '/contact', label: 'Contact', description: 'Get in touch', icon: Mail },
-    ];
-
-    const mobileMenuSections = [
-        {
-            title: 'Explore',
-            items: [
-                { href: '/', label: 'Home', icon: House },
-                blogMenuItem,
-                projectsMenuItem,
-            ],
-        },
-        { title: 'Media', items: mediaMenuItems },
-        { title: 'About', items: aboutMenuItems },
-    ];
-
-    const isActivePath = (href: string) => {
-        if (href === '/') return pathname === '/';
-        return pathname === href || pathname.startsWith(`${href}/`);
-    };
-
-    const isSectionActive = (items: Array<{ href: string }>) =>
-        items.some((item) => isActivePath(item.href));
+    const isActivePath = (href: string) => isNavigationActive(pathname, href);
 
     const navDropdownContentClassName =
         'w-[min(42rem,calc(100vw-2rem))] rounded-3xl border border-border/60 bg-background/95 p-3 text-foreground shadow-lg shadow-black/10 backdrop-blur-xl';
@@ -248,13 +205,13 @@ export function Navbar() {
             active && 'border-primary/35 bg-background text-foreground'
         );
 
-    const renderDesktopMenuItem = (item: (typeof aboutMenuItems)[number]) => {
+    const renderDesktopMenuItem = (item: NavigationItem) => {
         const Icon = item.icon;
         const isActive = isActivePath(item.href);
 
         return (
             <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent">
-                <Link href={item.href} aria-current={isActive ? 'page' : undefined} className={navDropdownItemClassName(isActive)}>
+                <Link href={item.href} aria-current={navigationAriaCurrent(pathname, item.href)} className={navDropdownItemClassName(isActive)}>
                     <span className={navDropdownIconClassName(isActive)}>
                         <Icon className="h-5 w-5" />
                     </span>
@@ -403,7 +360,7 @@ export function Navbar() {
 
     const topNavLinkClass = (active: boolean) =>
         cn(
-            'relative z-10 flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+            'relative z-10 flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full px-2 xl:px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
             'transition-[color,opacity] duration-200',
             active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
         );
@@ -511,7 +468,7 @@ export function Navbar() {
             >
                 <div
                     className={cn(
-                        'mx-auto flex max-w-7xl items-center gap-6 px-6 lg:px-10',
+                        'mx-auto flex max-w-7xl items-center gap-3 px-6 xl:gap-6 xl:px-10',
                         'transition-[height] duration-300 ease-out motion-reduce:transition-none',
                         isScrolled ? 'h-14' : 'h-[4.25rem]'
                     )}
@@ -546,108 +503,65 @@ export function Navbar() {
                                 }}
                             />
 
-                            {/* Home */}
-                            <Link
-                                href="/"
-                        aria-label="JassSpace home"
-                                aria-current={isActivePath('/') ? 'page' : undefined}
-                                className={topNavLinkClass(isActivePath('/'))}
-                                onMouseEnter={handleNavLinkHover}
-                            >
-                                {isActivePath('/') && activeUnderline}
-                                <House className="h-3.5 w-3.5" />
-                                Home
-                            </Link>
+                            {primaryNavigation.map((entry) => {
+                                const Icon = entry.icon;
+                                if ('href' in entry) {
+                                    const active = isActivePath(entry.href);
+                                    return (
+                                        <Link
+                                            key={entry.href}
+                                            href={entry.href}
+                                            aria-current={navigationAriaCurrent(pathname, entry.href)}
+                                            className={topNavLinkClass(active)}
+                                            onMouseEnter={handleNavLinkHover}
+                                        >
+                                            {active && activeUnderline}
+                                            <Icon aria-hidden="true" className="h-3.5 w-3.5" />
+                                            {entry.label}
+                                        </Link>
+                                    );
+                                }
 
-                            {/* Blog */}
-                            <Link
-                                href={blogMenuItem.href}
-                                aria-current={isActivePath(blogMenuItem.href) ? 'page' : undefined}
-                                className={topNavLinkClass(isActivePath(blogMenuItem.href))}
-                                onMouseEnter={handleNavLinkHover}
-                            >
-                                {isActivePath(blogMenuItem.href) && activeUnderline}
-                                <FileText className="h-3.5 w-3.5" />
-                                Blog
-                            </Link>
-
-                            {/* Projects */}
-                            <Link
-                                href={projectsMenuItem.href}
-                                aria-current={isActivePath(projectsMenuItem.href) ? 'page' : undefined}
-                                className={topNavLinkClass(isActivePath(projectsMenuItem.href))}
-                                onMouseEnter={handleNavLinkHover}
-                            >
-                                {isActivePath(projectsMenuItem.href) && activeUnderline}
-                                <FolderCode className="h-3.5 w-3.5" />
-                                Projects
-                            </Link>
-
-                            {/* Media */}
-                            <DropdownMenu modal={false} open={desktopMenu === 'media'} onOpenChange={(open) => handleDesktopMenuOpenChange('media', open)}>
-                                <DropdownMenuTrigger asChild>
-                                    <button
-                                        onPointerEnter={(event) => handleDesktopMenuPointerEnter(event, 'media')}
-                                        onPointerLeave={handleDesktopMenuPointerLeave}
-                                        onFocus={(event) => { desktopTriggerRef.current = event.currentTarget; cancelDesktopMenuClose(); }}
-                                        onBlur={scheduleDesktopMenuClose}
-                                        className={topNavLinkClass(isSectionActive(mediaMenuItems))}
-                                        onMouseEnter={handleNavLinkHover}
-                                    >
-                                        {isSectionActive(mediaMenuItems) && activeUnderline}
-                                        <Library className="h-3.5 w-3.5" />
-                                        Media
-                                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    {...desktopMenuContentProps}
-                                    className={navDropdownContentClassName}
-                                    align="center"
-                                    sideOffset={14}
-                                    collisionPadding={16}
-                                >
-                                    <div className={navDropdownGridClassName}>
-                                        {mediaMenuItems.map(renderDesktopMenuItem)}
-                                    </div>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-
-                            {/* About */}
-                            <DropdownMenu modal={false} open={desktopMenu === 'about'} onOpenChange={(open) => handleDesktopMenuOpenChange('about', open)}>
-                                <DropdownMenuTrigger asChild>
-                                    <button
-                                        onPointerEnter={(event) => handleDesktopMenuPointerEnter(event, 'about')}
-                                        onPointerLeave={handleDesktopMenuPointerLeave}
-                                        onFocus={(event) => { desktopTriggerRef.current = event.currentTarget; cancelDesktopMenuClose(); }}
-                                        onBlur={scheduleDesktopMenuClose}
-                                        className={topNavLinkClass(isSectionActive(aboutMenuItems))}
-                                        onMouseEnter={handleNavLinkHover}
-                                    >
-                                        {isSectionActive(aboutMenuItems) && activeUnderline}
-                                        <Users className="h-3.5 w-3.5" />
-                                        About
-                                        <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    {...desktopMenuContentProps}
-                                    className={navDropdownContentClassName}
-                                    align="center"
-                                    sideOffset={14}
-                                    collisionPadding={16}
-                                >
-                                    <div className={navDropdownGridClassName}>
-                                        {aboutMenuItems.map(renderDesktopMenuItem)}
-                                    </div>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                const active = entry.items.some((item) => isActivePath(item.href));
+                                return (
+                                    <DropdownMenu key={entry.id} modal={false} open={desktopMenu === entry.id} onOpenChange={(open) => handleDesktopMenuOpenChange(entry.id, open)}>
+                                        <DropdownMenuTrigger asChild>
+                                            <button
+                                                type="button"
+                                                onPointerEnter={(event) => handleDesktopMenuPointerEnter(event, entry.id)}
+                                                onPointerLeave={handleDesktopMenuPointerLeave}
+                                                onFocus={(event) => { desktopTriggerRef.current = event.currentTarget; cancelDesktopMenuClose(); }}
+                                                onBlur={scheduleDesktopMenuClose}
+                                                aria-current={active ? 'location' : undefined}
+                                                className={topNavLinkClass(active)}
+                                                onMouseEnter={handleNavLinkHover}
+                                            >
+                                                {active && activeUnderline}
+                                                <Icon aria-hidden="true" className="h-3.5 w-3.5" />
+                                                {entry.label}
+                                                <ChevronDown aria-hidden="true" className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            {...desktopMenuContentProps}
+                                            className={navDropdownContentClassName}
+                                            align="center"
+                                            sideOffset={14}
+                                            collisionPadding={16}
+                                        >
+                                            <div className={navDropdownGridClassName}>
+                                                {entry.items.map(renderDesktopMenuItem)}
+                                            </div>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                );
+                            })}
 
                         </div>
                     </div>
 
                     {/* Right: search + actions + user */}
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div role="group" aria-label="Site tools and account" className="flex shrink-0 items-center gap-1 border-l border-border/60 pl-3 xl:gap-2">
                         {/* Search */}
                         <button
                             type="button"
@@ -782,13 +696,13 @@ export function Navbar() {
                                     <SheetDescription>Browse the site and open quick controls.</SheetDescription>
                                 </SheetHeader>
                                 <div className="mt-6 space-y-5 px-4 pb-6">
-                                    {mobileMenuSections.map((section) => (
+                                    {navigationSections.map((section) => (
                                         <div
-                                            key={section.title}
+                                            key={section.id}
                                             className="rounded-3xl border border-border/60 bg-card/60 p-3"
                                         >
                                             <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                                {section.title}
+                                                {section.label}
                                             </p>
                                             <div className="space-y-1">
                                                 {section.items.map((item) => {
@@ -798,7 +712,7 @@ export function Navbar() {
                                                         <SheetClose key={item.href} asChild>
                                                             <Link
                                                                 href={item.href}
-                                                                aria-current={isActive ? 'page' : undefined}
+                                                                aria-current={navigationAriaCurrent(pathname, item.href)}
                                                                 className={cn(
                                                                     'flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors',
                                                                     isActive
@@ -820,128 +734,131 @@ export function Navbar() {
                                             </div>
                                         </div>
                                     ))}
-                                    {isAuthenticated && user ? (
-                                        <div className="rounded-3xl border border-border/60 bg-card/60 p-4">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-11 w-11 border border-border/60">
-                                                    <AvatarImage
-                                                        src={user?.avatarUrl || ''}
-                                                        alt="User Avatar"
-                                                    />
-                                                    <AvatarFallback>{userHelpers.getInitials(user)}</AvatarFallback>
-                                                </Avatar>
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-sm font-medium">
-                                                        {userHelpers.getFirstName(user)}
-                                                    </p>
-                                                    <p className="truncate text-xs text-muted-foreground">
-                                                        @{user?.username?.replace(/^@+/, '')}
-                                                    </p>
+                                    <div role="group" aria-label="Site tools and account" className="space-y-3 border-t border-border/60 pt-5">
+                                        <p className="px-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Tools & account</p>
+                                        {isAuthenticated && user ? (
+                                            <div className="rounded-3xl border border-border/60 bg-card/60 p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-11 w-11 border border-border/60">
+                                                        <AvatarImage
+                                                            src={user?.avatarUrl || ''}
+                                                            alt="User Avatar"
+                                                        />
+                                                        <AvatarFallback>{userHelpers.getInitials(user)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-sm font-medium">
+                                                            {userHelpers.getFirstName(user)}
+                                                        </p>
+                                                        <p className="truncate text-xs text-muted-foreground">
+                                                            @{user?.username?.replace(/^@+/, '')}
+                                                        </p>
+                                                    </div>
+                                                    {user?.role ? (
+                                                        <Badge variant="secondary" className="rounded-full">
+                                                            {roleDisplayName}
+                                                        </Badge>
+                                                    ) : null}
                                                 </div>
-                                                {user?.role ? (
-                                                    <Badge variant="secondary" className="rounded-full">
-                                                        {roleDisplayName}
-                                                    </Badge>
-                                                ) : null}
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <SheetClose asChild>
-                                            <Button asChild className="h-12 w-full rounded-2xl">
-                                                <Link href={loginHref}>
-                                                    <User className="mr-2 h-4 w-4" />
-                                                    Login
-                                                </Link>
-                                            </Button>
-                                        </SheetClose>
-                                    )}
+                                        ) : (
+                                            <SheetClose asChild>
+                                                <Button asChild className="h-12 w-full rounded-2xl">
+                                                    <Link href={loginHref}>
+                                                        <User className="mr-2 h-4 w-4" />
+                                                        Login
+                                                    </Link>
+                                                </Button>
+                                            </SheetClose>
+                                        )}
 
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="h-12 w-full cursor-pointer justify-start rounded-2xl"
-                                        onClick={() => {
-                                            setMenuOpen(false);
-                                            setTimeout(() => setSearchOpen(true), 180);
-                                        }}
-                                    >
-                                        <Search className="mr-2 h-4 w-4" />
-                                        Search
-                                    </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-12 w-full cursor-pointer justify-start rounded-2xl"
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                                setTimeout(() => setSearchOpen(true), 180);
+                                            }}
+                                        >
+                                            <Search className="mr-2 h-4 w-4" />
+                                            Search
+                                        </Button>
 
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="h-12 w-full cursor-pointer justify-start rounded-2xl"
-                                        onClick={() => {
-                                            setMenuOpen(false);
-                                            setTimeout(() => handleSidebarOpenChange(true), 180);
-                                        }}
-                                    >
-                                        <PanelRight className="mr-2 h-4 w-4" />
-                                        Player & appearance
-                                    </Button>
-
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-12 w-full cursor-pointer justify-start rounded-2xl"
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                                setTimeout(() => handleSidebarOpenChange(true), 180);
+                                            }}
+                                        >
+                                            <PanelRight className="mr-2 h-4 w-4" />
+                                            Player & appearance
+                                        </Button>
 
 
-                                    {isAuthenticated ? (
-                                        <div className="rounded-3xl border border-border/60 bg-card/60 p-3">
-                                            <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                                Account
-                                            </p>
-                                            <div className="space-y-1">
-                                                {normalizedRole === 'admin' && (
+
+                                        {isAuthenticated ? (
+                                            <div className="rounded-3xl border border-border/60 bg-card/60 p-3">
+                                                <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                                    Account
+                                                </p>
+                                                <div className="space-y-1">
+                                                    {normalizedRole === 'admin' && (
+                                                        <SheetClose asChild>
+                                                            <Link
+                                                                href="/admin"
+                                                                className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
+                                                            >
+                                                                <LayoutDashboard className="h-4 w-4 text-primary" />
+                                                                <span>Admin</span>
+                                                            </Link>
+                                                        </SheetClose>
+                                                    )}
                                                     <SheetClose asChild>
                                                         <Link
-                                                            href="/admin"
+                                                            href="/account/profile"
                                                             className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
                                                         >
-                                                            <LayoutDashboard className="h-4 w-4 text-primary" />
-                                                            <span>Admin</span>
+                                                            <UserCircle className="h-4 w-4 text-primary" />
+                                                            <span>Profile</span>
                                                         </Link>
                                                     </SheetClose>
-                                                )}
-                                                <SheetClose asChild>
-                                                    <Link
-                                                        href="/account/profile"
-                                                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
+                                                    <SheetClose asChild>
+                                                        <Link
+                                                            href="/account/preferences"
+                                                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
+                                                        >
+                                                            <Settings className="h-4 w-4 text-primary" />
+                                                            <span>Settings</span>
+                                                        </Link>
+                                                    </SheetClose>
+                                                    <SheetClose asChild>
+                                                        <Link
+                                                            href="/account/security"
+                                                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
+                                                        >
+                                                            <Shield className="h-4 w-4 text-primary" />
+                                                            <span>Security</span>
+                                                        </Link>
+                                                    </SheetClose>
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="w-full cursor-pointer justify-start rounded-2xl px-3 py-3 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                                        onClick={() => {
+                                                            setMenuOpen(false);
+                                                            setTimeout(() => setShowLogoutDialog(true), 180);
+                                                        }}
                                                     >
-                                                        <UserCircle className="h-4 w-4 text-primary" />
-                                                        <span>Profile</span>
-                                                    </Link>
-                                                </SheetClose>
-                                                <SheetClose asChild>
-                                                    <Link
-                                                        href="/account/preferences"
-                                                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
-                                                    >
-                                                        <Settings className="h-4 w-4 text-primary" />
-                                                        <span>Settings</span>
-                                                    </Link>
-                                                </SheetClose>
-                                                <SheetClose asChild>
-                                                    <Link
-                                                        href="/account/security"
-                                                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium hover:bg-accent/70"
-                                                    >
-                                                        <Shield className="h-4 w-4 text-primary" />
-                                                        <span>Security</span>
-                                                    </Link>
-                                                </SheetClose>
-                                                <Button
-                                                    variant="ghost"
-                                                    className="w-full cursor-pointer justify-start rounded-2xl px-3 py-3 text-red-600 hover:bg-red-500/10 hover:text-red-700"
-                                                    onClick={() => {
-                                                        setMenuOpen(false);
-                                                        setTimeout(() => setShowLogoutDialog(true), 180);
-                                                    }}
-                                                >
-                                                    <LogOut className="mr-3 h-4 w-4" />
-                                                    Logout
-                                                </Button>
+                                                        <LogOut className="mr-3 h-4 w-4" />
+                                                        Logout
+                                                    </Button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : null}
+                                        ) : null}
+                                    </div>
                                 </div>
                             </SheetContent>
                         </Sheet>
