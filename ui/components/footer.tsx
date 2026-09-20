@@ -1,26 +1,12 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { navigationSections, footerUtilityLinks, isNavigationActive, navigationAriaCurrent } from '@/lib/site-navigation';
+import { cn } from '@/lib/utils';
 import { LogoMark } from '@/components/logo-mark';
 import { Github, Instagram, Linkedin, Twitter } from 'lucide-react';
 import { VersionDialog } from '@/components/version-dialog';
-
-const exploreLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/blog', label: 'Blog' },
-    { href: '/gallery', label: 'Gallery' },
-    { href: '/music', label: 'Music' },
-];
-
-const workLinks = [
-    { href: '/projects', label: 'Projects' },
-    { href: '/services', label: 'Services' },
-];
-
-const infoLinks = [
-    { href: '/about', label: 'About' },
-    { href: '/contact', label: 'Contact' },
-    { href: '/faq', label: 'FAQ' },
-    { href: '/privacy', label: 'Privacy Policy' },
-];
 
 const socialLinks = [
     { href: 'https://github.com/jsm33t', label: 'GitHub', icon: Github },
@@ -30,6 +16,7 @@ const socialLinks = [
 ];
 
 export function Footer() {
+    const pathname = usePathname();
     return (
         <footer className="relative px-4 pb-0 pt-20 md:px-8 md:pt-24">
             <div className="mx-auto max-w-7xl">
@@ -67,64 +54,50 @@ export function Footer() {
                             </div>
                         </div>
 
-                        {/* Link columns */}
-                        <div className="grid grid-cols-3 gap-8 sm:gap-12">
-                            <div>
-                                <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground">
-                                    Explore
-                                </p>
-                                <ul className="space-y-2.5">
-                                    {exploreLinks.map(({ href, label }) => (
-                                        <li key={href}>
-                                            <Link
-                                                href={href}
-                                                className="relative inline-block text-sm text-muted-foreground transition-colors hover:text-foreground after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 after:content-[''] hover:after:scale-x-100"
-                                            >
-                                                {label}
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <div>
-                                <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground">
-                                    Work
-                                </p>
-                                <ul className="space-y-2.5">
-                                    {workLinks.map(({ href, label }) => (
-                                        <li key={href}>
-                                            <Link
-                                                href={href}
-                                                className="relative inline-block text-sm text-muted-foreground transition-colors hover:text-foreground after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 after:content-[''] hover:after:scale-x-100"
-                                            >
-                                                {label}
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <div>
-                                <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground">
-                                    Info
-                                </p>
-                                <ul className="space-y-2.5">
-                                    {infoLinks.map(({ href, label }) => (
-                                        <li key={href}>
-                                            <Link
-                                                href={href}
-                                                className="relative inline-block text-sm text-muted-foreground transition-colors hover:text-foreground after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 after:content-[''] hover:after:scale-x-100"
-                                            >
-                                                {label}
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
+                        <nav aria-label="Footer navigation" className="grid grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-12">
+                            {navigationSections.map((section) => (
+                                <div key={section.id}>
+                                    <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground">
+                                        {section.label}
+                                    </p>
+                                    <ul className="space-y-2.5">
+                                        {section.items.map(({ href, label }) => (
+                                            <li key={href}>
+                                                <Link
+                                                    href={href}
+                                                    aria-current={navigationAriaCurrent(pathname, href)}
+                                                    className={cn(
+                                                        'inline-flex min-h-9 items-center rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary',
+                                                        isNavigationActive(pathname, href) && 'font-medium text-foreground underline underline-offset-4'
+                                                    )}
+                                                >
+                                                    {label}
+                                                </Link>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </nav>
                     </div>
 
                     {/* Divider + bottom row */}
-                    <div className="mt-10 flex justify-center border-t border-border/40 pt-6 text-center">
+                    <div className="mt-10 flex flex-col items-center gap-4 border-t border-border/40 pt-6 text-center">
+                        <nav aria-label="Site information" className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                            {footerUtilityLinks.map(({ href, label }) => (
+                                <Link
+                                    key={href}
+                                    href={href}
+                                    aria-current={navigationAriaCurrent(pathname, href)}
+                                    className={cn(
+                                        'inline-flex min-h-9 items-center rounded-sm text-sm text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary',
+                                        isNavigationActive(pathname, href) && 'font-medium text-foreground underline underline-offset-4'
+                                    )}
+                                >
+                                    {label}
+                                </Link>
+                            ))}
+                        </nav>
                         <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground sm:flex-row sm:gap-3">
                             <span>© {new Date().getFullYear()} Jassis. All rights reserved.</span>
                             <VersionDialog />

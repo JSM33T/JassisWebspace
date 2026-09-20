@@ -4,22 +4,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { getSignInDescription } from "@/lib/auth-providers";
+
 const faqs = [
     {
         question: "What is JassSpace?",
         answer: "JassSpace is a platform for showcasing projects, content, and creative work.",
     },
     {
-        question: "How do I contact your team?",
-        answer: "Use the contact page and send your request. We review messages and reply through email.",
+        question: "How do I contact you?",
+        answer: "Use the contact page and send your request. I review messages and reply by email.",
     },
     {
         question: "How does account sign-in work?",
-        answer: "You can sign in with email/password or supported social providers such as Google and GitHub.",
+        answer: getSignInDescription(),
     },
     {
         question: "Where can I read about data handling?",
-        answer: "Please see our Privacy Policy page for a plain-language overview.",
+        answer: "Please see the Privacy Policy page for a plain-language overview.",
     },
 ];
 

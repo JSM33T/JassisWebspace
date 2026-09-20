@@ -8,12 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertCircle, Loader2, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import authService, { ApiError } from '@/lib/api';
-import GoogleOAuthButton from '@/components/GoogleOAuthButton';
-import GitHubOAuthButton from '@/components/GitHubOAuthButton';
+import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
 import { useUser } from '@/contexts/UserContext';
 import {
     clearPersistedLoginRedirectTarget,
@@ -135,34 +133,7 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    {/* Social Login Buttons */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <GoogleOAuthButton
-                            size="lg"
-                            className="w-full border-[#747775] bg-white text-[#1f1f1f] hover:bg-[#f2f2f2] hover:text-[#1f1f1f] dark:border-[#747775] dark:bg-white dark:hover:bg-[#f2f2f2]"
-                            redirectTo={redirectTarget}
-                        />
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <span
-                                        tabIndex={0}
-                                        aria-label="GitHub sign-in"
-                                        aria-disabled="true"
-                                        className="inline-flex w-full cursor-not-allowed rounded-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                    >
-                                        <GitHubOAuthButton
-                                            size="lg"
-                                            disabled
-                                            className="w-full border-[#24292f] bg-[#24292f] text-white hover:bg-[#32383f] hover:text-white dark:border-[#57606a] dark:bg-[#24292f] dark:hover:bg-[#32383f]"
-                                            redirectTo={redirectTarget}
-                                        />
-                                    </span>
-                                </TooltipTrigger>
-                                <TooltipContent>Coming soon</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
+                    <SocialAuthButtons redirectTo={redirectTarget} disabled={loading} />
 
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
