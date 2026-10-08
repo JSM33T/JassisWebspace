@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { MoreVertical, Reply, Trash2, Edit2 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import { hasRole } from '@/lib/auth-roles';
 import { CommentForm } from './CommentForm';
 import {
     DropdownMenu,
@@ -47,7 +48,7 @@ export function CommentItem({
     const isThreaded = depth < maxDepth;
 
     const isAuthor = user?.id === comment.userId;
-    const isAdmin = user?.role === 'admin' || user?.role === 'mod';
+    const isAdmin = hasRole(user, 'admin') || hasRole(user, 'mod');
     const canModify = isAuthor || isAdmin; // Admin can delete/edit? Logic says admin delete usually.
     // Spec says strictly author for edit, admin/mod for delete. 
     // I'll stick to API logic: Author can Edit/Delete. Admin/Mod can Delete.

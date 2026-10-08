@@ -115,7 +115,7 @@ export default function PublicUserPage() {
     }
 
     const displayName = user.displayName || fullName || user.username;
-    const roles = user.roles.length > 0 ? user.roles : ["user"];
+    const roles = user.roles;
 
     return (
         <main className="min-h-screen bg-background">

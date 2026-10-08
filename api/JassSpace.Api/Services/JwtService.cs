@@ -93,7 +93,7 @@ public class JwtService(IOptions<JwtSettings> jwtSettings, ILogger<JwtService> l
                 ValidateAudience = true,
                 ValidAudience = _jwtSettings.Audience,
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromMinutes(5) // Allow 5 minutes clock skew for token validation
+                ClockSkew = TimeSpan.Zero
             };
 
             var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);

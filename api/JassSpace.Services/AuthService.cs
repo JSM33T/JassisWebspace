@@ -389,6 +389,16 @@ public sealed class AuthService(
             return new AuthRefreshResult(AuthRefreshStatus.InvalidToken, ErrorMessage: "Invalid refresh token");
         }
 
+        if (persistedRefreshToken.User is null ||
+            !persistedRefreshToken.User.IsActive ||
+            persistedRefreshToken.User.DeletedAt.HasValue ||
+            persistedRefreshToken.Session is null ||
+            persistedRefreshToken.Session.UserId != persistedRefreshToken.UserId ||
+            persistedRefreshToken.Session.RevokedAt.HasValue)
+        {
+            return new AuthRefreshResult(AuthRefreshStatus.InvalidToken, ErrorMessage: "User or session is no longer active");
+        }
+
         if (persistedRefreshToken.ExpiresAt <= DateTimeOffset.UtcNow)
         {
             return new AuthRefreshResult(AuthRefreshStatus.ExpiredToken, ErrorMessage: "Refresh token has expired");
@@ -902,7 +912,7 @@ public sealed class AuthService(
         var authResponse = new AuthResponse(
             accessToken,
             refreshTokenValue,
-            DateTimeOffset.UtcNow.AddMinutes(15),
+            DateTimeOffset.UtcNow.AddMinutes(ResolveJwtExpiryMinutes()),
             userInfo);
 
         return new AuthSessionPayload(authResponse, refreshToken.ExpiresAt);

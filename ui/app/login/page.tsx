@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import authService, { ApiError } from '@/lib/api';
 import { SocialAuthButtons } from '@/components/auth/social-auth-buttons';
 import { useUser } from '@/contexts/UserContext';
+import { normalizeRoles } from '@/lib/auth-roles';
 import {
     clearPersistedLoginRedirectTarget,
     persistLoginRedirectTarget,
@@ -86,7 +87,7 @@ export default function LoginPage() {
                 avatarUrl: response.user.avatarUrl || undefined,
                 login: true,
                 expiry: new Date(response.expiresAt),
-                role: response.user.roles?.[0] || 'user',
+                roles: normalizeRoles(response.user.roles),
                 authMethod: response.user.authMethod || undefined // Track authentication method
             });
 

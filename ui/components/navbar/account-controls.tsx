@@ -38,13 +38,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SheetClose } from '@/components/ui/sheet';
 import { userHelpers, useUser, type User } from '@/contexts/UserContext';
+import { getDisplayRoleLabel, hasRole } from '@/lib/auth-roles';
 import { buildLoginHref } from '@/lib/auth-redirect';
 
 type AccountContextValue = {
     user: User | null;
     isAuthenticated: boolean;
-    normalizedRole: string;
-    roleDisplayName: string;
+    canOpenAdmin: boolean;
+    roleDisplayName: string | null;
     loginHref: string;
     accountOpen: boolean;
     setAccountOpen: (open: boolean) => void;
@@ -70,16 +71,8 @@ export function NavbarAccountProvider({ children, onOverlayOpenChange }: {
     const [accountOpen, setAccountOpen] = useState(false);
     const [logoutOpen, setLogoutOpen] = useState(false);
 
-    const normalizedRole = (user?.role ?? '').toLowerCase();
-    const roleDisplayName = normalizedRole === 'admin'
-        ? 'Admin'
-        : normalizedRole === 'mod'
-          ? 'Mod'
-          : normalizedRole === 'user'
-            ? 'User'
-            : normalizedRole
-              ? normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1)
-              : 'User';
+    const canOpenAdmin = hasRole(user, 'admin') || hasRole(user, 'mod');
+    const roleDisplayName = getDisplayRoleLabel(user);
     const currentPathWithQuery = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
     const loginHref = buildLoginHref(currentPathWithQuery);
 
@@ -98,13 +91,13 @@ export function NavbarAccountProvider({ children, onOverlayOpenChange }: {
     const value = useMemo(() => ({
         user,
         isAuthenticated,
-        normalizedRole,
+        canOpenAdmin,
         roleDisplayName,
         loginHref,
         accountOpen,
         setAccountOpen,
         requestLogout,
-    }), [user, isAuthenticated, normalizedRole, roleDisplayName, loginHref, accountOpen, requestLogout]);
+    }), [user, isAuthenticated, canOpenAdmin, roleDisplayName, loginHref, accountOpen, requestLogout]);
 
     const confirmLogout = async () => {
         setLogoutOpen(false);
@@ -121,7 +114,7 @@ export function NavbarAccountProvider({ children, onOverlayOpenChange }: {
 }
 
 export function DesktopNavbarAccount() {
-    const { user, isAuthenticated, normalizedRole, roleDisplayName, loginHref, accountOpen, setAccountOpen, requestLogout } = useNavbarAccount();
+    const { user, isAuthenticated, canOpenAdmin, roleDisplayName, loginHref, accountOpen, setAccountOpen, requestLogout } = useNavbarAccount();
 
     if (!isAuthenticated) {
         return (
@@ -160,12 +153,12 @@ export function DesktopNavbarAccount() {
                                 <AtSign className="h-3 w-3 shrink-0 text-muted-foreground/80" />
                                 <span className="max-w-[10rem] truncate font-medium">{user?.username?.replace(/^@+/, '')}</span>
                             </div>
-                            {user?.role ? <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground/70">{roleDisplayName}</span> : null}
+                            {roleDisplayName ? <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground/70">{roleDisplayName}</span> : null}
                         </div>
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {(normalizedRole === 'admin' || normalizedRole === 'mod') ? (
+                {canOpenAdmin ? (
                     <AccountDropdownLink href="/admin" icon={LayoutDashboard}>Admin</AccountDropdownLink>
                 ) : null}
                 <AccountDropdownLink href="/account/profile" icon={UserCircle}>Profile</AccountDropdownLink>
@@ -204,21 +197,21 @@ export function MobileNavbarAccountSummary() {
                     <p className="truncate text-sm font-medium">{userHelpers.getFirstName(user)}</p>
                     <p className="truncate text-xs text-muted-foreground">@{user.username?.replace(/^@+/, '')}</p>
                 </div>
-                {user.role ? <Badge variant="secondary" className="rounded-full">{roleDisplayName}</Badge> : null}
+                {roleDisplayName ? <Badge variant="secondary" className="rounded-full">{roleDisplayName}</Badge> : null}
             </div>
         </div>
     );
 }
 
 export function MobileNavbarAccountLinks({ closeMenu }: { closeMenu: () => void }) {
-    const { isAuthenticated, normalizedRole, requestLogout } = useNavbarAccount();
+    const { isAuthenticated, canOpenAdmin, requestLogout } = useNavbarAccount();
     if (!isAuthenticated) return null;
 
     return (
         <div className="rounded-3xl border border-border/60 bg-card/60 p-3">
             <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Account</p>
             <div className="space-y-1">
-                {normalizedRole === 'admin' ? <MobileAccountLink href="/admin" icon={LayoutDashboard}>Admin</MobileAccountLink> : null}
+                {canOpenAdmin ? <MobileAccountLink href="/admin" icon={LayoutDashboard}>Admin</MobileAccountLink> : null}
                 <MobileAccountLink href="/account/profile" icon={UserCircle}>Profile</MobileAccountLink>
                 <MobileAccountLink href="/account/preferences" icon={Settings}>Settings</MobileAccountLink>
                 <MobileAccountLink href="/account/security" icon={Shield}>Security</MobileAccountLink>

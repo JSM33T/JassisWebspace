@@ -16,6 +16,7 @@ import { adminEmailService } from "@/lib/api/admin-email.service";
 import { adminUserService } from "@/lib/api/admin-user.service";
 import type { AdminUserListItem } from "@/lib/api/admin-user.types";
 import type { EmailTemplate } from "@/lib/api/admin-email.types";
+import { getDisplayRoleLabel } from "@/lib/auth-roles";
 import { extractVariables, isAutoVar, substituteVars } from "@/lib/api/admin-email.types";
 
 type Mode = "test" | "bcc" | "separate";
@@ -317,7 +318,7 @@ export default function SendEmailPage() {
                                                                 )}
                                                                 {u.roles.length > 0 && (
                                                                     <Badge variant="outline" className="text-xs">
-                                                                        {u.roles[0]}
+                                                                        {getDisplayRoleLabel(u)}
                                                                     </Badge>
                                                                 )}
                                                             </div>

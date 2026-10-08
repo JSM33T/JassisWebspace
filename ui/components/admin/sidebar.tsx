@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, Image, Settings, Users, BookOpen, Mail, Music2, FileText, SlidersHorizontal, Send, ScanSearch } from "lucide-react";
 import { LogoMark } from "@/components/logo-mark";
+import { useUser } from "@/contexts/UserContext";
+import { canAccessAdminPath } from "@/lib/auth-roles";
 
 const routes = [
     {
@@ -66,6 +68,8 @@ const routes = [
 
 export function AdminSidebar() {
     const pathname = usePathname();
+    const { user } = useUser();
+    const visibleRoutes = routes.filter(route => canAccessAdminPath(user, route.href));
 
     return (
         <div className="flex h-full flex-col text-sidebar-foreground">
@@ -87,11 +91,11 @@ export function AdminSidebar() {
 
             <div className="flex-1 overflow-y-auto px-3 py-5">
                 <div className="space-y-1">
-                    {routes.map((route) => {
+                    {visibleRoutes.map((route) => {
                         const isActive = route.href === "/admin"
                             ? pathname === route.href
                             : pathname.startsWith(route.href) &&
-                              !routes.some(
+                              !visibleRoutes.some(
                                   (r) =>
                                       r.href !== route.href &&
                                       r.href.startsWith(route.href + "/") &&

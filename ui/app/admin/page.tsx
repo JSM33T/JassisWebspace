@@ -22,8 +22,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { adminDashboardService } from "@/lib/api/admin-dashboard.service";
 import { type AdminDashboardStats } from "@/lib/api/admin-dashboard.types";
 import { Spinner } from "@/components/ui/spinner";
+import { useUser } from "@/contexts/UserContext";
+import { hasRole } from "@/lib/auth-roles";
 
 export default function AdminPage() {
+    const { user } = useUser();
+    const isAdmin = hasRole(user, "admin");
     const [stats, setStats] = useState<AdminDashboardStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(true);
 
@@ -133,7 +137,7 @@ export default function AdminPage() {
                     </Link>
                 </Card>
 
-                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
+                {isAdmin && <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/gallery">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Gallery</CardTitle>
@@ -149,9 +153,9 @@ export default function AdminPage() {
                             </div>
                         </CardContent>
                     </Link>
-                </Card>
+                </Card>}
 
-                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
+                {isAdmin && <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/users">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Users</CardTitle>
@@ -167,9 +171,9 @@ export default function AdminPage() {
                             </div>
                         </CardContent>
                     </Link>
-                </Card>
+                </Card>}
 
-                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
+                {isAdmin && <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/messages">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Messages</CardTitle>
@@ -185,9 +189,9 @@ export default function AdminPage() {
                             </div>
                         </CardContent>
                     </Link>
-                </Card>
+                </Card>}
 
-                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
+                {isAdmin && <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/email">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Email Templates</CardTitle>
@@ -203,7 +207,7 @@ export default function AdminPage() {
                             </div>
                         </CardContent>
                     </Link>
-                </Card>
+                </Card>}
 
                 <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/music">
@@ -223,7 +227,7 @@ export default function AdminPage() {
                     </Link>
                 </Card>
 
-                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
+                {isAdmin && <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/properties">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Properties</CardTitle>
@@ -239,9 +243,9 @@ export default function AdminPage() {
                             </div>
                         </CardContent>
                     </Link>
-                </Card>
+                </Card>}
 
-                <Card className="group cursor-pointer transition-shadow hover:shadow-md">
+                {isAdmin && <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/settings">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Settings</CardTitle>
@@ -257,7 +261,7 @@ export default function AdminPage() {
                             </div>
                         </CardContent>
                     </Link>
-                </Card>
+                </Card>}
             </div>
         </div>
     );

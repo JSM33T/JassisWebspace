@@ -12,6 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Camera, User, Edit, Save, X, Clock, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
+import { getDisplayRoleLabel, normalizeRoles } from "@/lib/auth-roles";
 import authService from "@/lib/api/auth.service";
 import AvatarCropDialog from "@/components/profile/AvatarCropDialog";
 import { buildAuthRequiredLoginHref, persistLoginRedirectTarget } from "@/lib/auth-redirect";
@@ -93,7 +94,7 @@ export default function ProfilePage() {
                         avatarUrl: userInfo.avatarUrl || undefined,
                         coverUrl: userInfo.coverUrl || undefined,
                         bio: userInfo.bio || undefined,
-                        role: userInfo.roles?.[0] || 'user',
+                        roles: normalizeRoles(userInfo.roles),
                         preferences: userInfo.preferences || undefined,
                     });
                 }
@@ -120,7 +121,7 @@ export default function ProfilePage() {
                     locale: user.preferences?.locale || "",
                     email: user.email,
                     emailVerified: true,
-                    roles: user.role ? [user.role] : [],
+                    roles: user.roles,
                     avatarUrl: user.avatarUrl,
                     coverUrl: user.coverUrl
                 });
@@ -188,7 +189,7 @@ export default function ProfilePage() {
                     preferences: response.profile.preferences || undefined,
                     authMethod: response.profile.authMethod || undefined,
                     // Ensure these are preserved/mapped correctly
-                    role: response.profile.roles?.[0] || user.role,
+                    roles: normalizeRoles(response.profile.roles),
                     login: user.login,
                     expiry: user.expiry
                 });
@@ -234,7 +235,7 @@ export default function ProfilePage() {
                     bio: response.profile.bio || undefined,
                     preferences: response.profile.preferences || undefined,
                     authMethod: response.profile.authMethod || undefined,
-                    role: response.profile.roles?.[0] || user.role,
+                    roles: normalizeRoles(response.profile.roles),
                     login: user.login,
                     expiry: user.expiry
                 });
@@ -278,7 +279,7 @@ export default function ProfilePage() {
                     bio: response.profile.bio || undefined,
                     preferences: response.profile.preferences || undefined,
                     authMethod: response.profile.authMethod || undefined,
-                    role: response.profile.roles?.[0] || user.role,
+                    roles: normalizeRoles(response.profile.roles),
                     login: user.login,
                     expiry: user.expiry
                 });
@@ -320,7 +321,7 @@ export default function ProfilePage() {
             email: user.email,
             emailVerified: true, // Mocked as not in User interface
             createdAt: undefined, // Not in User interface
-            roles: user.role ? [user.role] : [],
+            roles: user.roles,
             avatarUrl: user.avatarUrl,
             coverUrl: user.coverUrl
         });
@@ -513,9 +514,9 @@ export default function ProfilePage() {
                                         </h3>
                                         <p className="text-sm text-muted-foreground">@{user.username}</p>
                                         <div className="flex gap-2 mt-1">
-                                            {user.role && (
+                                            {getDisplayRoleLabel(user) && (
                                                 <Badge variant="secondary" className="capitalize">
-                                                    {user.role}
+                                                    {getDisplayRoleLabel(user)}
                                                 </Badge>
                                             )}
                                         </div>
