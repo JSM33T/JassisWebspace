@@ -142,8 +142,7 @@ The system separates read-heavy public traffic from write-intensive analytics us
 			"/images/projects/linqyard/2.png",
             "/images/projects/linqyard/1.png"
 		],
-		highlight: "Deprecating",
-		coverImage: "https://cdn.jsm33t.com/media/project_covers/linqyard.jpg"
+		highlight: "Deprecating"
 	},
 	{
 		slug: "real-time-iot-data-platform-with-listener-orchestration",
@@ -182,7 +181,6 @@ The platform supports horizontal scale-out with node-aware balancing, automatic 
     `,
 		tech: [".NET", "MQTT", "Cassandra", "Solr", "Redis"],
 		icon: "Cpu",
-		coverImage: "https://cdn.jsm33t.com/media/project_covers/iot_platform.jpg",
 		screenshots: [
 			"/images/projects/iot-platform/1.png"
 		],
@@ -500,8 +498,7 @@ ResumeFlow provides structured candidate profiles, job-fit scoring, rule-based r
 		screenshots: [
 			"/images/projects/resume-flow/1.png",
 		],
-		highlight: "AI-Powered ATS & Resume Intelligence",
-		coverImage: "https://cdn.jsm33t.com/media/project_covers/resumeflow.jpg"
+		highlight: "AI-Powered ATS & Resume Intelligence"
 	},
 	{
 		slug: "cli-wrapper-based-device-control-suite",
