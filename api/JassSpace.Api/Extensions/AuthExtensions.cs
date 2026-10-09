@@ -1,6 +1,8 @@
 using JassSpace.Api.Configuration;
 using JassSpace.Api.Logging;
+using JassSpace.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
@@ -73,15 +75,79 @@ public static class AuthExtensions
 
                     return Task.CompletedTask;
                 },
-                OnTokenValidated = context =>
+                OnTokenValidated = async context =>
                 {
                     var logger = context.HttpContext.RequestServices
                         .GetRequiredService<ILoggerFactory>()
                         .CreateLogger("Authentication.Jwt");
-                    var userId = RequestLoggingContext.TryGetUserId(context.Principal);
+                    var principal = context.Principal;
+                    var identity = principal?.Identity as ClaimsIdentity;
+                    var userIdValue = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    var sessionIdValue = RequestLoggingContext.TryGetSessionId(principal);
 
-                    logger.LogDebug("JWT token validated for user {UserId}.", userId);
-                    return Task.CompletedTask;
+                    if (identity is null ||
+                        !Guid.TryParse(userIdValue, out var userId) || userId == Guid.Empty ||
+                        !Guid.TryParse(sessionIdValue, out var sessionId) || sessionId == Guid.Empty)
+                    {
+                        context.Fail("Missing or invalid user or session claim.");
+                        return;
+                    }
+
+                    try
+                    {
+                        var db = context.HttpContext.RequestServices.GetRequiredService<JassSpaceDbContext>();
+                        var cancellationToken = context.HttpContext.RequestAborted;
+                        var user = await db.Users.AsNoTracking()
+                            .Where(u => u.Id == userId)
+                            .Select(u => new { u.IsActive, u.DeletedAt })
+                            .SingleOrDefaultAsync(cancellationToken);
+
+                        if (user is null || !user.IsActive || user.DeletedAt.HasValue)
+                        {
+                            context.Fail("User is missing or inactive.");
+                            return;
+                        }
+
+                        var sessionIsActive = await db.Sessions.AsNoTracking()
+                            .AnyAsync(s => s.Id == sessionId && s.UserId == userId && s.RevokedAt == null,
+                                cancellationToken);
+                        if (!sessionIsActive)
+                        {
+                            context.Fail("Session is missing or revoked.");
+                            return;
+                        }
+
+                        var currentRoles = await db.UserRoles.AsNoTracking()
+                            .Where(ur => ur.UserId == userId)
+                            .Select(ur => ur.Role.Name)
+                            .ToListAsync(cancellationToken);
+
+                        foreach (var claimsIdentity in principal!.Identities)
+                        {
+                            foreach (var claim in claimsIdentity.Claims
+                                .Where(c => c.Type == ClaimTypes.Role || c.Type == "role" ||
+                                            c.Type == "roles" || c.Type == claimsIdentity.RoleClaimType)
+                                .ToArray())
+                            {
+                                claimsIdentity.RemoveClaim(claim);
+                            }
+                        }
+
+                        foreach (var role in currentRoles
+                            .Where(role => !string.IsNullOrWhiteSpace(role))
+                            .Select(role => role.Trim())
+                            .Distinct(StringComparer.OrdinalIgnoreCase))
+                        {
+                            identity.AddClaim(new Claim(identity.RoleClaimType, role));
+                        }
+
+                        logger.LogDebug("JWT session validated with current roles for user {UserId}.", userId);
+                    }
+                    catch (Exception exception)
+                    {
+                        logger.LogError(exception, "Could not verify current authentication state for user {UserId}.", userId);
+                        context.Fail("Authentication state could not be verified.");
+                    }
                 }
             };
         });

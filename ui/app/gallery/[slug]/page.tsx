@@ -13,6 +13,7 @@ import { ApiError } from '@/lib/api/types';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useUser } from '@/contexts/UserContext';
+import { hasRole } from '@/lib/auth-roles';
 import { applyCacheBustingParam } from '@/lib/cacheBust';
 
 import { GalleryEditDialog, GalleryEditTarget } from '@/components/gallery/gallery-edit-dialog';
@@ -69,7 +70,7 @@ export default function AlbumDetailPage() {
     const isPhoneLightbox = usePhoneLightboxThumbnails();
 
     const { user } = useUser();
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = hasRole(user, 'admin');
 
     const [editTarget, setEditTarget] = useState<GalleryEditTarget | null>(null);
     const editTrigger = useRef<HTMLElement | null>(null);

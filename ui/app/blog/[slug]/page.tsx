@@ -31,6 +31,7 @@ import { AuthorModal } from '@/components/blog/AuthorModal';
 import { LikeButton } from '@/components/likes/LikeButton';
 import { ContentViewTracker } from '@/components/views/ContentViewTracker';
 import { useUser } from '@/contexts/UserContext';
+import { hasRole } from '@/lib/auth-roles';
 
 export default function BlogViewPage() {
     const { slug } = useParams<{ slug: string }>();
@@ -114,7 +115,7 @@ export default function BlogViewPage() {
     const canEditBlog =
         !!blog &&
         (
-            user?.role === "admin" ||
+            hasRole(user, "admin") ||
             (!!user?.id && blog.authors.some((author) => author.userId === user.id))
         );
 

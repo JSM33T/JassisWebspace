@@ -43,7 +43,7 @@ export function ProjectsList({ projects }: { projects: Project[] }) {
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         {projects.map((project, index) => {
-                            const preview = project.coverImage || project.screenshots[0] || null;
+                            const preview = project.screenshots[0] || project.coverImage || null;
 
                             return (
                                 <motion.div

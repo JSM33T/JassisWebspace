@@ -7,5 +7,6 @@ services:
   dotnet:
     environment:
       - ApplyMigrationsOnStartup=${APPLY_MIGRATIONS:-true}
+      - JWT__ExpiryMinutes=15
     volumes:
       - ${DEPLOY_PATH:-/home/jassi/deployments/JassSpace}/.logs/dotnet:/app/logs/dotnet

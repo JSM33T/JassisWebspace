@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
         title: project.title,
         description: project.description,
         tags: ['project', 'engineering portfolio', ...(project.tech ?? [])],
-        image: project.coverImage || project.screenshots[0],
+        image: project.screenshots[0] || project.coverImage,
         canonicalPath: `/projects/${project.slug}`,
     });
 }

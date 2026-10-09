@@ -9,6 +9,7 @@ import { blogService } from "@/lib/api/blog.service";
 import { BlogDetail } from "@/lib/api/blog.types";
 import { ApiError } from "@/lib/api/types";
 import { useUser } from "@/contexts/UserContext";
+import { hasRole } from "@/lib/auth-roles";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildAuthRequiredLoginHref, persistLoginRedirectTarget } from "@/lib/auth-redirect";
@@ -41,7 +42,7 @@ export default function EditAssignedBlogPage() {
 
                 const data = await blogService.getBlogBySlug(slug);
                 const canEdit =
-                    user.role === "admin" ||
+                    hasRole(user, "admin") ||
                     data.authors.some((author) => author.userId === user.id);
 
                 if (!canEdit) {
@@ -64,7 +65,7 @@ export default function EditAssignedBlogPage() {
         };
 
         loadBlog();
-    }, [slug, isInitialized, isAuthenticated, user?.id, user?.role, router]);
+    }, [slug, isInitialized, isAuthenticated, user, router]);
 
     if (loading || !isInitialized) {
         return (

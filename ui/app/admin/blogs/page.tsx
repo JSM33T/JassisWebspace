@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
+import { hasRole } from "@/lib/auth-roles";
 
 export default function AdminBlogsPage() {
     const { user } = useUser();
@@ -82,7 +83,7 @@ export default function AdminBlogsPage() {
                     ) : (
                         blogs.map((blog) => {
                             const isAssignedAuthor = !!user?.id && blog.authors.some((author) => author.userId === user.id);
-                            const isAdmin = user?.role === "admin";
+                            const isAdmin = hasRole(user, "admin");
                             const canEdit = isAssignedAuthor || isAdmin;
 
                             return (

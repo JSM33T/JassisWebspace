@@ -11,6 +11,7 @@ import { apiClient } from "@/lib/api/client";
 import authService from "@/lib/api/auth.service";
 import Link from "next/link";
 import { useUser } from "@/contexts/UserContext";
+import { normalizeRoles } from "@/lib/auth-roles";
 import {
     clearPersistedLoginRedirectTarget,
     readPersistedLoginRedirectTarget,
@@ -70,6 +71,7 @@ export default function OAuthCallbackPage() {
         };
 
         const handleCallback = async () => {
+            let storedNewToken = false;
             try {
                 // Check if this is a redirect from our backend with auth results
                 const success = searchParams.get("success");
@@ -88,6 +90,7 @@ export default function OAuthCallbackPage() {
 
                     // Set access token in localStorage
                     localStorage.setItem('accessToken', token);
+                    storedNewToken = true;
 
                     // Get user info from the /auth/me endpoint
                     try {
@@ -103,7 +106,7 @@ export default function OAuthCallbackPage() {
                             avatarUrl: userData.avatarUrl || undefined,
                             login: true,
                             expiry: expiresAt,
-                            role: userData.roles?.[0] || 'user',
+                            roles: normalizeRoles(userData.roles),
                         });
 
                         setState("success");
@@ -114,11 +117,7 @@ export default function OAuthCallbackPage() {
 
                     } catch (error) {
                         console.error("Error getting user info:", error);
-
-                        setState("success");
-                        toast.success("Successfully logged in!");
-
-                        scheduleRedirect();
+                        throw error;
                     }
                 }
                 // Handle backend redirect with error (new approach)
@@ -135,15 +134,26 @@ export default function OAuthCallbackPage() {
                     // Call backend callback endpoint
                     const response = await apiClient.get<OAuthCallbackResponse>(`/auth/google/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateParam)}`);
 
-                    if (response.accessToken && response.user) {
+                    if (response.accessToken) {
                         // Set access token in localStorage (refresh token is now in HTTP-only cookie)
                         localStorage.setItem('accessToken', response.accessToken);
+                        storedNewToken = true;
                         if (response.refreshToken) {
                             localStorage.setItem('refreshToken', response.refreshToken);
                         }
 
-                        // Store user data
-                        localStorage.setItem('user', JSON.stringify(response.user));
+                        // Resolve the current account from the API before persisting its roles.
+                        const userData = await authService.getCurrentUser(response.accessToken);
+                        setUser({
+                            id: userData.id,
+                            firstName: userData.firstName || '',
+                            lastName: userData.lastName || '',
+                            username: userData.username || '',
+                            email: userData.email,
+                            avatarUrl: userData.avatarUrl || undefined,
+                            roles: normalizeRoles(userData.roles),
+                            login: true,
+                        });
 
                         setState("success");
                         toast.success("Successfully logged in!");
@@ -160,6 +170,11 @@ export default function OAuthCallbackPage() {
                 }
 
             } catch (error: unknown) {
+                if (storedNewToken) {
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('refreshToken');
+                    setUser(null);
+                }
                 const callbackError = error as OAuthCallbackError;
                 console.error("OAuth callback error:", error);
                 setState("error");

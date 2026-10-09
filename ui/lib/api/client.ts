@@ -292,7 +292,9 @@ async function performTokenRefresh(): Promise<string | null> {
             console.log('✅ Token refresh successful');
 
             // Trigger session restored event
-            window.dispatchEvent(new CustomEvent('auth:refreshed'));
+            window.dispatchEvent(new CustomEvent('auth:refreshed', {
+                detail: { expiresAt: data.data?.expiresAt || data.expiresAt }
+            }));
 
             return newAccessToken;
         }

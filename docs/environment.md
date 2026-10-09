@@ -19,7 +19,7 @@ These settings are needed for a full local or production runtime.
 | `JWT__SecretKey` | Yes | Secret used to sign JWTs; use a unique value of at least 32 characters |
 | `JWT__Issuer` | Yes | JWT issuer identifier |
 | `JWT__Audience` | Yes | JWT audience identifier |
-| `JWT__ExpiryMinutes` | Yes | Access-token lifetime in minutes |
+| `JWT__ExpiryMinutes` | Yes | Access-token lifetime in minutes; local and example values are 15, and production Compose forces 15 (see [role and session permissions](auth-permissions.md)) |
 | `JWT__RefreshTokenExpiryDays` | Yes | Refresh-token lifetime in days |
 
 `API_URL` is a server-only Next.js value. Docker Compose sets it to `http://dotnet:8080`, which lets the Next.js container call the API through the internal Docker network. It should not be exposed with a `NEXT_PUBLIC_` prefix.

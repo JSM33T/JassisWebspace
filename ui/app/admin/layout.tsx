@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@/contexts/UserContext";
+import { canAccessAdminPath } from "@/lib/auth-roles";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/sidebar";
@@ -31,7 +32,7 @@ export default function AdminLayout({
             return;
         }
 
-        if (user.role !== "admin" && user.role !== "mod") {
+        if (!canAccessAdminPath(user, pathname)) {
             router.replace("/");
         }
     }, [currentPathWithQuery, isInitialized, router, user]);
@@ -40,7 +41,7 @@ export default function AdminLayout({
         return null;
     }
 
-    if (!user || (user.role !== "admin" && user.role !== "mod")) {
+    if (!user || !canAccessAdminPath(user, pathname)) {
         return null;
     }
 

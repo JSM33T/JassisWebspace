@@ -15,6 +15,7 @@ import { type Album, type GallerySortOrder } from '@/lib/api/gallery.types';
 import { ApiError } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/contexts/UserContext';
+import { hasRole } from '@/lib/auth-roles';
 
 const PAGE_SIZE = 12;
 
@@ -129,7 +130,7 @@ export default function GalleryPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background/50">
-            {editingAlbum && user?.role === 'admin' && (
+            {editingAlbum && hasRole(user, 'admin') && (
                 <GalleryEditDialog target={{ kind: 'album', album: editingAlbum }} onClose={() => setEditingAlbum(null)} onSaved={() => { void loadAlbums(); }} />
             )}
             <PageBanner
@@ -213,7 +214,7 @@ export default function GalleryPage() {
                             </div>
                         ) : (
                             <div className={gridClassName}>
-                                {visibleAlbums.map(album => <AlbumCard key={album.id} album={album} compact={compact && !smallCollection} prominent={singleAlbum} onEdit={user?.role === 'admin' ? setEditingAlbum : undefined} />)}
+                                {visibleAlbums.map(album => <AlbumCard key={album.id} album={album} compact={compact && !smallCollection} prominent={singleAlbum} onEdit={hasRole(user, 'admin') ? setEditingAlbum : undefined} />)}
                             </div>
                         )}
 
