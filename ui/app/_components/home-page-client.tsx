@@ -11,7 +11,6 @@ import {
     Camera,
     Disc3,
     Folder,
-    Headphones,
     Mail,
     Play,
     TerminalSquare,
@@ -64,6 +63,13 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
     const latestGallery = galleries[0] ?? null;
     const latestGalleryCover = latestGallery ? getVersionedGalleryCoverUrl(latestGallery) : null;
     const latestBlogs = blogs.slice(0, 2);
+    const latestBlog = latestBlogs[0] ?? null;
+    const engineeringProject = featuredWorkItems[0] ?? null;
+    const engineeringPreview = engineeringProject?.screenshots[0] ?? engineeringProject?.coverImage ?? null;
+    const heroProject = projects.find((project) => project.slug === "linqyard-link-management-platform") ?? engineeringProject;
+    const heroProjectImage = heroProject?.screenshots.at(-1) ?? heroProject?.coverImage ?? null;
+    const heroPhotoAlbum = galleries.find((album) => album.cover && album.id !== latestGallery?.id) ?? latestGallery;
+    const heroPhotoCover = heroPhotoAlbum ? getVersionedGalleryCoverUrl(heroPhotoAlbum) : null;
 
     const featuredTrack = useMemo(() => {
         const playableTracks = musicTracks.filter((track) => track.hasPlayableSource);
@@ -120,10 +126,11 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                 <motion.div variants={containerVariants} initial="hidden" animate="visible">
                     <motion.section
                         aria-labelledby="home-heading"
-                        className="grid min-h-[calc(100svh-4.25rem)] items-center gap-10 py-12 md:grid-cols-[1.08fr_0.92fr] md:py-16"
+                        className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border-b border-border/40 bg-[radial-gradient(circle_at_63%_38%,color-mix(in_oklch,var(--primary)_12%,transparent),transparent_48%)]"
                         variants={itemVariants}
                     >
-                        <div className="max-w-3xl space-y-7">
+                        <div className="relative mx-auto grid min-h-[calc(100svh-4.25rem)] max-w-7xl items-center gap-6 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[0.88fr_1.12fr] lg:gap-4">
+                        <div className="relative z-20 max-w-2xl space-y-7">
                             <Badge variant="secondary" className="rounded-full px-4 py-1.5">
                                 Software engineer and multidisciplinary maker
                             </Badge>
@@ -137,8 +144,8 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 <Button asChild size="lg" className="h-12 rounded-full px-7">
-                                    <Link href="#selected-work">
-                                        Explore selected work
+                                    <Link href="#explore-webspace">
+                                        Explore my webspace
                                         <ArrowDownRight className="ml-2 h-4 w-4" />
                                     </Link>
                                 </Button>
@@ -148,21 +155,122 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             </div>
                         </div>
 
-                        <div className="rounded-3xl border bg-card/65 p-5 shadow-xl shadow-black/5 backdrop-blur-sm sm:p-7">
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">What you&apos;ll find here</p>
-                            <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
-                                {[
-                                    { icon: TerminalSquare, label: "Engineering", text: "Systems, automation, and product work" },
-                                    { icon: BookOpen, label: "Writing", text: "Implementation notes and field essays" },
-                                    { icon: Camera, label: "Photography", text: "Travel, places, and visual stories" },
-                                    { icon: Headphones, label: "Music", text: "Releases, remixes, and experiments" },
-                                ].map(({ icon: Icon, label, text }) => (
-                                    <div key={label} className="rounded-2xl border bg-background/60 p-4">
-                                        <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
-                                        <p className="mt-4 font-semibold">{label}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{text}</p>
+                        <div className="relative isolate h-[20rem] w-full sm:h-[24rem] lg:h-[27rem]" aria-label="Projects, photography, writing, and music previews">
+                            <div className="pointer-events-none absolute left-[12%] top-[5%] h-[72%] w-[78%] rotate-[-6deg] rounded-2xl border border-primary/20 bg-primary/10 shadow-2xl shadow-primary/10" aria-hidden="true" />
+
+                            <Link href={heroProject ? `/projects/${heroProject.slug}` : "/projects"} aria-label={heroProject ? `Explore ${heroProject.title}` : "Explore projects"} className="group absolute bottom-[16%] left-[16%] top-[8%] z-10 w-[74%] rotate-[2deg] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xl shadow-black/30 transition-transform duration-300 hover:rotate-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                                <div className="relative flex h-full flex-col">
+                                    {heroProjectImage ? <Image src={heroProjectImage} alt="" fill sizes="(max-width: 1024px) 70vw, 40vw" className="object-cover object-center opacity-80" /> : null}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/35" />
+                                    <div className="relative flex h-9 shrink-0 items-center gap-1.5 border-b border-white/10 bg-black/25 px-4 backdrop-blur-sm" aria-hidden="true">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-white/55" /><span className="h-1.5 w-1.5 rounded-full bg-white/30" /><span className="h-1.5 w-1.5 rounded-full bg-white/30" />
+                                        <span className="ml-3 text-[10px] font-medium tracking-wide text-white/70">JassSpace / Projects</span>
                                     </div>
-                                ))}
+                                    <div className="relative mt-auto p-4 text-white sm:p-5">
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Selected project</p>
+                                        <p className="mt-1 line-clamp-1 text-base font-semibold sm:text-lg">{heroProject?.title ?? "Explore my work"}</p>
+                                    </div>
+                                </div>
+                            </Link>
+
+                            <Link href={heroPhotoAlbum ? `/gallery/${heroPhotoAlbum.slug}` : "/gallery"} aria-label="Explore photography" className="group absolute bottom-[7%] left-[1%] z-20 h-[54%] w-[37%] -rotate-[6deg] overflow-hidden rounded-2xl border border-white/20 bg-card shadow-2xl shadow-black/40 transition-transform duration-300 hover:rotate-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                                {heroPhotoCover ? <Image src={heroPhotoCover} alt="" fill sizes="(max-width: 1024px) 35vw, 18vw" className="object-cover transition-transform duration-500 group-hover:scale-105" /> : <VisualFallback kind="gallery" title="Photography" className="absolute inset-0 min-h-0" />}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                                <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 text-xs font-medium text-white"><Camera className="h-3.5 w-3.5" aria-hidden="true" /> Photography</span>
+                            </Link>
+
+                            <Link href={latestBlog ? `/blog/${latestBlog.slug}` : "/blog"} aria-label="Explore writing" className="group absolute right-0 top-[2%] z-20 hidden h-[48%] w-[31%] rotate-[7deg] flex-col justify-between overflow-hidden rounded-2xl border border-border/70 bg-card/95 p-4 shadow-2xl shadow-black/30 transition-transform duration-300 hover:rotate-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:flex">
+                                <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_94%,color-mix(in_oklch,var(--border)_45%,transparent)_95%)] bg-[size:100%_1.55rem] opacity-40" aria-hidden="true" />
+                                <BookOpen className="relative h-5 w-5 text-primary" aria-hidden="true" />
+                                <div className="relative">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Latest writing</p>
+                                    <p className="mt-1 line-clamp-3 text-xs font-semibold leading-snug sm:text-sm">{latestBlog?.title ?? "Notes from building and observing"}</p>
+                                </div>
+                            </Link>
+
+                            <div className="absolute bottom-[1%] right-[1%] z-30 flex min-h-14 w-[57%] items-center gap-3 rounded-2xl border border-primary/30 bg-card/95 px-3 py-2 shadow-2xl shadow-black/35 backdrop-blur-md sm:w-[51%]">
+                                {featuredTrack?.hasPlayableSource ? (
+                                    <button type="button" onClick={() => void handlePlayTrack(featuredTrack)} disabled={playingTrackId === featuredTrack.id} aria-label={`Play ${featuredTrack.title}`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><Play className="h-4 w-4 fill-current" aria-hidden="true" /></button>
+                                ) : <Disc3 className="h-8 w-8 shrink-0 text-primary" aria-hidden="true" />}
+                                <div className="min-w-0 flex-1">
+                                    <Link href={featuredTrack ? `/music/${featuredTrack.slug}` : "/music"} className="block truncate text-xs font-semibold hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{featuredTrack?.title ?? "Music experiments"}</Link>
+                                    <div className="mt-1 flex h-3 items-center gap-[2px]" aria-hidden="true">
+                                        {[4, 7, 10, 6, 12, 8, 5, 11, 7, 4, 9, 12, 6, 10, 5, 8, 11, 6, 4, 9, 7, 12, 5, 8].map((height, index) => <span key={index} className="w-[2px] rounded-full bg-primary/80" style={{ height }} />)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        </div>
+                    </motion.section>
+
+                    <motion.section
+                        id="explore-webspace"
+                        aria-labelledby="explore-webspace-heading"
+                        className="scroll-mt-24 pb-16 pt-10 md:pb-24 md:pt-14"
+                        variants={itemVariants}
+                    >
+                        <div className="rounded-3xl border bg-card/65 p-3 backdrop-blur-sm sm:p-5 md:p-6">
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1 sm:px-2">
+                                <h2 id="explore-webspace-heading" className="text-2xl font-semibold tracking-tight sm:text-3xl">Explore my webspace</h2>
+                                <Link href="/about" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    View all <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                                </Link>
+                            </div>
+
+                            <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
+                                <Link href={latestGallery ? `/gallery/${latestGallery.slug}` : "/gallery"} className="group relative flex min-h-[21rem] flex-col justify-end overflow-hidden rounded-2xl border bg-muted/40 p-6 text-white transition-transform duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:min-h-[23rem]">
+                                    {latestGalleryCover ? (
+                                        <Image src={latestGalleryCover} alt="" fill sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                                    ) : (
+                                        <VisualFallback kind="gallery" title="Photography" eyebrow="Gallery" className="absolute inset-0 min-h-0" />
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/5" />
+                                    <div className="relative max-w-sm">
+                                        <p className="flex items-center gap-2 text-sm font-medium"><Camera className="h-5 w-5 text-primary" aria-hidden="true" /> Photography</p>
+                                        <h3 className="mt-3 text-balance text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Places, moments, and small details.</h3>
+                                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/80">A visual collection from the places and moments I notice.</p>
+                                        <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">View photos <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span>
+                                    </div>
+                                </Link>
+
+                                <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-rows-2">
+                                    <Link href={latestBlog ? `/blog/${latestBlog.slug}` : "/blog"} className="group relative flex min-h-[11rem] min-w-0 flex-col justify-center overflow-hidden rounded-2xl border bg-background/65 p-5 transition-transform duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:col-span-2 lg:min-h-0">
+                                        {latestBlog?.featuredImage ? <Image src={latestBlog.featuredImage} alt="" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover object-center opacity-30 transition-transform duration-700 group-hover:scale-105" /> : null}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-card via-card/95 to-card/20" />
+                                        <div className="relative max-w-[22rem]">
+                                            <p className="flex items-center gap-2 text-sm font-medium"><BookOpen className="h-5 w-5 text-primary" aria-hidden="true" /> Writing</p>
+                                            <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-tight tracking-tight">{latestBlog?.title ?? "Notes from building and observing."}</h3>
+                                            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">Read the latest <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span>
+                                        </div>
+                                    </Link>
+
+                                    <Link href={engineeringProject ? `/projects/${engineeringProject.slug}` : "/projects"} className="group relative flex min-h-[12rem] min-w-0 flex-col justify-end overflow-hidden rounded-2xl border bg-background/65 p-5 transition-transform duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:min-h-0">
+                                        {engineeringPreview ? <Image src={engineeringPreview} alt="" fill sizes="(max-width: 640px) 100vw, 25vw" className="object-cover object-center opacity-35 transition-transform duration-700 group-hover:scale-105" /> : null}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/90 to-card/40" />
+                                        <div className="relative">
+                                            <p className="flex items-center gap-2 text-sm font-medium"><TerminalSquare className="h-5 w-5 text-primary" aria-hidden="true" /> Engineering</p>
+                                            <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-tight tracking-tight">Building dependable systems and thoughtful products.</h3>
+                                            <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary">Explore projects <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span>
+                                        </div>
+                                    </Link>
+
+                                    <div className="group relative flex min-h-[12rem] min-w-0 flex-col justify-end overflow-hidden rounded-2xl border bg-background/65 p-5 lg:min-h-0">
+                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,color-mix(in_oklch,var(--primary)_28%,transparent),transparent_55%),linear-gradient(145deg,color-mix(in_oklch,var(--accent)_14%,transparent),transparent_65%)]" />
+                                        <Disc3 className="pointer-events-none absolute -right-6 -top-8 h-44 w-44 text-primary/15" strokeWidth={0.7} aria-hidden="true" />
+                                        <div className="relative">
+                                            <p className="flex items-center gap-2 text-sm font-medium"><Disc3 className="h-5 w-5 text-primary" aria-hidden="true" /> Music</p>
+                                            <Link href={featuredTrack ? `/music/${featuredTrack.slug}` : "/music"} className="mt-3 block line-clamp-2 text-lg font-semibold leading-tight tracking-tight hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{featuredTrack?.title ?? "Sounds and experiments."}</Link>
+                                            <p className="mt-2 line-clamp-1 text-sm text-muted-foreground">{featuredTrack ? formatArtists(featuredTrack) : "Explore the music shelf"}</p>
+                                            <div className="mt-3 flex items-center gap-3">
+                                                {featuredTrack?.hasPlayableSource ? (
+                                                    <button type="button" onClick={() => void handlePlayTrack(featuredTrack)} disabled={playingTrackId === featuredTrack.id} aria-label={`Play ${featuredTrack.title}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><Play className="h-4 w-4 fill-current" aria-hidden="true" /></button>
+                                                ) : null}
+                                                <Link href="/music" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Explore music <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </motion.section>
