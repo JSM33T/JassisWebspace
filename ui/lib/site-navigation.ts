@@ -43,7 +43,7 @@ const explore: NavigationGroup = {
 
 const about: NavigationGroup = {
     id: 'about', label: 'About', icon: UserCircle,
-    items: [siteDestinations.about, siteDestinations.uses, siteDestinations.contact],
+    items: [siteDestinations.about, siteDestinations.contact],
 };
 
 // Pals stays out of promoted navigation until its biographies are verified.
@@ -66,7 +66,7 @@ export const navigationSections: NavigationGroup[] = [
     about,
 ];
 
-export const footerUtilityLinks = [siteDestinations.faq, siteDestinations.privacy];
+export const footerUtilityLinks = [siteDestinations.uses, siteDestinations.faq, siteDestinations.privacy];
 
 export const homeNavigationLinks = [
     siteDestinations.about, siteDestinations.projects, siteDestinations.blog,

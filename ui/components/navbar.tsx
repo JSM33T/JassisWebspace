@@ -132,11 +132,12 @@ export function Navbar() {
 
     const navDropdownGridClassName = 'grid grid-cols-2 gap-2';
 
-    const navDropdownItemClassName = (active: boolean) =>
+    const navDropdownItemClassName = (active: boolean, compact: boolean) =>
         cn(
-            'group/menuitem flex h-full min-h-24 cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-colors duration-150 motion-reduce:transition-none',
-            'border-transparent hover:border-primary/25 hover:bg-accent/55 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary data-[highlighted]:bg-accent data-[highlighted]:outline-2 data-[highlighted]:outline-primary',
-            active && 'border-primary/30 bg-accent/70 shadow-sm'
+            'group/menuitem flex h-full min-h-24 cursor-pointer items-start gap-3 rounded-[calc(var(--radius)-1px)] border p-4 transition-colors duration-150 motion-reduce:transition-none',
+            'border-transparent hover:border-primary/30 hover:bg-accent/70 focus:bg-accent/70 focus:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary data-[highlighted]:border-primary/30 data-[highlighted]:bg-accent/70',
+            active && 'border-primary/30 bg-accent/70 shadow-sm',
+            compact && 'min-h-0 items-center rounded-[calc(var(--radius)+3px)] p-3'
         );
 
     const navDropdownIconClassName = (active: boolean) =>
@@ -146,13 +147,13 @@ export function Navbar() {
             active && 'border-primary/35 bg-background text-foreground'
         );
 
-    const renderDesktopMenuItem = (item: NavigationItem) => {
+    const renderDesktopMenuItem = (item: NavigationItem, compact: boolean) => {
         const Icon = item.icon;
         const isActive = isActivePath(item.href);
 
         return (
-            <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent">
-                <Link href={item.href} aria-current={navigationAriaCurrent(pathname, item.href)} className={navDropdownItemClassName(isActive)}>
+            <DropdownMenuItem key={item.href} asChild className={navDropdownItemClassName(isActive, compact)}>
+                <Link href={item.href} aria-current={navigationAriaCurrent(pathname, item.href)}>
                     <span className={navDropdownIconClassName(isActive)}>
                         <Icon className="h-5 w-5" />
                     </span>
@@ -330,6 +331,7 @@ export function Navbar() {
                                     }
 
                                     const active = entry.items.some((item) => isActivePath(item.href));
+                                    const compact = entry.id === 'about';
                                     return (
                                         <DropdownMenu key={entry.id} modal={false} open={desktopMenu === entry.id} onOpenChange={(open) => handleDesktopMenuOpenChange(entry.id, open)}>
                                             <DropdownMenuTrigger asChild>
@@ -349,8 +351,8 @@ export function Navbar() {
                                                     <ChevronDown aria-hidden="true" className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                                 </button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent {...desktopMenuContentProps} className={navDropdownContentClassName} align="center" sideOffset={14} collisionPadding={16}>
-                                                <div className={navDropdownGridClassName}>{entry.items.map(renderDesktopMenuItem)}</div>
+                                            <DropdownMenuContent {...desktopMenuContentProps} className={cn(navDropdownContentClassName, compact && 'w-[min(22rem,calc(100vw-2rem))] p-2')} align="center" sideOffset={14} collisionPadding={16}>
+                                                <div className={cn(navDropdownGridClassName, compact && 'grid-cols-1 gap-1')}>{entry.items.map((item) => renderDesktopMenuItem(item, compact))}</div>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     );

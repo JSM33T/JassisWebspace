@@ -46,7 +46,7 @@ try {
         [
             ['Explore', ['Blog', 'Gallery', 'Music']],
             ['Work', ['Projects', 'Services']],
-            ['About', ['About', 'Uses', 'Contact']],
+            ['About', ['About', 'Contact']],
         ],
         'Desktop destinations are classified into the intended submenus'
     );
