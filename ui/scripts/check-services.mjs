@@ -25,8 +25,8 @@ try {
     const projectPaths = new Set(projects.map((project) => `/projects/${project.slug}`));
 
     assert.equal(services.length, 12, 'All reviewed service entries remain present');
-    assert.equal(availableServices.length, 4, 'The four reviewed active services remain available');
-    assert.equal(unavailableServices.length, 8, 'Paused capabilities remain explicitly unavailable');
+    assert.equal(availableServices.length, 5, 'The five active services are available');
+    assert.equal(unavailableServices.length, 7, 'Paused capabilities remain explicitly unavailable');
     assert.equal(new Set(services.map((service) => service.slug)).size, services.length, 'Service slugs are unique');
 
     for (const service of services) {

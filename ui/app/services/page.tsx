@@ -51,7 +51,7 @@ export default function ServicesPage() {
                 badge="Services"
                 badgeIcon={Briefcase}
                 title="Focused engineering support"
-                description="I take on bounded automation, AI assistant, portfolio, and .NET architecture work with a clear scope and next step."
+                description="I take on bounded automation, AI product and assistant, portfolio, and .NET architecture work with a clear scope and next step."
                 maxWidth="max-w-7xl"
             />
 
