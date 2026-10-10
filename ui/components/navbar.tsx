@@ -65,6 +65,16 @@ export function Navbar() {
         updateShortcut();
     }, []);
 
+    useEffect(() => {
+        const handleSidebarState = (event: Event) => {
+            const open = (event as CustomEvent<boolean>).detail;
+            if (typeof open === 'boolean') setSidebarOpen(open);
+        };
+
+        window.addEventListener(SIDEBAR_OPEN_EVENT, handleSidebarState);
+        return () => window.removeEventListener(SIDEBAR_OPEN_EVENT, handleSidebarState);
+    }, []);
+
     const cancelDesktopMenuClose = () => {
         if (desktopMenuCloseTimer.current !== null) {
             clearTimeout(desktopMenuCloseTimer.current);

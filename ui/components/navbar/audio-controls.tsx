@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useId } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { Library, Pause, Play, SkipBack, SkipForward, Square } from 'lucide-react';
 
@@ -17,7 +18,8 @@ function formatAudioTime(seconds: number) {
     return `${minutes.toString().padStart(2, '0')}:${remainder.toString().padStart(2, '0')}`;
 }
 
-export function NavbarAudioControls({ isOpen }: { isOpen: boolean }) {
+export function NavbarAudioControls({ isOpen, compact = false }: { isOpen: boolean; compact?: boolean }) {
+    const headingId = useId();
     const {
         hasSource,
         currentTitle,
@@ -34,10 +36,10 @@ export function NavbarAudioControls({ isOpen }: { isOpen: boolean }) {
     const reduceMotion = useReducedMotion();
 
     return (
-        <section className="space-y-3 rounded-xl border bg-card/60 p-3" aria-labelledby="navbar-player-heading">
+        <section className="space-y-3 rounded-xl border bg-card/60 p-3" aria-labelledby={headingId}>
             <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                    <h3 id="navbar-player-heading" className="text-sm font-medium">Music Player</h3>
+                    <h3 id={headingId} className="text-sm font-medium">Music Player</h3>
                     <p className="text-xs text-muted-foreground">
                         {hasSource ? 'Control playback directly here' : 'Select a track to start playback'}
                     </p>
@@ -52,7 +54,7 @@ export function NavbarAudioControls({ isOpen }: { isOpen: boolean }) {
                         <p className="truncate text-sm font-semibold">{currentTitle || 'Untitled Track'}</p>
                         <p className="truncate text-xs text-muted-foreground">{currentArtist || 'Unknown Artist'}</p>
                     </div>
-                    {isOpen && !reduceMotion ? (
+                    {isOpen && !compact && !reduceMotion ? (
                         <AudioSidebarVisualizer isOpen={isOpen} isPlaying={isPlaying} getVisualizerAnalyser={getVisualizerAnalyser} />
                     ) : null}
                     <div className="space-y-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Volume2 } from "lucide-react";
+import { FloatingAudioPlayer } from "@/components/floating-audio-player";
 
 type OpenPlayerInput = {
     url: string;
@@ -137,12 +137,10 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     }, [dispatchSidebarState]);
 
     const togglePlayer = useCallback(() => {
-        setIsOpen((prev) => {
-            const next = !prev;
-            dispatchSidebarState(next);
-            return next;
-        });
-    }, [dispatchSidebarState]);
+        const next = !isOpen;
+        setIsOpen(next);
+        dispatchSidebarState(next);
+    }, [dispatchSidebarState, isOpen]);
 
     const hasSource = !!currentUrl.trim();
 
@@ -286,24 +284,7 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
             >
                 Your browser does not support the audio element.
             </audio>
-            {hasSource && isPlaying ? (
-                <button
-                    type="button"
-                    onClick={() => {
-                        setIsOpen(true);
-                        dispatchSidebarState(true);
-                    }}
-                    className="fixed right-0 top-1/2 z-40 -translate-y-1/2 rounded-l-xl border border-r-0 bg-background/95 px-2 py-3 shadow-lg backdrop-blur-sm transition hover:bg-background"
-                    title="Music is playing. Open player"
-                >
-                    <span className="flex flex-col items-center gap-1 text-[11px] font-medium">
-                        <Volume2 className="h-3.5 w-3.5 text-primary" />
-                        <span className="[writing-mode:vertical-rl] [text-orientation:mixed]">
-                            Music is playing
-                        </span>
-                    </span>
-                </button>
-            ) : null}
+            <FloatingAudioPlayer />
         </AudioPlayerContext.Provider>
     );
 }
