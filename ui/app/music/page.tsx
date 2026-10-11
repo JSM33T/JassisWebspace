@@ -6,14 +6,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Disc3, Music, Play } from 'lucide-react';
+import { Disc3, LoaderCircle, Music, Play } from 'lucide-react';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
 import { musicService } from '@/lib/api/music.service';
 import { MusicTrack } from '@/lib/api/music.types';
 import { MusicContentPayload } from '@/lib/music-content.types';
 import { toast } from 'sonner';
 import { PageBanner } from '@/components/page-banner';
-import { VisualFallback } from '@/components/visual-fallback';
 import { getVersionedMusicCoverUrl } from '@/lib/music-media';
 
 const CATEGORY_ORDER = ['remixes', 'originals', 'snippets', 'radio/features', 'radio-features', 'features'];
@@ -44,7 +43,7 @@ export default function MusicPage() {
                 return a.localeCompare(b);
             });
 
-            return [...sortedCategories, 'all'];
+            return ['all', ...sortedCategories];
         },
         [tracks]
     );
@@ -204,6 +203,7 @@ export default function MusicPage() {
                                     type="button"
                                     variant={isActive ? 'default' : 'outline'}
                                     size="sm"
+                                    aria-pressed={isActive}
                                     onClick={() => setSelectedCategory(category)}
                                     className="rounded-full h-8 px-4"
                                 >
@@ -213,8 +213,14 @@ export default function MusicPage() {
                         })}
                     </div>
                     {loading ? (
-                        <div className="max-w-6xl py-10 text-center text-muted-foreground">
-                            Loading tracks...
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" role="status" aria-label="Loading tracks">
+                            {Array.from({ length: 6 }, (_, index) => (
+                                <div key={index} className="animate-pulse motion-reduce:animate-none">
+                                    <div className="aspect-square rounded-lg bg-muted" />
+                                    <div className="mt-3 h-4 w-4/5 rounded bg-muted" />
+                                    <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
+                                </div>
+                            ))}
                         </div>
                     ) : null}
                     {!loading && filteredTracks.length === 0 ? (
@@ -222,77 +228,69 @@ export default function MusicPage() {
                             No tracks found.
                         </div>
                     ) : null}
-                    <div className="grid max-w-6xl grid-cols-2 gap-4 md:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                         {filteredTracks.map((track, index) => (
-                            <motion.div
+                            <motion.article
                                 key={track.id}
+                                className="group min-w-0"
                                 initial={{ opacity: 0, scale: 0.98 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.25, delay: index * 0.02 }}
                             >
-                                <div
-                                    className={`group relative aspect-square overflow-hidden rounded-2xl border transition-all duration-300 ${
-                                        track.hasPlayableSource
-                                            ? 'hover:-translate-y-0.5 hover:shadow-xl'
-                                            : 'opacity-60 saturate-50'
-                                    }`}
-                                >
-                                    {/* Background image */}
-                                    {track.cover ? (
-                                        <Image
-                                            src={getVersionedMusicCoverUrl(track) ?? track.cover}
-                                            alt={track.title}
-                                            fill
-                                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                        />
-                                    ) : (
-                                        <VisualFallback
-                                            kind="music"
-                                            title={track.title}
-                                            eyebrow={formatCategory(track.category)}
-                                            icon={Disc3}
-                                            className="absolute inset-0 min-h-0"
-                                        />
-                                    )}
-
-                                    {/* Gradient overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-
-                                    {/* Category badge — top right */}
-                                    <div className="absolute right-3 top-3">
-                                        <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/50 px-2.5 py-1 text-[10px] font-medium text-white/90 backdrop-blur-sm">
-                                            <Disc3 className="h-3 w-3" />
-                                            {formatCategory(track.category)}
-                                        </span>
-                                    </div>
-
-                                    {/* Bottom content */}
-                                    <div className="absolute inset-x-0 bottom-0 p-4">
-                                        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-white sm:text-base">
-                                            {track.title}
-                                        </h3>
-                                        <p className="mt-1 line-clamp-1 text-[11px] text-white/55">
-                                            {track.authors.map((author) => author.displayName || author.username).join(', ')}
-                                        </p>
-                                        <div className="mt-3 flex items-center gap-2">
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                className="h-10 flex-1 cursor-pointer rounded-full text-sm font-semibold"
-                                                onClick={() => { void handlePlay(track); }}
-                                                disabled={!track.hasPlayableSource || playingTrackId === track.id}
-                                            >
-                                                <Play className="mr-1.5 h-3.5 w-3.5 fill-current" />
-                                                {playingTrackId === track.id ? 'Loading…' : 'Play'}
-                                            </Button>
-                                            <Button asChild type="button" size="sm" variant="outline" className="h-10 flex-1 rounded-full border-white/20 bg-white/10 text-sm font-semibold text-white hover:bg-white/20 hover:text-white">
-                                                <Link href={`/music/${track.slug}`}>Open</Link>
-                                            </Button>
-                                        </div>
-                                    </div>
+                                <div className="relative aspect-square">
+                                    <Link
+                                        href={`/music/${track.slug}`}
+                                        aria-label={`View ${track.title}`}
+                                        className="absolute inset-0 overflow-hidden rounded-lg bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                    >
+                                        {track.cover ? (
+                                            <Image
+                                                src={getVersionedMusicCoverUrl(track) ?? track.cover}
+                                                alt=""
+                                                fill
+                                                sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) 25vw, (max-width: 1279px) 20vw, 180px"
+                                                className="object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transform-none"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/15 via-muted to-primary/5">
+                                                <Disc3 className="h-14 w-14 text-muted-foreground/50" aria-hidden="true" />
+                                            </div>
+                                        )}
+                                    </Link>
+                                    {track.hasPlayableSource ? (
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            aria-label={playingTrackId === track.id ? `Loading ${track.title}` : `Play ${track.title}`}
+                                            aria-busy={playingTrackId === track.id}
+                                            className={`absolute bottom-2 right-2 h-11 w-11 cursor-pointer rounded-full shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 ${playingTrackId === track.id ? 'opacity-100' : 'opacity-0'}`}
+                                            onClick={() => { void handlePlay(track); }}
+                                            disabled={playingTrackId === track.id}
+                                        >
+                                            {playingTrackId === track.id ? (
+                                                <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />
+                                            ) : (
+                                                <Play className="ml-0.5 h-5 w-5 fill-current" aria-hidden="true" />
+                                            )}
+                                        </Button>
+                                    ) : null}
                                 </div>
-                            </motion.div>
+                                <h3 className="mt-2.5 truncate text-sm font-semibold leading-5">
+                                    <Link href={`/music/${track.slug}`} title={track.title} className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        {track.title}
+                                    </Link>
+                                </h3>
+                                <div className="mt-0.5 flex items-center justify-between gap-2 text-sm leading-5 text-muted-foreground">
+                                    <p className="min-w-0 truncate" title={track.authors.map((author) => author.displayName || author.username).join(', ')}>
+                                        {track.authors.map((author) => author.displayName || author.username).join(', ') || 'Unknown artist'}
+                                    </p>
+                                    {track.duration?.trim() ? (
+                                        <span className="shrink-0 tabular-nums" aria-label={`Duration: ${track.duration.trim()}`}>
+                                            {track.duration.trim()}
+                                        </span>
+                                    ) : null}
+                                </div>
+                            </motion.article>
                         ))}
                     </div>
                 </div>
