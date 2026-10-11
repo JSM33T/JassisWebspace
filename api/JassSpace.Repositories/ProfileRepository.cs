@@ -80,7 +80,9 @@ public class ProfileRepository(JassSpaceDbContext db, ILogger<ProfileRepository>
 
         var dto = await _db.Users
             .AsNoTracking()
-            .Where(u => u.Username.ToLower() == normalizedUsername)
+            .Where(u => u.DeletedAt == null &&
+                        u.IsActive &&
+                        u.Username.ToLower() == normalizedUsername)
             .Select(u => new
             {
                 u.Id,
