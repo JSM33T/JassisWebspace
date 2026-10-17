@@ -18,7 +18,15 @@ Viewing or refreshing the recipient page consumes no use. Clicking Download rese
 
 A grant lasts 15 minutes by default, capped by the link's expiry. Grant retries and ranged GET/HEAD requests do not consume further uses. Exhausting a link does not invalidate its already reserved grants. Revocation, deletion, or time expiry blocks subsequent requests using existing grants. Data already transmitted or saved cannot be recalled, and already running responses are allowed to finish. Up to two transfers per grant may run concurrently. An API process crash can leave those slots occupied until the grant expires; a new download session is then needed.
 
-The recipient page submits a normal HTML form so the browser can stream to disk. Download secrets are POST body values, not URLs. The retry button reuses the same grant. An expired session requires a page reload and a new redemption. Browser download UI reports transfer errors; the page reports that a download was requested rather than claiming transfer completion.
+The default recipient page submits a normal HTML form so the browser can stream to disk. In this flow, download secrets are POST body values rather than URLs. The retry button reuses the same grant. An expired session requires a page reload and a new redemption. Browser download UI reports transfer errors; the page reports that a download was requested rather than claiming transfer completion.
+
+## Direct download links
+
+Normal share links keep opening the recipient page. Add `?directdl=true` **before the fragment** to start a download automatically: `/artifacts/share?directdl=true#<secret>`. The browser forwards to the API without loading artifact metadata or asking the recipient to click Download.
+
+For a direct HTTP download URL, use the API origin with `/artifact-shares/<secret>?directdl=true`. The link creation dialog offers **Copy direct download link** alongside the normal share URL. Both URLs use the same share and allowance. Without the flag, or with `directdl=false`, this API URL redirects to the usual recipient page.
+
+A direct GET reserves one download and redirects to `/artifact-downloads/<grantToken>`, which serves an attachment. Range requests and retries using that final session URL reuse its allowance. Opening the original direct link again reserves another session, including automated clients that issue GET requests. HEAD requests inspect availability and metadata without consuming an allowance. Expiry, revocation, deletion, replacement and concurrency checks continue to apply.
 
 ## Replacing and downloading your own artifact
 
@@ -55,8 +63,10 @@ Anonymous capability endpoints:
 | --- | --- | --- |
 | GET | `/artifact-shares` | `X-Artifact-Token` header; minimal valid-share metadata |
 | POST | `/artifact-shares/redeem` | Same header and JSON `{ idempotencyKey: "<uuid>" }` |
+| GET / HEAD | `/artifact-shares/{token}?directdl=true` | Direct link; GET reserves a session and redirects, HEAD only inspects metadata; omit the flag for the normal share page |
 | POST | `/artifact-downloads` | Form-urlencoded `grantToken`; attachment response |
 | GET / HEAD | `/artifact-downloads` | `X-Artifact-Grant` header; Range supported for GET |
+| GET / HEAD | `/artifact-downloads/{grantToken}` | Reserved direct-download session; Range supported for GET |
 
 Unknown shares/grants return 404; known unavailable/expired capabilities return 410. Invalid settings return 400; upload size violations 413; exceeded owner quota 409; rate/concurrency limits 429. Storage/database failures fail closed and return a generic 503. Cross-owner management lookups return 404. Download capabilities never authorize management.
 
@@ -65,6 +75,8 @@ Unknown shares/grants return 404; known unavailable/expired capabilities return 
 The EF migration `20261017090000_AddArtifacts` creates Artifacts, ArtifactShareLinks, and ArtifactDownloadGrants with foreign keys, token uniqueness, positive-limit constraints, and a unique share/request-ID pair. Redemption locks the artifact then the share row, reads database time, checks restrictions, increments the count, and saves a grant atomically. Edits, revocation, deletion and byte request authorization use the same lock order. Concurrent single-use redemptions issue only one grant.
 
 Share tokens are random 256-bit capabilities stored as SHA-256 hashes. Grants have a hash plus an encrypted replay token for idempotency, using ASP.NET Data Protection. Encryption keys must persist across API restarts and be shared by replicas. Do not log custom capability headers, form bodies, response bodies containing new capabilities, or browser URL fragments.
+
+Direct HTTP links and their redirect destinations carry capabilities in URL paths. The API redacts those path segments in its request logging context. Configure reverse-proxy/access-log redaction for `/artifact-shares/<secret>` and `/artifact-downloads/<grantToken>` as well, and exclude their redirect `Location` headers from logging. Direct links should be treated as private bearer credentials, just like normal share links.
 
 The dedicated `artifacts-private` Azure container must differ from the media container. It is created without anonymous access, and uploads reject a container with public access enabled. Bytes are streamed to Azure without image processing, full-file memory buffering, public blob links, or the generic media cache. All downloads are attachments served as `application/octet-stream` with `nosniff`. Original names are sanitized; storage keys are generated independently.
 

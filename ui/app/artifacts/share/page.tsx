@@ -5,6 +5,7 @@ import { Download, FileBox, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { artifactShareService, formatArtifactSize } from '@/lib/api/artifact.service';
 import type { ArtifactGrant, ArtifactPublic } from '@/lib/api/artifact.types';
+import { directArtifactDownloadUrl } from '@/lib/artifact-share-links';
 
 export default function ArtifactSharePage() {
     const [artifact, setArtifact] = useState<ArtifactPublic | null>(null);
@@ -13,6 +14,9 @@ export default function ArtifactSharePage() {
     const [busy, setBusy] = useState(false);
     const [grant, setGrant] = useState<ArtifactGrant | null>(null);
     const [started, setStarted] = useState(false);
+    const [direct, setDirect] = useState(false);
+    const [directUrl, setDirectUrl] = useState('');
+    const redirectedToken = useRef('');
     const token = useRef('');
     const requestId = useRef('');
     const downloading = useRef(false);
@@ -21,10 +25,24 @@ export default function ArtifactSharePage() {
         let active = true;
         async function load() {
             const secret = window.location.hash.slice(1);
+            const directDownload = new URLSearchParams(window.location.search).get('directdl') === 'true';
+            setDirect(directDownload); setDirectUrl('');
             token.current = secret;
             requestId.current = '';
             setGrant(null); setStarted(false); setLoading(true); setError(''); setArtifact(null);
             if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) { setError('This share link is invalid or incomplete.'); setLoading(false); return; }
+            if (directDownload) {
+                const url = directArtifactDownloadUrl(secret);
+                setDirectUrl(url); setLoading(false);
+                // React's development Strict Mode may rerun this effect. Only initiate one
+                // navigation per token, avoiding duplicate redemptions for a single opening.
+                if (redirectedToken.current !== secret) {
+                    redirectedToken.current = secret;
+                    window.location.replace(url);
+                }
+                return;
+            }
+            redirectedToken.current = '';
             try { const result = await artifactShareService.metadata(secret); if (active && token.current === secret) setArtifact(result); }
             catch (e) { if (active && token.current === secret) setError(e instanceof Error ? e.message : 'Artifact unavailable.'); }
             finally { if (active && token.current === secret) setLoading(false); }
@@ -32,7 +50,8 @@ export default function ArtifactSharePage() {
         void load();
         const handler = () => void load();
         window.addEventListener('hashchange', handler);
-        return () => { active = false; window.removeEventListener('hashchange', handler); };
+        window.addEventListener('popstate', handler);
+        return () => { active = false; window.removeEventListener('hashchange', handler); window.removeEventListener('popstate', handler); };
     }, []);
 
     function deliver(session: ArtifactGrant) {
@@ -58,6 +77,16 @@ export default function ArtifactSharePage() {
         } catch (e) { setError(e instanceof Error ? e.message : 'Unable to start the download.'); }
         finally { downloading.current = false; setBusy(false); }
     }
+    if (direct) return <div className="grid min-h-screen place-items-center px-4 py-12">
+        <div className="max-w-md space-y-4 text-center">
+            {error ? <><h1 className="text-xl font-semibold">Download unavailable</h1><p role="alert" className="text-sm text-destructive">{error}</p></> : <>
+                <Download className="mx-auto size-8 text-primary" />
+                <h1 className="text-xl font-semibold">Starting your download…</h1>
+                <p className="text-sm text-muted-foreground">Your browser will save the artifact directly.</p>
+                {directUrl && <Button asChild variant="outline"><a href={directUrl} referrerPolicy="no-referrer">Download if it didn’t start</a></Button>}
+            </>}
+        </div>
+    </div>;
     return <div className="grid min-h-screen place-items-center px-4 py-12">
         <div className="w-full max-w-lg space-y-6 rounded-2xl border bg-card p-6 shadow-sm sm:p-9">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground"><ShieldCheck className="size-4" />Jass Space · Shared artifact</div>

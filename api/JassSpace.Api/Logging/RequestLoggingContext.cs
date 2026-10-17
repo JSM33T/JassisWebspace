@@ -66,7 +66,17 @@ public static class RequestLoggingContext
 
     public static string GetRequestPath(HttpContext context)
     {
-        var path = context.Request.PathBase.Add(context.Request.Path).Value;
+        var requestPath = context.Request.Path;
+        foreach (var prefix in new[] { "/artifact-shares", "/artifact-downloads" })
+        {
+            if (requestPath.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase, out var remaining) &&
+                remaining.HasValue && !remaining.Equals("/redeem", StringComparison.OrdinalIgnoreCase))
+            {
+                requestPath = new PathString($"{prefix}/[redacted]");
+                break;
+            }
+        }
+        var path = context.Request.PathBase.Add(requestPath).Value;
         return string.IsNullOrWhiteSpace(path) ? "/" : path;
     }
 

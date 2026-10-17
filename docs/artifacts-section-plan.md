@@ -13,12 +13,13 @@ Implemented in source. The user requested that the uploaded entity be named `Art
 - Atomic download reservations with idempotent retries, expiring grants, range support, and a concurrent-transfer cap per grant.
 - Admin upload/list/detail screens with search, uploader filters, progress/cancellation, private notes, creation-time URL copying, and deletion controls.
 - A minimal anonymous recipient page using fragment-based share URLs so secrets do not enter web-server request URLs.
+- Optional `directdl=true` downloads that preserve the normal default page, creation-time copying of direct HTTP links, and redirects to reserved sessions for range requests and retries.
 - Immediate access removal, retried storage deletion, permanent artifact/content deletion with related-record cascades, cleanup of legacy tombstones, abandoned-upload recovery, grant retention, and audit retention through Hangfire.
 - Environment configuration and rollout documentation.
 
 ## Counting semantics
 
-Opening a share page or generating a preview consumes no use. A deliberate download reserves one use. Transfer retries within that grant reuse the allowance; abandoned transfers remain counted. Time expiry, revocation, and deletion block subsequent byte requests, including requests using existing grants. Exhausting the allowance does not cancel grants already issued.
+Opening a normal share page or generating its preview consumes no use. A deliberate download or a GET to a direct download link reserves one use. HEAD inspection consumes no use. Transfer retries within that grant reuse the allowance; abandoned transfers remain counted. Time expiry, revocation, and deletion block subsequent byte requests, including requests using existing grants. Exhausting the allowance does not cancel grants already issued.
 
 ## Verification and rollout
 
