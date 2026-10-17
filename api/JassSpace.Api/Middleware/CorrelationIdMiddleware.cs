@@ -38,6 +38,7 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
 
         using (LogContext.PushProperty(RequestLoggingContext.CorrelationIdPropertyName, correlationId))
         using (LogContext.PushProperty(RequestLoggingContext.RequestIdPropertyName, correlationId))
+        using (LogContext.Push(new RequestPathLogEnricher(RequestLoggingContext.GetRequestPath(context))))
         {
             await next(context);
         }

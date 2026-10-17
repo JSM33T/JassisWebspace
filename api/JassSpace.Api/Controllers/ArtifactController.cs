@@ -5,6 +5,7 @@ using JassSpace.Contracts.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Net.Http.Headers;
 
 namespace JassSpace.Api.Controllers;
 
@@ -108,9 +109,9 @@ public sealed class AdminArtifactController(IArtifactService artifacts) : BaseAp
 [AllowAnonymous]
 [TypeFilter(typeof(ArtifactExceptionFilter))]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class ArtifactShareController(IArtifactService artifacts) : BaseApiController
+public sealed class ArtifactShareController(IArtifactService artifacts, IConfiguration configuration) : BaseApiController
 {
-    // Secrets travel in headers or POST bodies, never in paths/query strings.
+    // The normal share-page flow sends capabilities in headers or POST bodies.
     [HttpGet("artifact-shares")]
     [RateLimit("artifact-share-read")]
     public async Task<IActionResult> Metadata([FromHeader(Name = "X-Artifact-Token")] string token, CancellationToken ct) =>
@@ -123,14 +124,44 @@ public sealed class ArtifactShareController(IArtifactService artifacts) : BaseAp
         [FromBody] ArtifactRedeemRequest request, CancellationToken ct) =>
         OkEnvelope(await artifacts.RedeemAsync(token, request.IdempotencyKey, ct));
 
+    [HttpGet("artifact-shares/{token}")]
+    [HttpHead("artifact-shares/{token}")]
+    [RateLimit("artifact-redeem")]
+    public async Task<IActionResult> Share(string token, [FromQuery] bool directdl = false, CancellationToken ct = default)
+    {
+        if (token.Length != 43 || token.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '-' && c != '_'))
+            return NotFoundProblem("Artifact not found.");
+        if (!directdl)
+        {
+            var frontend = configuration["Frontend:BaseUrl"] ?? configuration["AppUrl"] ?? "http://localhost:3001";
+            return Redirect($"{frontend.TrimEnd('/')}/artifacts/share#{Uri.EscapeDataString(token)}");
+        }
+        if (HttpMethods.IsHead(Request.Method))
+        {
+            // HEAD/link inspection must not reserve a download or consume a use.
+            var metadata = await artifacts.GetShareAsync(token, ct);
+            var disposition = new ContentDispositionHeaderValue("attachment");
+            disposition.SetHttpFileName(metadata.FileName);
+            Response.Headers.ContentDisposition = disposition.ToString();
+            Response.ContentType = "application/octet-stream";
+            Response.ContentLength = metadata.SizeBytes;
+            return new EmptyResult();
+        }
+        var grant = await artifacts.RedeemAsync(token, Guid.NewGuid(), ct);
+        // Redirect to the reserved session so subsequent GET/HEAD/Range requests use
+        // the same grant, rather than redeeming the original share repeatedly.
+        return Redirect($"{Request.PathBase}/artifact-downloads/{Uri.EscapeDataString(grant.GrantToken)}");
+    }
+
     [AcceptVerbs("GET", "HEAD", "POST")]
     [Route("artifact-downloads")]
+    [Route("artifact-downloads/{grantToken}")]
     [RequestSizeLimit(4096)]
     [RateLimit("artifact-download")]
     [Produces("application/octet-stream")]
-    public async Task<IActionResult> Download(CancellationToken ct)
+    public async Task<IActionResult> Download([FromRoute] string? grantToken, CancellationToken ct)
     {
-        var token = Request.Headers["X-Artifact-Grant"].ToString();
+        var token = grantToken ?? Request.Headers["X-Artifact-Grant"].ToString();
         if (Request.Method == "POST" && Request.HasFormContentType)
             token = (await Request.ReadFormAsync(ct))["grantToken"].ToString();
         var download = await artifacts.OpenDownloadAsync(token, ct);
