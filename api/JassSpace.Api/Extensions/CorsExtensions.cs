@@ -58,6 +58,7 @@ namespace JassSpace.Api.Extensions
                         })
                         .AllowAnyMethod()
                         .AllowAnyHeader()
+                        .WithExposedHeaders("Content-Disposition")
                         .AllowCredentials();
                 });
             });

@@ -5,5 +5,6 @@ public enum ContentType
     Album = 1,
     Blog = 2,
     Video = 3,
-    Music = 4
+    Music = 4,
+    Artifact = 5
 }

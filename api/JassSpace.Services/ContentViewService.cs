@@ -16,7 +16,7 @@ public sealed class ContentViewService(JassSpaceDbContext dbContext) : IContentV
     {
         var exists = await _dbContext.Contents
             .AsNoTracking()
-            .AnyAsync(c => c.Id == contentId, cancellationToken);
+            .AnyAsync(c => c.Id == contentId && c.ContentType != JassSpace.Entities.Enums.ContentType.Artifact, cancellationToken);
 
         if (!exists)
         {
@@ -81,7 +81,7 @@ public sealed class ContentViewService(JassSpaceDbContext dbContext) : IContentV
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var content = await _dbContext.Contents
-            .FirstAsync(c => c.Id == contentId, cancellationToken);
+            .FirstAsync(c => c.Id == contentId && c.ContentType != JassSpace.Entities.Enums.ContentType.Artifact, cancellationToken);
 
         content.ViewCount += 1;
         content.LastViewedAt = viewedAt;

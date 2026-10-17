@@ -147,6 +147,9 @@ namespace JassSpace.Infra
                 return null;
             }
 
+            if (blobName.Replace('\\', '/').TrimStart('/').StartsWith("artifacts/", StringComparison.OrdinalIgnoreCase))
+                return null;
+
             // Check local cache first if enabled
             if (_settings.UseLocalCache)
             {

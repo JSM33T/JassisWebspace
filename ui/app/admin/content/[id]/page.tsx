@@ -119,10 +119,13 @@ export default function AdminContentDetailPage() {
                     {content.contentType}
                 </Badge>
                 <Badge variant={content.isPublished ? "default" : "secondary"}>
-                    {content.isPublished ? "Published" : "Draft"}
+                    {content.contentType === "Artifact" ? "Private" : content.isPublished ? "Published" : "Draft"}
                 </Badge>
             </div>
 
+            {content.contentType === "Artifact" && <Button variant="outline" asChild>
+                <Link href={`/admin/artifacts?contentId=${content.id}`}>Manage artifact and share links</Link>
+            </Button>}
             <Card>
                 <CardHeader>
                     <div className="flex flex-col gap-1">

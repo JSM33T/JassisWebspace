@@ -33,6 +33,12 @@ const CONTENT_TYPE_META: Record<ContentType, {
         Icon: Music,
         color: 'text-purple-500',
     },
+    Artifact: {
+        label: 'Artifact',
+        href: (item) => `/admin/artifacts/${item.contentRefId}`,
+        Icon: FileText,
+        color: 'text-amber-500',
+    },
     Video: {
         label: 'Video',
         href: (item) => `/gallery/${item.slug}`,

@@ -46,6 +46,7 @@ Jass Space is a personal web platform made of a Next.js frontend and a .NET API 
 - Admin dashboard for content, blog, gallery, music, email, users, and settings.
 - Blog and gallery content backed by the API, with search and pagination patterns in the UI.
 - Comments, likes, public user profiles, and anonymous content view tracking.
+- Private Artifacts registered in the content library, with admin/mod uploads, expiring share links, download limits, revocation, and anonymous recipient downloads.
 - Email templates, SMTP delivery, contact handling, and background jobs.
 - Dockerized API and UI services with production-oriented resource limits.
 
@@ -255,3 +256,5 @@ docker compose up -d --build
 - Keep public-facing content truthful and safe to expose.
 - Prefer shared UI components and shared service paths over page-local one-off logic.
 - When changing deployment behavior, verify both the GitHub Actions workflow and the remote Docker Compose path.
+
+See [Artifact sharing](docs/artifacts.md) for permissions, storage configuration, download semantics, and rollout steps.

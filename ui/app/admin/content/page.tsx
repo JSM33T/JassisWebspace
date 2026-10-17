@@ -21,6 +21,7 @@ const contentTypeOptions: (ContentType | "All")[] = [
     "Album",
     "Blog",
     "Video",
+    "Artifact",
 ];
 
 const sortOptions: { value: AdminContentSortBy; label: string }[] = [
@@ -201,7 +202,7 @@ export default function AdminContentPage() {
                                         {item.contentType}
                                     </Badge>
                                     <Badge variant={item.isPublished ? "default" : "secondary"}>
-                                        {item.isPublished ? "Published" : "Draft"}
+                                        {item.contentType === "Artifact" ? "Private" : item.isPublished ? "Published" : "Draft"}
                                     </Badge>
                                 </div>
                             </div>

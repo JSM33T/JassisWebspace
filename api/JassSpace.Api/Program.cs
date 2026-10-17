@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Hangfire;
 using Hangfire.PostgreSql;
 using JassSpace.Repositories;
@@ -162,6 +163,28 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
 builder.Services.AddScoped<IContentViewService, ContentViewService>();
 builder.Services.AddScoped<IBootlegService, BootlegService>();
+builder.Services.AddOptions<ArtifactSettings>()
+    .Bind(builder.Configuration.GetSection("Artifacts"))
+    .Validate(s => s.MaxUploadBytes > 0 && s.MaxUploadBytes <= 100L * 1024 * 1024, "Artifacts:MaxUploadBytes must be between 1 and 104857600.")
+    .Validate(s => s.OwnerQuotaBytes >= s.MaxUploadBytes && s.GrantLifetimeMinutes is >= 1 and <= 60, "Invalid artifact quota or grant lifetime.")
+    .ValidateOnStart();
+builder.Services.AddScoped<IArtifactAccessContext, ArtifactAccessContext>();
+builder.Services.AddSingleton<IArtifactTokenProtector, ArtifactTokenProtector>();
+builder.Services.AddScoped<IArtifactStorageService, ArtifactStorageService>();
+builder.Services.AddScoped<IArtifactService, ArtifactService>();
+var artifactKeyDirectory = builder.Configuration["Artifacts:DataProtectionKeyDirectory"]
+    ?? (builder.Environment.IsDevelopment()
+        ? Path.Combine(builder.Environment.ContentRootPath, ".data", "artifact-keys")
+        : "/app/cache/artifact-keys");
+builder.Services.AddDataProtection().SetApplicationName("JassSpace.Artifacts")
+    .PersistKeysToFileSystem(new DirectoryInfo(artifactKeyDirectory));
+builder.Services.PostConfigure<RateLimitOptions>(options =>
+{
+    options.Policies.TryAdd("artifact-upload", new RateLimitPolicy { PermitLimit = 10, Window = TimeSpan.FromMinutes(10) });
+    options.Policies.TryAdd("artifact-share-read", new RateLimitPolicy { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) });
+    options.Policies.TryAdd("artifact-redeem", new RateLimitPolicy { PermitLimit = 30, Window = TimeSpan.FromMinutes(1) });
+    options.Policies.TryAdd("artifact-download", new RateLimitPolicy { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) });
+});
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.Configure<IpGeolocationOptions>(builder.Configuration.GetSection("IpGeolocation"));
@@ -212,6 +235,18 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/artifact-shares") || context.Request.Path.StartsWithSegments("/artifact-downloads"))
+    {
+        context.Response.Headers["Cache-Control"] = "private, no-store";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow, noarchive";
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    }
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -241,6 +276,11 @@ RecurringJob.AddOrUpdate<AccountCleanupService>(
     {
         TimeZone = TimeZoneInfo.Local
     });
+
+RecurringJob.AddOrUpdate<IArtifactService>(
+    recurringJobId: "artifact-cleanup", queue: "default",
+    methodCall: service => service.CleanupAsync(CancellationToken.None),
+    cronExpression: "*/15 * * * *", options: new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
 app.MapControllers();
 

@@ -11,5 +11,7 @@ docker-compose.override.yml
 .cache/
 .logs/
 artifacts/
+!ui/app/artifacts/
+!ui/app/admin/artifacts/
 .claude/
 CLAUDE.md

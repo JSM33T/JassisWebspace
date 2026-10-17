@@ -9,6 +9,7 @@ import { useUser } from "@/contexts/UserContext";
 import { canAccessAdminPath } from "@/lib/auth-roles";
 
 const routes = [
+    { label: "Artifacts", icon: FileText, href: "/admin/artifacts" },
     {
         label: "Dashboard",
         icon: LayoutDashboard,

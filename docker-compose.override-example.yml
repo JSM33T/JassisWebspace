@@ -19,7 +19,8 @@ services:
       AzureBlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
       AzureBlobStorage__ContainerName: "local-media"
     volumes:
-      - ./.data/logs/dotnet:/app/logs/dotnet
+      # Named volumes retain the non-root ownership prepared by the API image.
+      - dotnet-local-logs:/app/logs/dotnet
     depends_on:
       - postgres
       - redis
@@ -35,13 +36,13 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - ./.data/postgres:/var/lib/postgresql/data
+      - ./.data/postgres:/var/lib/postgresql/data:Z
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
-      - ./.data/redis:/data
+      - ./.data/redis:/data:Z
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
@@ -49,5 +50,8 @@ services:
     ports:
       - "10000:10000"
     volumes:
-      - ./.data/azurite:/data
+      - ./.data/azurite:/data:Z
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck --debug /data/debug.log
+
+volumes:
+  dotnet-local-logs:
