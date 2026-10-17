@@ -1480,6 +1480,200 @@ namespace JassSpace.Data.Migrations
 
                     b.Navigation("UserRoles");
                 });
+            modelBuilder.Entity("JassSpace.Entities.Artifact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PrivateNote")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+                    b.HasIndex("ContentId").IsUnique();
+                    b.HasIndex("OwnerUserId");
+                    b.HasIndex("StorageKey").IsUnique();
+                    b.HasIndex("CreatedAt");
+                    b.HasIndex("State");
+                    b.ToTable("Artifacts", t =>
+                    {
+                        t.HasCheckConstraint("CK_Artifacts_SizeBytes", "\"SizeBytes\" > 0");
+                    });
+                });
+
+            modelBuilder.Entity("JassSpace.Entities.ArtifactShareLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArtifactId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("MaxDownloads")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DownloadCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+                    b.HasIndex("ArtifactId");
+                    b.HasIndex("CreatedByUserId");
+                    b.HasIndex("TokenHash").IsUnique();
+                    b.ToTable("ArtifactShareLinks", t =>
+                    {
+                        t.HasCheckConstraint("CK_ArtifactShareLinks_MaxDownloads", "\"MaxDownloads\" IS NULL OR \"MaxDownloads\" > 0");
+                        t.HasCheckConstraint("CK_ArtifactShareLinks_DownloadCount", "\"DownloadCount\" >= 0");
+                    });
+                });
+
+            modelBuilder.Entity("JassSpace.Entities.ArtifactDownloadGrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArtifactShareLinkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ProtectedToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("IdempotencyKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ActiveStreams")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+                    b.HasIndex("TokenHash").IsUnique();
+                    b.HasIndex("ArtifactShareLinkId", "IdempotencyKey").IsUnique();
+                    b.HasIndex("ExpiresAt");
+                    b.ToTable("ArtifactDownloadGrants", t =>
+                    {
+                        t.HasCheckConstraint("CK_ArtifactDownloadGrants_ActiveStreams", "\"ActiveStreams\" >= 0 AND \"ActiveStreams\" <= 2");
+                    });
+                });
+
+            modelBuilder.Entity("JassSpace.Entities.Artifact", b =>
+                {
+                    b.HasOne("JassSpace.Entities.Content", "Content")
+                        .WithOne()
+                        .HasForeignKey("JassSpace.Entities.Artifact", "ContentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                    b.Navigation("Content");
+                    b.HasOne("JassSpace.Entities.User", "OwnerUser")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                    b.Navigation("OwnerUser");
+                });
+
+            modelBuilder.Entity("JassSpace.Entities.ArtifactShareLink", b =>
+                {
+                    b.HasOne("JassSpace.Entities.Artifact", "Artifact")
+                        .WithMany("Links")
+                        .HasForeignKey("ArtifactId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                    b.Navigation("Artifact");
+                    b.HasOne("JassSpace.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                    b.Navigation("CreatedByUser");
+                });
+
+            modelBuilder.Entity("JassSpace.Entities.ArtifactDownloadGrant", b =>
+                {
+                    b.HasOne("JassSpace.Entities.ArtifactShareLink", "Link")
+                        .WithMany("Grants")
+                        .HasForeignKey("ArtifactShareLinkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                    b.Navigation("Link");
+                });
+
+            modelBuilder.Entity("JassSpace.Entities.Artifact", b => b.Navigation("Links"));
+            modelBuilder.Entity("JassSpace.Entities.ArtifactShareLink", b => b.Navigation("Grants"));
+
 #pragma warning restore 612, 618
         }
     }

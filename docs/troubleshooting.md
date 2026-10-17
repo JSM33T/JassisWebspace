@@ -99,6 +99,28 @@ and logs. Media cache data is stored separately in the `dotnet-media-cache` Dock
 volume; remove only the narrowly identified cache after stopping the service that
 uses it.
 
+## Docker Cache Or Log Permission Errors
+
+The API runs as UID/GID `64198`. A host bind mount over `/app/cache` or `/app/logs/dotnet` hides the ownership prepared by the image. Docker-created host folders often belong to root, and SELinux may also deny access to unlabeled bind mounts.
+
+Local Compose uses the base `dotnet-media-cache` named volume for `/app/cache` and a `dotnet-local-logs` named volume for API logs. Keep those mounts when copying the example override; do not add a root-owned `.data/cache` bind mount. PostgreSQL, Redis and Azurite retain their existing host data, with private `:Z` labels for SELinux.
+
+Recreate the API after fixing the override:
+
+```bash
+docker compose up -d --no-deps dotnet
+docker compose logs --tail=100 dotnet
+```
+
+If an existing named volume already has incorrect ownership, repair only these two mounted directories as a one-time maintenance operation, then recreate the API:
+
+```bash
+docker compose run --rm --no-deps --user 0 --entrypoint sh dotnet -c 'chown -R 64198:64198 /app/cache /app/logs/dotnet'
+docker compose up -d --no-deps dotnet
+```
+
+Do not use `chmod 777`, delete `.data/`, or remove the cache volume: it also persists Artifact download encryption keys. A `permission denied` error referring to `/var/run/docker.sock` is separate from application cache permissions and means the current shell lacks access to the Docker daemon.
+
 ## Media Upload Or Image Problems
 
 1. Confirm the chosen storage provider is configured: Azure Blob Storage or Cloudinary.

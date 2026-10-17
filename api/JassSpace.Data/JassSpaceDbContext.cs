@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JassSpace.Data;
 
-public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : DbContext(options)
+public partial class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : DbContext(options)
 {
     // DbSets for all entities
     public DbSet<User> Users { get; set; }
@@ -43,6 +43,7 @@ public class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> options) : 
         modelBuilder.HasPostgresExtension("pgcrypto");
         modelBuilder.HasPostgresExtension("citext");
 
+        ConfigureArtifacts(modelBuilder);
         ConfigureUserEntity(modelBuilder);
         ConfigureRoleEntity(modelBuilder);
         ConfigureUserRoleEntity(modelBuilder);

@@ -7,9 +7,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JassSpace.Services;
 
-public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminContentService
+public sealed class AdminContentService(JassSpaceDbContext dbContext, IArtifactAccessContext? artifactAccess = null) : IAdminContentService
 {
     private readonly JassSpaceDbContext _dbContext = dbContext;
+
+    private IQueryable<Content> VisibleContents() => ApplyArtifactVisibility(_dbContext.Contents);
+
+    private IQueryable<Content> ApplyArtifactVisibility(IQueryable<Content> query)
+    {
+        var isAdmin = artifactAccess?.IsAdmin == true;
+        var canManage = artifactAccess?.CanManage == true;
+        var userId = artifactAccess?.UserId;
+        return query.Where(c => c.ContentType != ContentType.Artifact || _dbContext.Artifacts.Any(a =>
+            a.ContentId == c.Id && a.State == "Ready" &&
+            (isAdmin || (canManage && userId != null && a.OwnerUserId == userId))));
+    }
 
     public async Task<List<AdminContentListItemResponse>> GetContentsAsync(
         string? contentType,
@@ -19,7 +31,7 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
         DateTimeOffset? dateTo = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.Contents
+        var query = VisibleContents()
             .AsNoTracking()
             .AsQueryable();
 
@@ -52,6 +64,12 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
             .Select(g => new { g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
 
+        var artifactRefIds = contents.Where(c => c.ContentType == ContentType.Artifact).Select(c => c.ContentRefId).ToList();
+        var artifactLinkCounts = await _dbContext.ArtifactShareLinks.AsNoTracking()
+            .Where(l => artifactRefIds.Contains(l.ArtifactId))
+            .GroupBy(l => l.ArtifactId).Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+
         var likeCounts = await _dbContext.Likes
             .AsNoTracking()
             .Where(l => contentIds.Contains(l.ContentId))
@@ -81,6 +99,8 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
                                 trackLinkCounts.TryGetValue(content.ContentRefId, out var trackCount)
                     ? trackCount
                     : 0;
+                if (content.ContentType == ContentType.Artifact)
+                    linkCount = artifactLinkCounts.GetValueOrDefault(content.ContentRefId);
                 var likeCount = likeCounts.TryGetValue(content.Id, out var likeTotal) ? likeTotal : 0;
 
                 var lastActivity = content.UpdatedAt ?? content.CreatedAt;
@@ -114,7 +134,7 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
                     content.ViewCount,
                     lastActivity);
             })
-            .Where(r => r.LikeCount > 0 || r.CommentCount > 0 || r.ViewCount > 0)
+            .Where(r => r.ContentType == "Artifact" || r.LikeCount > 0 || r.CommentCount > 0 || r.ViewCount > 0)
             .ToList();
 
         var normalizedSortDir = sortDir?.ToLowerInvariant() == "asc" ? "asc" : "desc";
@@ -152,7 +172,7 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
         Guid contentId,
         CancellationToken cancellationToken = default)
     {
-        var content = await _dbContext.Contents
+        var content = await VisibleContents()
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == contentId, cancellationToken);
 
@@ -214,6 +234,9 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
                 .CountAsync(l => l.TrackId == content.ContentRefId, cancellationToken);
         }
 
+        if (content.ContentType == ContentType.Artifact)
+            linkCount = await _dbContext.ArtifactShareLinks.CountAsync(l => l.ArtifactId == content.ContentRefId, cancellationToken);
+
         var lastCommentAt = commenterRows.FirstOrDefault()?.CreatedAt;
         var lastLikeAt = likes.FirstOrDefault()?.CreatedAt;
 
@@ -264,7 +287,7 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
         // Hybrid: FTS match OR trigram similarity above threshold, ranked by weighted score.
         // Title weight 3x, FTS rank 2x, Description 1x, Slug 0.5x.
         // websearch_to_tsquery handles phrases/negation and is safe with arbitrary user input.
-        var rows = await _dbContext.Contents
+        var rows = await ApplyArtifactVisibility(_dbContext.Contents
             .FromSqlInterpolated($"""
                 SELECT *
                 FROM "Contents"
@@ -280,7 +303,7 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext) : IAdminCo
                     similarity("Slug", {term}) * 0.5
                 ) DESC
                 LIMIT 50
-                """)
+                """))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 

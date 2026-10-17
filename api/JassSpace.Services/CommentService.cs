@@ -50,7 +50,7 @@ public sealed class CommentService(JassSpaceDbContext dbContext) : ICommentServi
 
         var contentExists = await _dbContext.Contents
             .AsNoTracking()
-            .AnyAsync(c => c.Id == request.ContentId, cancellationToken);
+            .AnyAsync(c => c.Id == request.ContentId && c.ContentType != JassSpace.Entities.Enums.ContentType.Artifact, cancellationToken);
 
         if (!contentExists)
         {

@@ -89,5 +89,5 @@ public sealed class LikeService(JassSpaceDbContext dbContext) : ILikeService
     private Task<bool> ContentExistsAsync(Guid contentId, CancellationToken cancellationToken) =>
         _dbContext.Contents
             .AsNoTracking()
-            .AnyAsync(c => c.Id == contentId, cancellationToken);
+            .AnyAsync(c => c.Id == contentId && c.ContentType != JassSpace.Entities.Enums.ContentType.Artifact, cancellationToken);
 }

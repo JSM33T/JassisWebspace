@@ -1,4 +1,4 @@
-export type ContentType = "Album" | "Blog" | "Video" | "Music";
+export type ContentType = "Album" | "Blog" | "Video" | "Music" | "Artifact";
 
 export interface AdminContentBase {
     id: string;

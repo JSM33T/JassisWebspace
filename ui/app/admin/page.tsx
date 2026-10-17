@@ -101,6 +101,18 @@ export default function AdminPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="group transition-shadow hover:shadow-md">
+                    <Link href="/admin/artifacts">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-sm font-medium">Artifacts</CardTitle>
+                            <FileText className="h-4 w-4 text-amber-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">Share Artifacts</div>
+                            <p className="mt-1 text-xs text-muted-foreground">Upload files and manage expiring links and download limits.</p>
+                        </CardContent>
+                    </Link>
+                </Card>
                 <Card className="group cursor-pointer transition-shadow hover:shadow-md">
                     <Link href="/admin/blogs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

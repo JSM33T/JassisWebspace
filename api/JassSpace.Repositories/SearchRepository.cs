@@ -22,7 +22,7 @@ public sealed class SearchRepository(JassSpaceDbContext db) : ISearchRepository
         var baseQuery = _db.Contents
             .FromSqlInterpolated($"""
                 SELECT * FROM "Contents"
-                WHERE "IsPublished" = true
+                WHERE "IsPublished" = true AND "ContentType" <> 5
                 AND (
                     "SearchVector" @@ websearch_to_tsquery('english', {q})
                     OR word_similarity({q}, "Title") > 0.3

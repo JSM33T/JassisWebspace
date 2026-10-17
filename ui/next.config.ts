@@ -26,6 +26,13 @@ for (const [component, metadata] of Object.entries(productVersion)) {
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  async headers() {
+    return [{ source: '/artifacts/share', headers: [
+      { key: 'Cache-Control', value: 'private, no-store' },
+      { key: 'Referrer-Policy', value: 'no-referrer' },
+      { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+    ] }];
+  },
   env: {
     NEXT_PUBLIC_UI_SOFTWARE_NAME: productVersion.ui.name,
     NEXT_PUBLIC_UI_VERSION: productVersion.ui.version,

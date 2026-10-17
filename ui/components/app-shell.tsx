@@ -13,6 +13,8 @@ export function AppShell({ children }: AppShellProps) {
     const pathname = usePathname();
     const isAdmin = pathname.startsWith('/admin');
 
+    if (pathname === '/artifacts/share') return <main className="min-h-screen bg-background text-foreground">{children}</main>;
+
     return (
         <div className="relative isolate min-h-screen flex flex-col">
             <div className="relative z-10 flex flex-col flex-1">

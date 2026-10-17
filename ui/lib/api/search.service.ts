@@ -9,13 +9,14 @@ type RawSearchResponse = Omit<SearchResponse, 'items'> & {
     items: RawSearchResultItem[];
 };
 
-const CONTENT_TYPES: ContentType[] = ['Album', 'Blog', 'Video', 'Music'];
+const CONTENT_TYPES: ContentType[] = ['Album', 'Blog', 'Video', 'Music', 'Artifact'];
 
 const CONTENT_TYPE_BY_ENUM_VALUE: Record<number, ContentType> = {
     1: 'Album',
     2: 'Blog',
     3: 'Video',
     4: 'Music',
+    5: 'Artifact',
 };
 
 function normalizeContentType(value: unknown): ContentType | null {
