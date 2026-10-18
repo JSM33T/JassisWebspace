@@ -26,6 +26,7 @@ export function TableOfContents({ content }: TableOfContentsProps) {
         const activeLine = 120;
         let frame = 0;
         let headingObserver: MutationObserver | null = null;
+        let restoredHash = false;
 
         const update = () => {
             frame = 0;
@@ -40,6 +41,20 @@ export function TableOfContents({ content }: TableOfContentsProps) {
 
             headingObserver?.disconnect();
             headingObserver = null;
+
+            // On reload the article arrives after the browser's initial anchor
+            // navigation. Restore it once, when the headings are available.
+            if (!restoredHash) {
+                restoredHash = true;
+                let id = window.location.hash.slice(1);
+                try {
+                    id = decodeURIComponent(id);
+                } catch {
+                    // A malformed fragment should not break scroll tracking.
+                }
+                elements.find((element) => element.id === id)
+                    ?.scrollIntoView({ behavior: 'instant', block: 'start' });
+            }
 
             let currentId = elements[0].id;
             for (const el of elements) {
