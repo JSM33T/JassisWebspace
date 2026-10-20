@@ -12,7 +12,8 @@ public record AlbumResponse(
     List<ContentAuthorResponse> Authors,
     Guid? ContentId = null,
     bool IsActive = true,
-    int SortOrder = 0
+    int SortOrder = 0,
+    List<ImageResponse>? PreviewImages = null
 );
 
 public record ImageResponse(

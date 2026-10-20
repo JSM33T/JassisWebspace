@@ -19,6 +19,7 @@ export interface Album {
     updatedAt: string | null;
     imageCount: number;
     authors: GalleryAuthor[];
+    previewImages?: Image[];
 }
 
 export type GallerySortOrder = 'newest' | 'oldest' | 'title';
