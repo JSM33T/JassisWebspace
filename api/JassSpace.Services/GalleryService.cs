@@ -70,6 +70,33 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
         var contentByAlbumId = contentMap.ToDictionary(c => c.AlbumId, c => c.ContentId);
         var contentIds = contentMap.Select(c => c.ContentId).ToList();
         var authorsByAlbumId = new Dictionary<Guid, List<ContentAuthorResponse>>();
+        var previewImagesByAlbumId = new Dictionary<Guid, List<ImageResponse>>();
+
+        // These are deliberately loaded with the album list rather than one request per card.
+        // The UI uses the cover as the foreground image and up to two of these ordered images
+        // as the photos behind it.
+        if (albumIds.Count > 0)
+        {
+            var previewRows = await _dbContext.Images
+                .AsNoTracking()
+                .Where(i => albumIds.Contains(i.AlbumId))
+                .OrderBy(i => i.AlbumId)
+                .ThenBy(i => i.Order)
+                .ThenBy(i => i.CreatedAt)
+                .Select(i => new ImageResponse(
+                    i.Id,
+                    i.AlbumId,
+                    i.Url,
+                    i.Title,
+                    i.Description,
+                    i.Order,
+                    i.CreatedAt))
+                .ToListAsync(cancellationToken);
+
+            previewImagesByAlbumId = previewRows
+                .GroupBy(i => i.AlbumId)
+                .ToDictionary(group => group.Key, group => group.Take(3).ToList());
+        }
 
         if (contentIds.Count > 0)
         {
@@ -114,7 +141,8 @@ public sealed class GalleryService(JassSpaceDbContext dbContext) : IGalleryServi
             authorsByAlbumId.TryGetValue(a.Id, out var authors) ? authors : [],
             contentByAlbumId.TryGetValue(a.Id, out var contentId) ? contentId : null,
             a.IsActive,
-            a.SortOrder)).ToList();
+            a.SortOrder,
+            previewImagesByAlbumId.TryGetValue(a.Id, out var previewImages) ? previewImages : [])).ToList();
     }
 
     private static IQueryable<AlbumListProjection> SelectAlbumListProjection(IQueryable<Album> query)
