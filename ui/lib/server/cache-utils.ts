@@ -11,6 +11,12 @@ export interface TaggedResult<T> {
     items: T[];
 }
 
+export const CONTENT_FETCH_TIMEOUT_MS = parseTtl(process.env.CONTENT_FETCH_TIMEOUT_MS, 5000);
+
+export function isExpired<T>(entry: TaggedResult<T>): boolean {
+    return Date.now() > new Date(entry.generatedAt).getTime() + entry.ttlSeconds * 1000;
+}
+
 export function apiBaseUrl(): string {
     const value = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL)?.replace(/\/$/, "");
     if (!value) {

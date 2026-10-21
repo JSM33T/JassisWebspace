@@ -5,7 +5,7 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { type BlogListItem } from "@/lib/api/blog.types";
 import { type Album } from "@/lib/api/gallery.types";
 import { type CacheTagMeta, type HomeContentPayload } from "@/lib/home-content.types";
-import { apiBaseUrl, parseApiData, parseTtl, type TaggedResult } from "@/lib/server/cache-utils";
+import { apiBaseUrl, CONTENT_FETCH_TIMEOUT_MS, isExpired, parseApiData, parseTtl, type TaggedResult } from "@/lib/server/cache-utils";
 
 export const HOME_GALLERIES_TAG = "home-galleries-feed";
 export const HOME_BLOGS_TAG = "home-blogs-feed";
@@ -21,29 +21,45 @@ export const HOME_BLOGS_TTL_SECONDS = parseTtl(
 );
 
 async function fetchAlbums(): Promise<Album[]> {
-    const response = await fetch(`${apiBaseUrl()}/gallery/albums`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-    });
+    try {
+        const response = await fetch(`${apiBaseUrl()}/gallery/albums`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            signal: AbortSignal.timeout(CONTENT_FETCH_TIMEOUT_MS),
+        });
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch gallery albums (${response.status})`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch gallery albums (${response.status})`);
+        }
+
+        const albums = await parseApiData<Album[]>(response);
+        if (!Array.isArray(albums)) throw new Error("Gallery albums response is not a list");
+        return albums;
+    } catch (error) {
+        console.error("Homepage gallery fetch failed:", error);
+        throw error;
     }
-
-    return parseApiData<Album[]>(response);
 }
 
 async function fetchBlogs(): Promise<BlogListItem[]> {
-    const response = await fetch(`${apiBaseUrl()}/blog`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-    });
+    try {
+        const response = await fetch(`${apiBaseUrl()}/blog`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            signal: AbortSignal.timeout(CONTENT_FETCH_TIMEOUT_MS),
+        });
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch blogs (${response.status})`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch blogs (${response.status})`);
+        }
+
+        const blogs = await parseApiData<BlogListItem[]>(response);
+        if (!Array.isArray(blogs)) throw new Error("Blog response is not a list");
+        return blogs;
+    } catch (error) {
+        console.error("Homepage blog fetch failed:", error);
+        throw error;
     }
-
-    return parseApiData<BlogListItem[]>(response);
 }
 
 
@@ -69,7 +85,7 @@ const getCachedHomeGalleries = unstable_cache(
             items: galleries,
         };
     },
-    ["home-galleries-cache-v1"],
+    ["home-galleries-cache-v2", process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? ""],
     {
         revalidate: HOME_GALLERIES_TTL_SECONDS,
         tags: [HOME_GALLERIES_TAG],
@@ -98,12 +114,17 @@ const getCachedHomeBlogs = unstable_cache(
             items: latestBlogs,
         };
     },
-    ["home-blogs-cache-v1"],
+    ["home-blogs-cache-v2", process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? ""],
     {
         revalidate: HOME_BLOGS_TTL_SECONDS,
         tags: [HOME_BLOGS_TAG],
     },
 );
+
+// Next's data cache may serve stale entries itself. These snapshots also cover a
+// rejected cache read in the current server process; they are never written on failure.
+let lastGalleries: TaggedResult<Album> | null = null;
+let lastBlogs: TaggedResult<BlogListItem> | null = null;
 
 function toCacheTagMeta<T>(entry: TaggedResult<T>): CacheTagMeta {
     const generatedMs = new Date(entry.generatedAt).getTime();
@@ -127,14 +148,30 @@ export async function getHomeContentCached(): Promise<HomeContentPayload> {
         getCachedHomeGalleries(),
         getCachedHomeBlogs(),
     ]);
-    const galleries = galleriesResult.status === "fulfilled" ? galleriesResult.value : null;
-    const blogs = blogsResult.status === "fulfilled" ? blogsResult.value : null;
+    if (galleriesResult.status === "fulfilled") {
+        lastGalleries = galleriesResult.value;
+    } else {
+        console.error("Homepage gallery feed unavailable:", galleriesResult.reason);
+    }
+    if (blogsResult.status === "fulfilled") {
+        lastBlogs = blogsResult.value;
+    } else {
+        console.error("Homepage blog feed unavailable:", blogsResult.reason);
+    }
+    const galleries = galleriesResult.status === "fulfilled" ? galleriesResult.value : lastGalleries;
+    const blogs = blogsResult.status === "fulfilled" ? blogsResult.value : lastBlogs;
 
     return {
         galleries: galleries?.items ?? [],
         galleryTotal: galleries?.total ?? 0,
+        galleryStatus: galleriesResult.status === "rejected"
+            ? galleries ? "cached" : "unavailable"
+            : isExpired(galleriesResult.value) ? "cached" : "available",
         blogs: blogs?.items ?? [],
         blogTotal: blogs?.total ?? 0,
+        blogStatus: blogsResult.status === "rejected"
+            ? blogs ? "cached" : "unavailable"
+            : isExpired(blogsResult.value) ? "cached" : "available",
     };
 }
 

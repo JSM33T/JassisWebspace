@@ -26,6 +26,7 @@ import projects from "@/data/projects";
 import { useTrackPlayer } from "@/hooks/use-audio-player";
 import { type BlogListItem } from "@/lib/api/blog.types";
 import { type Album } from "@/lib/api/gallery.types";
+import { type FeedStatus } from "@/lib/feed-status";
 import { musicService } from "@/lib/api/music.service";
 import { type MusicTrack } from "@/lib/api/music.types";
 import { getVersionedGalleryCoverUrl } from "@/lib/gallery-media";
@@ -52,12 +53,15 @@ const featuredWorkItems = featuredProjectNames
 interface Props {
     galleries: Album[];
     galleryTotal: number;
+    galleryStatus: FeedStatus;
     blogs: BlogListItem[];
     blogTotal: number;
+    blogStatus: FeedStatus;
     musicTracks: MusicTrack[];
+    musicStatus: FeedStatus;
 }
 
-export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musicTracks }: Props) {
+export function HomePageClient({ galleries, galleryTotal, galleryStatus, blogs, blogTotal, blogStatus, musicTracks, musicStatus }: Props) {
     const { playTrack } = useTrackPlayer();
     const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
     const latestGallery = galleries[0] ?? null;
@@ -70,6 +74,11 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
     const heroProjectImage = heroProject?.screenshots.at(-1) ?? heroProject?.coverImage ?? null;
     const heroPhotoAlbum = galleries.find((album) => album.cover && album.id !== latestGallery?.id) ?? latestGallery;
     const heroPhotoCover = heroPhotoAlbum ? getVersionedGalleryCoverUrl(heroPhotoAlbum) : null;
+    const feedWarnings = [
+        galleryStatus === "unavailable" ? "Photography is temporarily unavailable." : galleryStatus === "cached" ? "Photography may be out of date." : null,
+        blogStatus === "unavailable" ? "Writing is temporarily unavailable." : blogStatus === "cached" ? "Writing may be out of date." : null,
+        musicStatus === "unavailable" ? "Music is temporarily unavailable." : musicStatus === "cached" ? "Music may be out of date." : null,
+    ].filter(Boolean);
 
     const featuredTrack = useMemo(() => {
         const playableTracks = musicTracks.filter((track) => track.hasPlayableSource);
@@ -173,18 +182,18 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                 </div>
                             </Link>
 
-                            <Link href={heroPhotoAlbum ? `/gallery/${heroPhotoAlbum.slug}` : "/gallery"} aria-label="Explore photography" className="group absolute bottom-[7%] left-[1%] z-20 h-[54%] w-[37%] -rotate-[6deg] overflow-hidden rounded-2xl border border-white/20 bg-card shadow-2xl shadow-black/40 transition-transform duration-300 hover:rotate-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                            <Link href="/gallery" aria-label="Explore photography" className="group absolute bottom-[7%] left-[1%] z-20 h-[54%] w-[37%] -rotate-[6deg] overflow-hidden rounded-2xl border border-white/20 bg-card shadow-2xl shadow-black/40 transition-transform duration-300 hover:rotate-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
                                 {heroPhotoCover ? <Image src={heroPhotoCover} alt="" fill sizes="(max-width: 1024px) 35vw, 18vw" className="object-cover transition-transform duration-500 group-hover:scale-105" /> : <VisualFallback kind="gallery" title="Photography" className="absolute inset-0 min-h-0" />}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
                                 <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 text-xs font-medium text-white"><Camera className="h-3.5 w-3.5" aria-hidden="true" /> Photography</span>
                             </Link>
 
-                            <Link href={latestBlog ? `/blog/${latestBlog.slug}` : "/blog"} aria-label="Explore writing" className="group absolute right-0 top-[2%] z-20 hidden h-[48%] w-[31%] rotate-[7deg] flex-col justify-between overflow-hidden rounded-2xl border border-border/70 bg-card/95 p-4 shadow-2xl shadow-black/30 transition-transform duration-300 hover:rotate-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:flex">
+                            <Link href={latestBlog ? `/blog/${latestBlog.slug}` : "/blog"} aria-label={latestBlog ? `Read ${latestBlog.title}` : "Explore writing"} className="group absolute right-0 top-[2%] z-20 hidden h-[48%] w-[31%] rotate-[7deg] flex-col justify-between overflow-hidden rounded-2xl border border-border/70 bg-card/95 p-4 shadow-2xl shadow-black/30 transition-transform duration-300 hover:rotate-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:flex">
                                 <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_94%,color-mix(in_oklch,var(--border)_45%,transparent)_95%)] bg-[size:100%_1.55rem] opacity-40" aria-hidden="true" />
                                 <BookOpen className="relative h-5 w-5 text-primary" aria-hidden="true" />
                                 <div className="relative">
                                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Latest writing</p>
-                                    <p className="mt-1 line-clamp-3 text-xs font-semibold leading-snug sm:text-sm">{latestBlog?.title ?? "Notes from building and observing"}</p>
+                                    <p className="mt-1 line-clamp-3 text-xs font-semibold leading-snug sm:text-sm">{latestBlog?.title ?? (blogStatus === "unavailable" ? "Writing temporarily unavailable" : "Notes from building and observing")}</p>
                                 </div>
                             </Link>
 
@@ -193,7 +202,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                     <button type="button" onClick={() => void handlePlayTrack(featuredTrack)} disabled={playingTrackId === featuredTrack.id} aria-label={`Play ${featuredTrack.title}`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><Play className="h-4 w-4 fill-current" aria-hidden="true" /></button>
                                 ) : <Disc3 className="h-8 w-8 shrink-0 text-primary" aria-hidden="true" />}
                                 <div className="min-w-0 flex-1">
-                                    <Link href={featuredTrack ? `/music/${featuredTrack.slug}` : "/music"} className="block truncate text-xs font-semibold hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{featuredTrack?.title ?? "Music experiments"}</Link>
+                                    <Link href={featuredTrack ? `/music/${featuredTrack.slug}` : "/music"} className="block truncate text-xs font-semibold hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{featuredTrack?.title ?? (musicStatus === "unavailable" ? "Music temporarily unavailable" : "Music experiments")}</Link>
                                     <div className="mt-1 flex h-3 items-center gap-[2px]" aria-hidden="true">
                                         {[4, 7, 10, 6, 12, 8, 5, 11, 7, 4, 9, 12, 6, 10, 5, 8, 11, 6, 4, 9, 7, 12, 5, 8].map((height, index) => <span key={index} className="w-[2px] rounded-full bg-primary/80" style={{ height }} />)}
                                     </div>
@@ -214,12 +223,18 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1 sm:px-2">
                                 <h2 id="explore-webspace-heading" className="text-2xl font-semibold tracking-tight sm:text-3xl">Explore my webspace</h2>
                                 <Link href="/about" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                    View all <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                                    About me <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                                 </Link>
                             </div>
 
+                            {feedWarnings.length > 0 ? (
+                                <p role="status" className="mb-4 rounded-xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-muted-foreground">
+                                    {feedWarnings.join(" ")} {feedWarnings.some((warning) => warning?.includes("out of date")) ? "Showing the last available content where possible." : "The rest of the site remains available."}
+                                </p>
+                            ) : null}
+
                             <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-                                <Link href={latestGallery ? `/gallery/${latestGallery.slug}` : "/gallery"} className="group relative flex min-h-[21rem] flex-col justify-end overflow-hidden rounded-2xl border bg-muted/40 p-6 text-white transition-transform duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:min-h-[23rem]">
+                                <Link href="/gallery" className="group relative flex min-h-[21rem] flex-col justify-end overflow-hidden rounded-2xl border bg-muted/40 p-6 text-white transition-transform duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:min-h-[23rem]">
                                     {latestGalleryCover ? (
                                         <Image src={latestGalleryCover} alt="" fill sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
                                     ) : (
@@ -240,12 +255,12 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                         <div className="absolute inset-0 bg-gradient-to-r from-card via-card/95 to-card/20" />
                                         <div className="relative max-w-[22rem]">
                                             <p className="flex items-center gap-2 text-sm font-medium"><BookOpen className="h-5 w-5 text-primary" aria-hidden="true" /> Writing</p>
-                                            <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-tight tracking-tight">{latestBlog?.title ?? "Notes from building and observing."}</h3>
-                                            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">Read the latest <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span>
+                                            <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-tight tracking-tight">{latestBlog?.title ?? (blogStatus === "unavailable" ? "Writing temporarily unavailable." : "Notes from building and observing.")}</h3>
+                                            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">{latestBlog ? "Read latest article" : "Explore writing"} <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span>
                                         </div>
                                     </Link>
 
-                                    <Link href={engineeringProject ? `/projects/${engineeringProject.slug}` : "/projects"} className="group relative flex min-h-[12rem] min-w-0 flex-col justify-end overflow-hidden rounded-2xl border bg-background/65 p-5 transition-transform duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:min-h-0">
+                                    <Link href="/projects" className="group relative flex min-h-[12rem] min-w-0 flex-col justify-end overflow-hidden rounded-2xl border bg-background/65 p-5 transition-transform duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:min-h-0">
                                         {engineeringPreview ? <Image src={engineeringPreview} alt="" fill sizes="(max-width: 640px) 100vw, 25vw" className="object-cover object-center opacity-35 transition-transform duration-700 group-hover:scale-105" /> : null}
                                         <div className="absolute inset-0 bg-gradient-to-t from-card via-card/90 to-card/40" />
                                         <div className="relative">
@@ -260,7 +275,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                         <Disc3 className="pointer-events-none absolute -right-6 -top-8 h-44 w-44 text-primary/15" strokeWidth={0.7} aria-hidden="true" />
                                         <div className="relative">
                                             <p className="flex items-center gap-2 text-sm font-medium"><Disc3 className="h-5 w-5 text-primary" aria-hidden="true" /> Music</p>
-                                            <Link href={featuredTrack ? `/music/${featuredTrack.slug}` : "/music"} className="mt-3 block line-clamp-2 text-lg font-semibold leading-tight tracking-tight hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{featuredTrack?.title ?? "Sounds and experiments."}</Link>
+                                            <Link href={featuredTrack ? `/music/${featuredTrack.slug}` : "/music"} className="mt-3 block line-clamp-2 text-lg font-semibold leading-tight tracking-tight hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{featuredTrack?.title ?? (musicStatus === "unavailable" ? "Music temporarily unavailable." : "Sounds and experiments.")}</Link>
                                             <p className="mt-2 line-clamp-1 text-sm text-muted-foreground">{featuredTrack ? formatArtists(featuredTrack) : "Explore the music shelf"}</p>
                                             <div className="mt-3 flex items-center gap-3">
                                                 {featuredTrack?.hasPlayableSource ? (
@@ -344,7 +359,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                 <SectionHeader
                                     eyebrow="Latest Writing"
                                     title="Notes from building, debugging, and observing."
-                                    description={blogTotal > 0 ? `${blogTotal} published ${blogTotal === 1 ? "article" : "articles"}, with the latest entries below.` : "Implementation notes, product thinking, and field essays will appear here."}
+                                    description={blogStatus === "unavailable" ? "Writing could not be loaded right now. Please try again later." : blogTotal > 0 ? `${blogTotal} ${blogStatus === "cached" ? "previously available" : "published"} ${blogTotal === 1 ? "article" : "articles"}, with the latest entries below.` : blogStatus === "cached" ? "The last available snapshot had no articles. New writing may have appeared since then." : "Implementation notes, product thinking, and field essays will appear here."}
                                     action={
                                         <Button asChild variant="secondary" className="rounded-full px-6">
                                             <Link href="/blog">
@@ -377,7 +392,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                     ))}
                                 </div>
                             ) : (
-                                <EmptyState icon={BookOpen} title="No articles are published yet." description="Visit the writing archive when new notes arrive." href="/blog" action="Open writing" />
+                                <EmptyState icon={BookOpen} title={blogStatus === "unavailable" ? "Writing is temporarily unavailable." : blogStatus === "cached" ? "No articles in the last available snapshot." : "No articles are published yet."} description={blogStatus === "available" ? "Visit the writing archive when new notes arrive." : "Please try the writing archive again later."} href="/blog" action="Open writing" />
                             )}
                         </ContentRail>
                     </motion.div>
@@ -385,7 +400,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                     <motion.div id="creative-archive" className="scroll-mt-24" variants={itemVariants}>
                         <ContentRail
                             surface="panel"
-                            header={<SectionHeader eyebrow="Gallery & Music" title="A visual and audio shelf beyond the code." description="The latest photo story and a featured track offer two compact ways into the creative archive." />}
+                            header={<SectionHeader eyebrow="Gallery & Music" title="A visual and audio shelf beyond the code." description="Browse photography and music from the creative archive." />}
                             className="pb-16 md:pb-24"
                         >
                             <div className="grid gap-4 md:grid-cols-2">
@@ -399,12 +414,12 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                             )}
                                         </div>
                                         <div className="p-5 sm:p-6">
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Latest gallery</p>
-                                            <h3 className="mt-2 text-xl font-semibold tracking-tight group-hover:text-primary">{latestGallery?.name ?? "Explore the gallery"}</h3>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-primary">{galleryStatus === "unavailable" ? "Gallery unavailable" : galleryStatus === "cached" ? "Cached gallery" : "Latest gallery"}</p>
+                                            <h3 className="mt-2 text-xl font-semibold tracking-tight group-hover:text-primary">{latestGallery?.name ?? (galleryStatus === "unavailable" ? "Gallery temporarily unavailable" : "Explore the gallery")}</h3>
                                             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                                                {latestGallery?.description || (galleryTotal > 0 ? `${galleryTotal} photo ${galleryTotal === 1 ? "album" : "albums"} from travels, field walks, and everyday observations.` : "Photo stories will appear here as they are published.")}
+                                                {latestGallery?.description || (galleryStatus === "unavailable" ? "Photos could not be loaded right now. Please try again later." : galleryTotal > 0 ? `${galleryTotal} photo ${galleryTotal === 1 ? "album" : "albums"} from travels, field walks, and everyday observations.` : galleryStatus === "cached" ? "The last available snapshot had no albums. New photos may have appeared since then." : "Photo stories will appear here as they are published.")}
                                             </p>
-                                            <span className="mt-4 inline-flex items-center text-sm font-medium">Open gallery <ArrowUpRight className="ml-1.5 h-4 w-4" /></span>
+                                            <span className="mt-4 inline-flex items-center text-sm font-medium">{latestGallery ? "View album" : "Explore gallery"} <ArrowUpRight className="ml-1.5 h-4 w-4" /></span>
                                         </div>
                                     </Link>
                                 </article>
@@ -419,10 +434,10 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                             )}
                                         </div>
                                         <div className="p-5 sm:p-6">
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Featured music</p>
-                                            <h3 className="mt-2 text-xl font-semibold tracking-tight group-hover:text-primary">{featuredTrack?.title ?? "Explore the music shelf"}</h3>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-primary">{musicStatus === "unavailable" ? "Music unavailable" : musicStatus === "cached" ? "Cached music" : "Featured music"}</p>
+                                            <h3 className="mt-2 text-xl font-semibold tracking-tight group-hover:text-primary">{featuredTrack?.title ?? (musicStatus === "unavailable" ? "Music temporarily unavailable" : "Explore the music shelf")}</h3>
                                             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                                                {featuredTrack ? `${formatArtists(featuredTrack)}${featuredTrack.duration ? ` · ${featuredTrack.duration}` : ""}` : "Releases, remixes, and audio experiments will appear here."}
+                                                {featuredTrack ? `${formatArtists(featuredTrack)}${featuredTrack.duration ? ` · ${featuredTrack.duration}` : ""}` : musicStatus === "unavailable" ? "Tracks could not be loaded right now. Please try again later." : musicStatus === "cached" ? "The last available snapshot had no tracks. New music may have appeared since then." : "Releases, remixes, and audio experiments will appear here."}
                                             </p>
                                         </div>
                                     </Link>
@@ -455,7 +470,7 @@ export function HomePageClient({ galleries, galleryTotal, blogs, blogTotal, musi
                                 </div>
                                 <div className="flex flex-wrap gap-3 md:justify-end">
                                     <Button asChild size="lg" className="rounded-full px-7">
-                                        <Link href="/contact?purpose=Service+Request&ref=%2Fservices"><Mail className="mr-2 h-4 w-4" />Start a conversation</Link>
+                                        <Link href="/contact?purpose=Service+Request&ref=%2F"><Mail className="mr-2 h-4 w-4" />Start a conversation</Link>
                                     </Button>
                                     <Button asChild size="lg" variant="secondary" className="rounded-full px-7">
                                         <Link href="/services">View services</Link>

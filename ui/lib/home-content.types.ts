@@ -1,11 +1,14 @@
 import { type BlogListItem } from "@/lib/api/blog.types";
 import { type Album } from "@/lib/api/gallery.types";
+import { type FeedStatus } from "@/lib/feed-status";
 
 export interface HomeContentPayload {
     galleries: Album[];
     galleryTotal: number;
+    galleryStatus: FeedStatus;
     blogs: BlogListItem[];
     blogTotal: number;
+    blogStatus: FeedStatus;
 }
 
 export interface CacheTagMeta {

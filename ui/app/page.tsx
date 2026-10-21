@@ -17,9 +17,12 @@ export default async function HomePage() {
             <HomePageClient
                 galleries={homeContent.galleries}
                 galleryTotal={homeContent.galleryTotal}
+                galleryStatus={homeContent.galleryStatus}
                 blogs={homeContent.blogs}
                 blogTotal={homeContent.blogTotal}
+                blogStatus={homeContent.blogStatus}
                 musicTracks={musicContent.tracks}
+                musicStatus={musicContent.status}
             />
         </Suspense>
     );

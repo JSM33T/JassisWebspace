@@ -5,7 +5,7 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { type MusicTrack } from "@/lib/api/music.types";
 import { type CacheTagMeta } from "@/lib/home-content.types";
 import { type MusicContentPayload } from "@/lib/music-content.types";
-import { apiBaseUrl, parseApiData, parseTtl, type TaggedResult } from "@/lib/server/cache-utils";
+import { apiBaseUrl, CONTENT_FETCH_TIMEOUT_MS, isExpired, parseApiData, parseTtl, type TaggedResult } from "@/lib/server/cache-utils";
 
 export const MUSIC_TRACKS_TAG = "music-tracks-feed";
 
@@ -15,17 +15,25 @@ export const MUSIC_TRACKS_TTL_SECONDS = parseTtl(
 );
 
 async function fetchTracks(): Promise<MusicTrack[]> {
-    const params = new URLSearchParams({ page: "1", pageSize: "100" });
-    const response = await fetch(`${apiBaseUrl()}/music/tracks?${params.toString()}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-    });
+    try {
+        const params = new URLSearchParams({ page: "1", pageSize: "100" });
+        const response = await fetch(`${apiBaseUrl()}/music/tracks?${params.toString()}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            signal: AbortSignal.timeout(CONTENT_FETCH_TIMEOUT_MS),
+        });
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch music tracks (${response.status})`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch music tracks (${response.status})`);
+        }
+
+        const tracks = await parseApiData<MusicTrack[]>(response);
+        if (!Array.isArray(tracks)) throw new Error("Music tracks response is not a list");
+        return tracks;
+    } catch (error) {
+        console.error("Music feed fetch failed:", error);
+        throw error;
     }
-
-    return parseApiData<MusicTrack[]>(response);
 }
 
 
@@ -42,12 +50,14 @@ const getCachedMusicTracks = unstable_cache(
             items: tracks,
         };
     },
-    ["music-tracks-cache-v1"],
+    ["music-tracks-cache-v2", process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? ""],
     {
         revalidate: MUSIC_TRACKS_TTL_SECONDS,
         tags: [MUSIC_TRACKS_TAG],
     },
 );
+
+let lastTracks: TaggedResult<MusicTrack> | null = null;
 
 function toCacheTagMeta<T>(entry: TaggedResult<T>): CacheTagMeta {
     const generatedMs = new Date(entry.generatedAt).getTime();
@@ -67,8 +77,17 @@ function toCacheTagMeta<T>(entry: TaggedResult<T>): CacheTagMeta {
 }
 
 export async function getMusicContentCached(): Promise<MusicContentPayload> {
-    const tracks = await getCachedMusicTracks().catch(() => null);
-    return { tracks: tracks?.items ?? [] };
+    try {
+        const tracks = await getCachedMusicTracks();
+        lastTracks = tracks;
+        return { tracks: tracks.items, status: isExpired(tracks) ? "cached" : "available" };
+    } catch (error) {
+        console.error("Music feed unavailable:", error);
+        return {
+            tracks: lastTracks?.items ?? [],
+            status: lastTracks ? "cached" : "unavailable",
+        };
+    }
 }
 
 export async function getMusicCacheTagsMeta(): Promise<CacheTagMeta[]> {
