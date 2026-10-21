@@ -13,8 +13,8 @@ services:
       - dotnet-media-cache:/app/cache
     restart: unless-stopped
     cpus: "0.55"
-    mem_limit: 512m
-    memswap_limit: 512m
+    mem_limit: 1g
+    memswap_limit: 1g
     pids_limit: 160
     logging:
       driver: json-file
@@ -36,8 +36,8 @@ services:
       - NODE_OPTIONS=--max-old-space-size=256
     restart: unless-stopped
     cpus: "0.35"
-    mem_limit: 384m
-    memswap_limit: 384m
+    mem_limit: 1g
+    memswap_limit: 1g
     pids_limit: 120
     logging:
       driver: json-file
