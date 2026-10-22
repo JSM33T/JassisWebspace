@@ -33,16 +33,16 @@ import { getVersionedGalleryCoverUrl } from "@/lib/gallery-media";
 import { getVersionedMusicCoverUrl } from "@/lib/music-media";
 
 const containerVariants: Variants = {
-    hidden: { opacity: 0 },
+    hidden: {},
     visible: {
-        opacity: 1,
         transition: { duration: 0.35, staggerChildren: 0.08 },
     },
 };
 
 const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 16 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+    // Server-rendered content stays readable before hydration; enhance with motion only.
+    hidden: { y: 16 },
+    visible: { y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const featuredProjectNames = ["ProBeacon", "SurfSwift", "Linqyard"];
@@ -169,7 +169,17 @@ export function HomePageClient({ galleries, galleryTotal, galleryStatus, blogs, 
 
                             <Link href={heroProject ? `/projects/${heroProject.slug}` : "/projects"} aria-label={heroProject ? `Explore ${heroProject.title}` : "Explore projects"} className="group absolute bottom-[16%] left-[16%] top-[8%] z-10 w-[74%] rotate-[2deg] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xl shadow-black/30 transition-transform duration-300 hover:rotate-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
                                 <div className="relative flex h-full flex-col">
-                                    {heroProjectImage ? <Image src={heroProjectImage} alt="" fill sizes="(max-width: 1024px) 70vw, 40vw" className="object-cover object-center opacity-80" /> : null}
+                                    {heroProjectImage ? (
+                                        <Image
+                                            src={heroProjectImage}
+                                            alt=""
+                                            fill
+                                            loading="eager"
+                                            fetchPriority="high"
+                                            sizes="(min-width: 1280px) 504px, (min-width: 1024px) calc(41.44vw - 27px), (min-width: 640px) calc(74vw - 36px), calc(74vw - 24px)"
+                                            className="object-cover object-center opacity-80"
+                                        />
+                                    ) : null}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/35" />
                                     <div className="relative flex h-9 shrink-0 items-center gap-1.5 border-b border-white/10 bg-black/25 px-4 backdrop-blur-sm" aria-hidden="true">
                                         <span className="h-1.5 w-1.5 rounded-full bg-white/55" /><span className="h-1.5 w-1.5 rounded-full bg-white/30" /><span className="h-1.5 w-1.5 rounded-full bg-white/30" />
@@ -243,8 +253,8 @@ export function HomePageClient({ galleries, galleryTotal, galleryStatus, blogs, 
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/5" />
                                     <div className="relative max-w-sm">
                                         <p className="flex items-center gap-2 text-sm font-medium"><Camera className="h-5 w-5 text-primary" aria-hidden="true" /> Photography</p>
-                                        <h3 className="mt-3 text-balance text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Places, moments, and small details.</h3>
-                                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/80">A visual collection from the places and moments I notice.</p>
+                                        <h3 className="mt-3 text-balance text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">{latestGallery ? "Places, moments, and small details." : galleryStatus === "unavailable" ? "Photography temporarily unavailable." : "Personal photography is coming."}</h3>
+                                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/80">{latestGallery ? "Photographs from places and moments I have explored." : galleryStatus === "unavailable" ? "Photos could not be loaded right now. Please try again later." : "My photo stories will appear here when published."}</p>
                                         <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">View photos <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span>
                                     </div>
                                 </Link>
