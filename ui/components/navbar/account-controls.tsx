@@ -43,6 +43,7 @@ import { buildLoginHref } from '@/lib/auth-redirect';
 
 type AccountContextValue = {
     user: User | null;
+    isInitialized: boolean;
     isAuthenticated: boolean;
     canOpenAdmin: boolean;
     roleDisplayName: string | null;
@@ -64,7 +65,7 @@ export function NavbarAccountProvider({ children, onOverlayOpenChange }: {
     children: React.ReactNode;
     onOverlayOpenChange: (open: boolean) => void;
 }) {
-    const { user, logout, isAuthenticated } = useUser();
+    const { user, logout, isAuthenticated, isInitialized } = useUser();
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -90,6 +91,7 @@ export function NavbarAccountProvider({ children, onOverlayOpenChange }: {
 
     const value = useMemo(() => ({
         user,
+        isInitialized,
         isAuthenticated,
         canOpenAdmin,
         roleDisplayName,
@@ -97,7 +99,7 @@ export function NavbarAccountProvider({ children, onOverlayOpenChange }: {
         accountOpen,
         setAccountOpen,
         requestLogout,
-    }), [user, isAuthenticated, canOpenAdmin, roleDisplayName, loginHref, accountOpen, requestLogout]);
+    }), [user, isInitialized, isAuthenticated, canOpenAdmin, roleDisplayName, loginHref, accountOpen, requestLogout]);
 
     const confirmLogout = async () => {
         setLogoutOpen(false);
@@ -114,7 +116,11 @@ export function NavbarAccountProvider({ children, onOverlayOpenChange }: {
 }
 
 export function DesktopNavbarAccount() {
-    const { user, isAuthenticated, canOpenAdmin, roleDisplayName, loginHref, accountOpen, setAccountOpen, requestLogout } = useNavbarAccount();
+    const { user, isInitialized, isAuthenticated, canOpenAdmin, roleDisplayName, loginHref, accountOpen, setAccountOpen, requestLogout } = useNavbarAccount();
+
+    if (!isInitialized) {
+        return <span className="h-10 w-20 rounded-full border border-border/60 bg-muted/20" aria-label="Checking session" />;
+    }
 
     if (!isAuthenticated) {
         return (
@@ -174,7 +180,11 @@ export function DesktopNavbarAccount() {
 }
 
 export function MobileNavbarAccountSummary() {
-    const { user, isAuthenticated, roleDisplayName, loginHref } = useNavbarAccount();
+    const { user, isInitialized, isAuthenticated, roleDisplayName, loginHref } = useNavbarAccount();
+
+    if (!isInitialized) {
+        return <div className="h-12 rounded-2xl border border-border/60 bg-muted/20" aria-label="Checking session" />;
+    }
 
     if (!isAuthenticated || !user) {
         return (

@@ -1,5 +1,3 @@
-import { Suspense } from "react";
-
 import { getHomeContentCached } from "@/lib/server/home-content-cache";
 import { getMusicContentCached } from "@/lib/server/music-content-cache";
 import { HomePageClient } from "./_components/home-page-client";
@@ -13,14 +11,15 @@ export default async function HomePage() {
     ]);
 
     return (
-        <Suspense>
-            <HomePageClient
-                galleries={homeContent.galleries}
-                galleryTotal={homeContent.galleryTotal}
-                blogs={homeContent.blogs}
-                blogTotal={homeContent.blogTotal}
-                musicTracks={musicContent.tracks}
-            />
-        </Suspense>
+        <HomePageClient
+            galleries={homeContent.galleries}
+            galleryTotal={homeContent.galleryTotal}
+            galleryStatus={homeContent.galleryStatus}
+            blogs={homeContent.blogs}
+            blogTotal={homeContent.blogTotal}
+            blogStatus={homeContent.blogStatus}
+            musicTracks={musicContent.tracks}
+            musicStatus={musicContent.status}
+        />
     );
 }

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
 import authService from "@/lib/api/auth.service";
 import { normalizeRoles } from "@/lib/auth-roles";
+import { usePathname } from "next/navigation";
 
 // User interface definition
 export interface User {
@@ -105,6 +106,7 @@ interface UserProviderProps {
 }
 
 export function UserProvider({ children }: UserProviderProps) {
+    const pathname = usePathname();
     const [user, setUser] = useState<User | null>(defaultUser);
     const [isInitialized, setIsInitialized] = useState(false);
 
@@ -490,13 +492,14 @@ export function UserProvider({ children }: UserProviderProps) {
         };
     }, []);
 
-    // Show loading state while initializing
-    if (!isInitialized) {
+    // The public homepage must not wait for an optional session restore.
+    // Protected routes still use isInitialized before showing account content.
+    if (!isInitialized && pathname !== '/') {
         return (
             <UserContext.Provider value={contextValue}>
                 <div className="min-h-screen flex items-center justify-center bg-background">
                     <div className="flex flex-col items-center space-y-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                         <p className="text-sm text-muted-foreground">Loading...</p>
                     </div>
                 </div>

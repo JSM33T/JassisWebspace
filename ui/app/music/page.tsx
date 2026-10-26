@@ -11,6 +11,7 @@ import { useTrackPlayer } from '@/hooks/use-audio-player';
 import { musicService } from '@/lib/api/music.service';
 import { MusicTrack } from '@/lib/api/music.types';
 import { MusicContentPayload } from '@/lib/music-content.types';
+import { FeedStatus } from '@/lib/feed-status';
 import { toast } from 'sonner';
 import { PageBanner } from '@/components/page-banner';
 import { getVersionedMusicCoverUrl } from '@/lib/music-media';
@@ -27,6 +28,7 @@ export default function MusicPage() {
     const [sortOrder, setSortOrder] = useState<'category' | 'newest' | 'title'>('category');
     const [playableOnly, setPlayableOnly] = useState(false);
     const [tracks, setTracks] = useState<MusicTrack[]>([]);
+    const [feedStatus, setFeedStatus] = useState<FeedStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
     const { playTrack } = useTrackPlayer();
@@ -94,10 +96,12 @@ export default function MusicPage() {
                 const payload = (await response.json()) as MusicContentPayload;
                 if (active) {
                     setTracks(payload.tracks);
+                    setFeedStatus(payload.status);
                 }
             } catch (error) {
                 console.error('Failed to load tracks', error);
                 toast.error('Failed to load music tracks');
+                if (active) setFeedStatus('unavailable');
             } finally {
                 if (active) {
                     setLoading(false);
@@ -190,6 +194,11 @@ export default function MusicPage() {
 
             <main className="flex-1 px-4 pb-14 pt-8 md:px-8 md:pb-16 md:pt-10">
                 <div className="mx-auto max-w-6xl pt-4">
+                    {!loading && feedStatus !== 'available' ? (
+                        <p role="status" className="mb-6 rounded-xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground">
+                            {feedStatus === 'cached' ? 'Showing the last available music list. New tracks may have appeared since then.' : 'Music is temporarily unavailable. Please try again later.'}
+                        </p>
+                    ) : null}
                     <div className="mb-6 flex flex-wrap gap-2">
                         {categories.map((category) => {
                             const isActive = selectedCategory === category;
@@ -225,7 +234,7 @@ export default function MusicPage() {
                     ) : null}
                     {!loading && filteredTracks.length === 0 ? (
                         <div className="max-w-6xl py-10 text-center text-muted-foreground">
-                            No tracks found.
+                            {feedStatus === 'unavailable' ? 'Tracks could not be loaded.' : tracks.length > 0 ? 'No tracks match these filters.' : feedStatus === 'cached' ? 'No tracks in the last available snapshot.' : 'No tracks are published yet.'}
                         </div>
                     ) : null}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
