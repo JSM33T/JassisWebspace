@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion, useAnimation, useReducedMotion } from 'framer-motion';
 import {
     AtSign,
+    Bookmark,
     ChevronDown,
     Frown,
     LayoutDashboard,
@@ -168,6 +169,7 @@ export function DesktopNavbarAccount() {
                     <AccountDropdownLink href="/admin" icon={LayoutDashboard}>Admin</AccountDropdownLink>
                 ) : null}
                 <AccountDropdownLink href="/account/profile" icon={UserCircle}>Profile</AccountDropdownLink>
+                <AccountDropdownLink href="/account/saved" icon={Bookmark}>Saved</AccountDropdownLink>
                 <AccountDropdownLink href="/account/preferences" icon={Settings}>Settings</AccountDropdownLink>
                 <AccountDropdownLink href="/account/security" icon={Shield}>Security</AccountDropdownLink>
                 <DropdownMenuSeparator />
@@ -223,6 +225,7 @@ export function MobileNavbarAccountLinks({ closeMenu }: { closeMenu: () => void 
             <div className="space-y-1">
                 {canOpenAdmin ? <MobileAccountLink href="/admin" icon={LayoutDashboard}>Admin</MobileAccountLink> : null}
                 <MobileAccountLink href="/account/profile" icon={UserCircle}>Profile</MobileAccountLink>
+                <MobileAccountLink href="/account/saved" icon={Bookmark}>Saved</MobileAccountLink>
                 <MobileAccountLink href="/account/preferences" icon={Settings}>Settings</MobileAccountLink>
                 <MobileAccountLink href="/account/security" icon={Shield}>Security</MobileAccountLink>
                 <Button

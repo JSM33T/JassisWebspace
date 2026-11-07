@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { SaveButton } from '@/components/saved-content/SaveButton';
 import { ContentViewTracker } from '@/components/views/ContentViewTracker';
 import { useTrackPlayer } from '@/hooks/use-audio-player';
 import { musicService } from '@/lib/api/music.service';
@@ -269,6 +270,7 @@ export default function MusicTrackViewPage() {
                                     <MessageSquare className="h-4 w-4" />
                                     <span>{track.commentCount}</span>
                                 </span>
+                                <SaveButton contentId={track.contentId} itemTitle={track.title} />
                                 <span className="flex items-center gap-2">
                                     <Eye className="h-4 w-4" />
                                     <span>{track.viewCount}</span>

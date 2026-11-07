@@ -46,6 +46,7 @@ Jass Space is a personal web platform made of a Next.js frontend and a .NET API 
 - Admin dashboard for content, blog, gallery, music, email, users, and settings.
 - Blog and gallery content backed by the API, with search and pagination patterns in the UI.
 - Comments, likes, public user profiles, and anonymous content view tracking.
+- Private saved posts, gallery albums, and music in a paginated account library.
 - Private Artifacts registered in the content library, with admin/mod uploads, expiring share links, download limits, revocation, and anonymous recipient downloads.
 - Email templates, SMTP delivery, contact handling, and background jobs.
 - Dockerized API and UI services with production-oriented resource limits.

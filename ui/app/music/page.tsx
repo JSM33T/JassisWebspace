@@ -15,6 +15,7 @@ import { FeedStatus } from '@/lib/feed-status';
 import { toast } from 'sonner';
 import { PageBanner } from '@/components/page-banner';
 import { getVersionedMusicCoverUrl } from '@/lib/music-media';
+import { SaveButton } from '@/components/saved-content/SaveButton';
 
 const CATEGORY_ORDER = ['remixes', 'originals', 'snippets', 'radio/features', 'radio-features', 'features'];
 
@@ -293,6 +294,7 @@ export default function MusicPage() {
                                     <p className="min-w-0 truncate" title={track.authors.map((author) => author.displayName || author.username).join(', ')}>
                                         {track.authors.map((author) => author.displayName || author.username).join(', ') || 'Unknown artist'}
                                     </p>
+                                    <SaveButton contentId={track.contentId} itemTitle={track.title} compact />
                                     {track.duration?.trim() ? (
                                         <span className="shrink-0 tabular-nums" aria-label={`Duration: ${track.duration.trim()}`}>
                                             {track.duration.trim()}

@@ -427,6 +427,9 @@ public sealed class UserRepository(JassSpaceDbContext db, ILogger<UserRepository
 
             // Soft-delete links and groups
 
+            // Saved items are private account data and must be removed on soft deletion.
+            await _db.SavedContents.Where(s => s.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+
             // Anonymize and mark user deleted
             user.DeletedAt = now;
             user.IsActive = false;

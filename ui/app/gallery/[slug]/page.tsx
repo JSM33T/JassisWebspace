@@ -20,6 +20,7 @@ import { GalleryEditDialog, GalleryEditTarget } from '@/components/gallery/galle
 import { CommentSection } from '@/components/comments/CommentSection';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { SaveButton } from '@/components/saved-content/SaveButton';
 import { ContentViewTracker } from '@/components/views/ContentViewTracker';
 import { Badge } from '@/components/ui/badge';
 import { toGalleryThumbUrl } from '@/lib/gallery-media';
@@ -340,6 +341,7 @@ export default function AlbumDetailPage() {
                             <MessageSquare className="h-4 w-4" />
                             <span>{album.commentCount}</span>
                         </div>
+                        {album.isActive && <SaveButton contentId={album.contentId} itemTitle={album.name} />}
                         <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
                             <Eye className="h-4 w-4" />
                             <span>{album.viewCount}</span>

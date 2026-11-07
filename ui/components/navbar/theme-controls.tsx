@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -18,7 +19,9 @@ function getThemePreviewBackground(themeSet: ThemeSet) {
 
 export function NavbarThemeToggle() {
     const { resolvedTheme, setTheme } = useTheme();
-    const activeMode = resolvedTheme === 'dark' ? 'dark' : 'light';
+    // The server cannot read the saved or system theme. Keep the first client render identical.
+    const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+    const activeMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
 
     return (
         <Button
@@ -26,6 +29,7 @@ export function NavbarThemeToggle() {
             variant="ghost"
             size="icon"
             className="relative h-10 w-10 rounded-full hover:bg-accent/50"
+            disabled={!mounted}
             onClick={() => setTheme(activeMode === 'dark' ? 'light' : 'dark')}
             aria-label={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             title={activeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
