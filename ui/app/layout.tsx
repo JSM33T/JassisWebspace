@@ -4,6 +4,7 @@ import "./globals.css";
 import "./override.css";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/contexts/UserContext";
+import { SavedContentProvider } from "@/contexts/SavedContentContext";
 import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 
 import { ThemeProvider } from "@/components/theme-provider";
@@ -66,13 +67,15 @@ export default function RootLayout({
         >
           <AudioPlayerProvider>
             <UserProvider>
-              <AppShell>{children}</AppShell>
-              <BackToTopProgress />
-              <Toaster
-                position="bottom-center"
-                expand
-                toastOptions={{ classNames: toasterClassNames }}
-              />
+              <SavedContentProvider>
+                <AppShell>{children}</AppShell>
+                <BackToTopProgress />
+                <Toaster
+                  position="bottom-center"
+                  expand
+                  toastOptions={{ classNames: toasterClassNames }}
+                />
+              </SavedContentProvider>
             </UserProvider>
           </AudioPlayerProvider>
         </ThemeProvider>

@@ -29,6 +29,7 @@ import { BlogDetail } from '@/lib/api/blog.types';
 import { ApiError } from '@/lib/api/types';
 import { AuthorModal } from '@/components/blog/AuthorModal';
 import { LikeButton } from '@/components/likes/LikeButton';
+import { SaveButton } from '@/components/saved-content/SaveButton';
 import { ContentViewTracker } from '@/components/views/ContentViewTracker';
 import { useUser } from '@/contexts/UserContext';
 import { hasRole } from '@/lib/auth-roles';
@@ -241,6 +242,7 @@ export default function BlogViewPage() {
                             <MessageSquare className="h-4 w-4" />
                             <span>{blog.commentCount}</span>
                         </button>
+                        {!isInteractivityDisabled && <SaveButton contentId={blog.contentId} itemTitle={blog.title} />}
                         <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/55 px-3 py-1.5 backdrop-blur-sm">
                             <Eye className="h-4 w-4" />
                             <span>{blog.viewCount}</span>

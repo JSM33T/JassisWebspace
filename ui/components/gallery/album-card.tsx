@@ -5,6 +5,7 @@ import { ArrowUpRight, Images, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GalleryThumb } from '@/components/gallery/gallery-thumb';
 import { AlbumEngagement } from '@/components/gallery/album-engagement';
+import { SaveButton } from '@/components/saved-content/SaveButton';
 import { type Album } from '@/lib/api/gallery.types';
 import { toGalleryThumbUrl } from '@/lib/gallery-media';
 import { applyCacheBustingParam } from '@/lib/cacheBust';
@@ -73,6 +74,7 @@ export function AlbumCard({ album, compact, prominent = false, onEdit }: {
                     {authors && <span className={cn('truncate', compact && 'hidden sm:inline')} title={authors}>By {authors}</span>}
                 </div>
                 {onEdit && <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label={`Edit album: ${album.name}`} title="Edit album" onClick={() => onEdit(album)}><Pencil className="size-3.5" /></Button>}
+                <SaveButton contentId={album.contentId} itemTitle={album.name} compact />
             </div>
         </article>
     );

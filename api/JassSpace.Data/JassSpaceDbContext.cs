@@ -30,6 +30,7 @@ public partial class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> opt
     public DbSet<TrackLink> TrackLinks { get; set; }
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
+    public DbSet<SavedContent> SavedContents => Set<SavedContent>();
     public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<UiProperties> UiProperties => Set<UiProperties>();
     public DbSet<EmailTemplate> EmailTemplates { get; set; }
@@ -68,6 +69,7 @@ public partial class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> opt
         ConfigureTrackLinkEntity(modelBuilder);
         ConfigureCommentEntity(modelBuilder);
         ConfigureLikeEntity(modelBuilder);
+        ConfigureSavedContentEntity(modelBuilder);
         ConfigureContactEntity(modelBuilder);
         ConfigureUiPropertiesEntity(modelBuilder);
         ConfigureEmailTemplateEntity(modelBuilder);
@@ -612,6 +614,16 @@ public partial class JassSpaceDbContext(DbContextOptions<JassSpaceDbContext> opt
             .WithMany()
             .HasForeignKey(l => l.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static void ConfigureSavedContentEntity(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<SavedContent>();
+        entity.HasKey(e => new { e.UserId, e.ContentId });
+        entity.HasIndex(e => new { e.UserId, e.CreatedAt, e.ContentId }).IsDescending(false, true, true);
+        entity.HasIndex(e => e.ContentId);
+        entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Cascade);
+        entity.HasOne(e => e.Content).WithMany().HasForeignKey(e => e.ContentId).OnDelete(DeleteBehavior.Cascade);
     }
 
     private void ConfigureContactEntity(ModelBuilder modelBuilder)

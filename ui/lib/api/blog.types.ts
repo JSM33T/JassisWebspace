@@ -16,6 +16,7 @@ export interface BlogAuthor {
 
 export interface BlogListItem {
     id: string;
+    contentId: string | null;
     title: string;
     slug: string;
     excerpt: string | null;

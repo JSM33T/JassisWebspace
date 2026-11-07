@@ -28,6 +28,7 @@ import {
 import { AuthorModal } from '@/components/blog/AuthorModal';
 import { PageBanner } from '@/components/page-banner';
 import { VisualFallback } from '@/components/visual-fallback';
+import { SaveButton } from '@/components/saved-content/SaveButton';
 
 const CARD_COLORS = [
     'bg-primary/8',
@@ -336,6 +337,7 @@ export default function BlogHomePage() {
                                                     >
                                                         Read more →
                                                     </Link>
+                                                    <SaveButton contentId={blog.contentId} itemTitle={blog.title} compact />
                                                 </div>
                                             </article>
                                         </motion.div>

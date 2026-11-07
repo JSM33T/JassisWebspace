@@ -522,7 +522,8 @@ public sealed class BlogService(JassSpaceDbContext dbContext) : IBlogService
                     blog.UpdatedAt,
                     likeCount,
                     commentCount,
-                    viewCount);
+                    viewCount,
+                    contentByBlogId.TryGetValue(blog.Id, out var listContentId) ? listContentId : null);
             })
             .ToList();
 

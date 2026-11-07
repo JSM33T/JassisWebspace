@@ -23,7 +23,8 @@ public record BlogListItemResponse(
     DateTimeOffset? UpdatedAt,
     int LikeCount = 0,
     int CommentCount = 0,
-    int ViewCount = 0
+    int ViewCount = 0,
+    Guid? ContentId = null
 );
 
 public record BlogDetailResponse(

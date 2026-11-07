@@ -672,6 +672,17 @@ namespace JassSpace.Data.Migrations
                     b.ToTable("Likes");
                 });
 
+            modelBuilder.Entity("JassSpace.Entities.SavedContent", b =>
+                {
+                    b.Property<Guid>("UserId").HasColumnType("uuid");
+                    b.Property<Guid>("ContentId").HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.HasKey("UserId", "ContentId");
+                    b.HasIndex("ContentId");
+                    b.HasIndex("UserId", "CreatedAt", "ContentId").IsDescending(false, true, true);
+                    b.ToTable("SavedContents");
+                });
+
             modelBuilder.Entity("JassSpace.Entities.OtpCode", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1298,6 +1309,16 @@ namespace JassSpace.Data.Migrations
 
                     b.Navigation("Content");
 
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("JassSpace.Entities.SavedContent", b =>
+                {
+                    b.HasOne("JassSpace.Entities.Content", "Content")
+                        .WithMany().HasForeignKey("ContentId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("JassSpace.Entities.User", "User")
+                        .WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.Navigation("Content");
                     b.Navigation("User");
                 });
 

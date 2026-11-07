@@ -161,6 +161,7 @@ builder.Services.AddScoped<IUiPropertiesService, UiPropertiesService>();
 builder.Services.AddScoped<IContactService, ContactService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ILikeService, LikeService>();
+builder.Services.AddScoped<ISavedContentService, SavedContentService>();
 builder.Services.AddScoped<IContentViewService, ContentViewService>();
 builder.Services.AddScoped<IBootlegService, BootlegService>();
 builder.Services.AddOptions<ArtifactSettings>()
