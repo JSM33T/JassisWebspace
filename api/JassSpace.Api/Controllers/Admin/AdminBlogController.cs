@@ -162,9 +162,11 @@ public sealed class AdminBlogController(
     [HttpPost("upload-image")]
     [ProducesResponseType(typeof(ApiResponse<MediaUploadResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UploadBlogImage(
         [FromForm] IFormFile? file,
-        [FromForm] string? fileName,
+        [FromForm] Guid? blogId,
         CancellationToken cancellationToken = default)
     {
         if (file is null || file.Length == 0)
@@ -174,9 +176,24 @@ public sealed class AdminBlogController(
 
         try
         {
+            if (!IsPrivilegedUser())
+            {
+                if (blogId is null)
+                {
+                    return ForbiddenProblem("Only assigned authors can upload images for an existing blog.");
+                }
+
+                var blog = await adminBlogService.GetBlogAsync(blogId.Value, TryGetCurrentUserId(), false, cancellationToken);
+                if (blog.Status != AdminBlogMutationStatus.Success)
+                {
+                    return MapBlogMutationProblem(blog);
+                }
+            }
+
             await using var stream = file.OpenReadStream();
             var response = await adminBlogService.UploadBlogImageAsync(
-                new AdminMediaUploadInput(stream, file.FileName, fileName),
+                stream,
+                file.FileName,
                 GetBaseUrl(),
                 cancellationToken);
 
@@ -332,8 +349,15 @@ public sealed class AdminBlogController(
 
     private async Task InvalidateBlogCachesAsync(CancellationToken cancellationToken)
     {
-        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
-        await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
+        try
+        {
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogList, cancellationToken);
+            await responseCacheStore.InvalidateByBaseKeyAsync(RedisCacheKeys.BlogSeo, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to invalidate caches after committing a blog change");
+        }
     }
 
     private Guid? TryGetCurrentUserId()

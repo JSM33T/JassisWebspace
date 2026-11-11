@@ -7,15 +7,13 @@ using JassSpace.Entities;
 using JassSpace.Entities.Enums;
 using JassSpace.Infra;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace JassSpace.Services;
 
 public sealed class AdminBlogService(
     JassSpaceDbContext dbContext,
     IAzureBlobStorageService blobStorageService,
-    IImageProcessingService imageProcessingService,
-    ILogger<AdminBlogService> logger) : IAdminBlogService
+    IImageProcessingService imageProcessingService) : IAdminBlogService
 {
     private const string BlogBlobPrefix = "blog/";
     private const string MediaPathPrefix = "/media/";
@@ -24,7 +22,6 @@ public sealed class AdminBlogService(
     private readonly JassSpaceDbContext _dbContext = dbContext;
     private readonly IAzureBlobStorageService _blobStorageService = blobStorageService;
     private readonly IImageProcessingService _imageProcessingService = imageProcessingService;
-    private readonly ILogger<AdminBlogService> _logger = logger;
 
     public Task<List<BlogCategoryResponse>> GetCategoriesAsync(CancellationToken cancellationToken = default)
     {
@@ -281,19 +278,19 @@ public sealed class AdminBlogService(
     }
 
     public async Task<MediaUploadResponse> UploadBlogImageAsync(
-        AdminMediaUploadInput file,
+        Stream content,
+        string originalFileName,
         string mediaBaseUrl,
         CancellationToken cancellationToken = default)
     {
-        var baseName = !string.IsNullOrWhiteSpace(file.RequestedFileName)
-            ? file.RequestedFileName
-            : Guid.NewGuid().ToString();
-
-        var uploadResult = await UploadBlogFileAsync(
-            file.Content,
-            file.FileName,
-            baseName,
-            cancellationToken);
+        await using var processed = await _imageProcessingService.ProcessImageAsync(content, cancellationToken);
+        var uploadResult = await _blobStorageService.UploadImageAsync(
+            processed,
+            originalFileName,
+            "image/webp",
+            $"{BlogBlobPrefix}{Guid.NewGuid():N}",
+            cancellationToken,
+            overwrite: false);
 
         return new MediaUploadResponse(
             uploadResult.BlobName,
@@ -414,17 +411,12 @@ public sealed class AdminBlogService(
                 ErrorMessage: $"No blog found with ID '{id}'.");
         }
 
-        var contentId = await _dbContext.Contents
-            .Where(c => c.ContentType == ContentType.Blog && c.ContentRefId == id)
-            .Select(c => c.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+        var content = await _dbContext.Contents
+            .Include(c => c.Authors)
+            .FirstOrDefaultAsync(c => c.ContentType == ContentType.Blog && c.ContentRefId == id, cancellationToken);
+        var existingAuthors = content?.Authors ?? [];
 
-        var existingAuthorUserIds = await _dbContext.ContentAuthors
-            .Where(ca => ca.ContentId == contentId)
-            .Select(ca => ca.UserId)
-            .ToListAsync(cancellationToken);
-
-        if (!CanEditBlog(existingAuthorUserIds, currentUserId, canEditAll))
+        if (!CanEditBlog(existingAuthors.Select(a => a.UserId), currentUserId, canEditAll))
         {
             return new AdminBlogMutationResult(
                 AdminBlogMutationStatus.Forbidden,
@@ -447,26 +439,9 @@ public sealed class AdminBlogService(
 
         blog.Title = request.Title;
 
-        var normalizedFeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage);
-        var existingFeaturedBlobName = ExtractBlogBlobNameFromMediaUrl(blog.FeaturedImage);
-        var incomingFeaturedBlobName = ExtractBlogBlobNameFromMediaUrl(normalizedFeaturedImage);
-
-        if (!string.IsNullOrWhiteSpace(existingFeaturedBlobName) &&
-            !string.Equals(existingFeaturedBlobName, incomingFeaturedBlobName, StringComparison.OrdinalIgnoreCase))
-        {
-            try
-            {
-                await _blobStorageService.DeleteBlobAsync(existingFeaturedBlobName, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to delete old image blob {BlobUrl}", blog.FeaturedImage);
-            }
-        }
-
         blog.Excerpt = request.Excerpt;
         blog.Content = request.Content;
-        blog.FeaturedImage = normalizedFeaturedImage;
+        blog.FeaturedImage = NormalizeBlogMediaUrl(request.FeaturedImage);
         blog.CategoryId = request.CategoryId;
 
         if (request.IsPublished && !blog.IsPublished)
@@ -477,10 +452,13 @@ public sealed class AdminBlogService(
         blog.IsPublished = request.IsPublished;
         blog.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await UpsertContentAsync(blog, id, cancellationToken);
-        await UpdateAuthorsAsync(contentId, existingAuthorUserIds, request.AuthorIds, canEditAll, cancellationToken);
-        await CleanupOrphanedContentImagesAsync(id, request.Content, cancellationToken);
+        content = await UpsertContentAsync(blog, content, cancellationToken);
+        if (canEditAll)
+        {
+            await UpdateAuthorsAsync(content, request.AuthorIds ?? [], cancellationToken);
+        }
 
+        // Keep stored media because another post or an in-progress edit can still reference it.
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var updatedBlog = await GetBlogWithDetailsAsync(id, cancellationToken)
@@ -503,31 +481,12 @@ public sealed class AdminBlogService(
                 $"No blog found with ID '{id}'.");
         }
 
-        if (!string.IsNullOrWhiteSpace(blog.FeaturedImage))
-        {
-            try
-            {
-                var featuredBlobName = ExtractBlogBlobNameFromMediaUrl(blog.FeaturedImage);
-                if (!string.IsNullOrWhiteSpace(featuredBlobName))
-                {
-                    await _blobStorageService.DeleteBlobAsync(featuredBlobName, cancellationToken);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to delete image blob {BlobUrl}", blog.FeaturedImage);
-            }
-        }
-
         var content = await _dbContext.Contents
             .FirstOrDefaultAsync(c => c.ContentType == ContentType.Blog && c.ContentRefId == id, cancellationToken);
 
         if (content is not null)
         {
-            await _dbContext.Comments
-                .Where(c => c.ContentId == content.Id)
-                .ExecuteDeleteAsync(cancellationToken);
-
+            // The database cascades this deletion to comments and other content relations.
             _dbContext.Contents.Remove(content);
         }
 
@@ -537,11 +496,8 @@ public sealed class AdminBlogService(
         return new AdminBlogDeleteResult(AdminBlogDeleteStatus.Success);
     }
 
-    private async Task UpsertContentAsync(Blog blog, Guid id, CancellationToken cancellationToken)
+    private async Task<Content> UpsertContentAsync(Blog blog, Content? content, CancellationToken cancellationToken)
     {
-        var content = await _dbContext.Contents
-            .FirstOrDefaultAsync(c => c.ContentType == ContentType.Blog && c.ContentRefId == id, cancellationToken);
-
         if (content is not null)
         {
             content.Title = blog.Title;
@@ -566,7 +522,7 @@ public sealed class AdminBlogService(
             content.PublishedAt = blog.PublishedAt;
             content.SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content);
             content.UpdatedAt = DateTimeOffset.UtcNow;
-            return;
+            return content;
         }
 
         var newContentSlug = blog.Slug;
@@ -578,7 +534,7 @@ public sealed class AdminBlogService(
             newContentSlug = $"{blog.Slug}-{blog.Id.ToString()[..8]}";
         }
 
-        _dbContext.Contents.Add(new Content
+        content = new Content
         {
             Id = Guid.NewGuid(),
             ContentType = ContentType.Blog,
@@ -592,25 +548,21 @@ public sealed class AdminBlogService(
             SearchBody = BuildBlogSearchBody(blog.Excerpt, blog.Content),
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
-        });
+        };
+        _dbContext.Contents.Add(content);
+        return content;
     }
 
     private async Task UpdateAuthorsAsync(
-        Guid contentId,
-        List<Guid> existingAuthorUserIds,
-        List<Guid>? requestedAuthorIds,
-        bool canEditAll,
+        Content content,
+        List<Guid> requestedAuthorIds,
         CancellationToken cancellationToken)
     {
-        var requestAuthorIds = canEditAll
-            ? requestedAuthorIds ?? []
-            : existingAuthorUserIds;
+        var existingAuthors = content.Authors.ToList();
+        var requestedIds = requestedAuthorIds.ToHashSet();
+        _dbContext.ContentAuthors.RemoveRange(existingAuthors.Where(a => !requestedIds.Contains(a.UserId)));
 
-        await _dbContext.ContentAuthors
-            .Where(ca => ca.ContentId == contentId && !requestAuthorIds.Contains(ca.UserId))
-            .ExecuteDeleteAsync(cancellationToken);
-
-        var newAuthorUserIds = requestAuthorIds.Where(uid => !existingAuthorUserIds.Contains(uid)).ToList();
+        var newAuthorUserIds = requestedAuthorIds.Distinct().Except(existingAuthors.Select(a => a.UserId)).ToList();
         if (newAuthorUserIds.Count == 0)
         {
             return;
@@ -621,57 +573,19 @@ public sealed class AdminBlogService(
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 
-        var currentMaxOrder = existingAuthorUserIds.Count;
+        var nextOrder = existingAuthors.Select(a => a.Order).DefaultIfEmpty(-1).Max() + 1;
         var now = DateTimeOffset.UtcNow;
         _dbContext.ContentAuthors.AddRange(
-            requestAuthorIds
-                .Where(uid => validUserIds.Contains(uid) && !existingAuthorUserIds.Contains(uid))
+            newAuthorUserIds
+                .Where(validUserIds.Contains)
                 .Select((userId, i) => new ContentAuthor
                 {
                     Id = Guid.NewGuid(),
-                    ContentId = contentId,
+                    ContentId = content.Id,
                     UserId = userId,
-                    Order = currentMaxOrder + i,
+                    Order = nextOrder + i,
                     CreatedAt = now
                 }));
-    }
-
-    private async Task CleanupOrphanedContentImagesAsync(
-        Guid blogId,
-        string content,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var legacyPrefix = $"blog-{blogId}-";
-            var folderPrefix = $"blog/blog-{blogId}-";
-            var storedBlobs = (await _blobStorageService.ListBlobsByPrefixAsync(folderPrefix, cancellationToken))
-                .Concat(await _blobStorageService.ListBlobsByPrefixAsync(legacyPrefix, cancellationToken))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (storedBlobs.Count == 0)
-            {
-                return;
-            }
-
-            var usedBlobNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var blobName in ExtractBlobNamesFromContent(content))
-            {
-                usedBlobNames.Add(blobName);
-            }
-
-            var orphans = storedBlobs.Where(b => !usedBlobNames.Contains(b)).ToList();
-            foreach (var orphan in orphans)
-            {
-                await _blobStorageService.DeleteBlobAsync(orphan, cancellationToken);
-                _logger.LogInformation("Deleted orphaned content image {BlobName} for blog {BlogId}", orphan, blogId);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to clean up orphaned images for blog {BlogId}", blogId);
-        }
     }
 
     private async Task<BlogDetailResponse?> GetBlogWithDetailsAsync(
@@ -773,22 +687,6 @@ public sealed class AdminBlogService(
             .ToDictionary(g => g.Key, g => g.Select(x => x.Response).ToList());
     }
 
-    private async Task<BlobUploadResult> UploadBlogFileAsync(
-        Stream fileStream,
-        string fileName,
-        string? blobName,
-        CancellationToken cancellationToken)
-    {
-        await using var processedStream = await _imageProcessingService.ProcessImageAsync(fileStream, cancellationToken);
-
-        return await _blobStorageService.UploadImageAsync(
-            processedStream,
-            fileName,
-            "image/webp",
-            string.IsNullOrWhiteSpace(blobName) ? null : EnsureBlogBlobName(blobName),
-            cancellationToken);
-    }
-
     private static bool CanEditBlog(
         IEnumerable<Guid> authorIds,
         Guid? currentUserId,
@@ -806,41 +704,6 @@ public sealed class AdminBlogService(
     {
         var publicBlobName = StripBlogPrefix(blobName);
         return $"{mediaBaseUrl.TrimEnd('/')}{MediaPathPrefix}{publicBlobName}";
-    }
-
-    private static IEnumerable<string> ExtractBlobNamesFromContent(string content)
-    {
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            yield break;
-        }
-
-        var matches = Regex.Matches(content, @"/media/([^\s\)""'<>]+)", RegexOptions.IgnoreCase, RegexTimeout);
-        foreach (Match match in matches)
-        {
-            var candidate = match.Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(candidate))
-            {
-                continue;
-            }
-
-            var trimmed = candidate.Split('?', '#')[0].Trim();
-            if (string.IsNullOrWhiteSpace(trimmed))
-            {
-                continue;
-            }
-
-            yield return EnsureBlogBlobName(trimmed);
-            yield return StripBlogPrefix(trimmed);
-        }
-    }
-
-    private static string EnsureBlogBlobName(string blobName)
-    {
-        var normalized = blobName.Trim().TrimStart('/').Replace('\\', '/');
-        return normalized.StartsWith(BlogBlobPrefix, StringComparison.OrdinalIgnoreCase)
-            ? normalized
-            : $"{BlogBlobPrefix}{normalized}";
     }
 
     private static string StripBlogPrefix(string blobName)
@@ -872,18 +735,6 @@ public sealed class AdminBlogService(
         }
 
         return $"{MediaPathPrefix}{publicBlobName}";
-    }
-
-    private static string? ExtractBlogBlobNameFromMediaUrl(string? mediaUrl)
-    {
-        if (string.IsNullOrWhiteSpace(mediaUrl))
-        {
-            return null;
-        }
-
-        return TryExtractMediaBlobName(mediaUrl.Trim(), out var blobName)
-            ? EnsureBlogBlobName(blobName)
-            : null;
     }
 
     private static bool TryExtractMediaBlobName(string urlOrPath, out string blobName)

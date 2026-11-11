@@ -13,6 +13,7 @@ namespace JassSpace.Infra
         /// <param name="contentType">The MIME content type of the image (e.g., <c>image/png</c>).</param>
         /// <param name="blobName">An optional blob name to assign. If not provided, one will be generated.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <param name="overwrite">Whether to replace a blob that already exists under this name.</param>
         /// <returns>
         /// A task that represents the asynchronous upload operation.
         /// The task result contains the <see cref="BlobUploadResult"/> including the blob name, public URL, and local path.
@@ -22,7 +23,8 @@ namespace JassSpace.Infra
             string fileName,
             string contentType,
             string? blobName = null,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            bool overwrite = true);
 
         /// <summary>
         /// Retrieves an image from Azure Blob Storage by its blob name.

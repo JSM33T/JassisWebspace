@@ -75,11 +75,11 @@ class AdminBlogService {
         return get<BlogDetail>(`/admin/blog/${id}`);
     }
 
-    async uploadImage(file: File, fileName?: string): Promise<{ publicId: string, url: string }> {
+    async uploadImage(file: File, blogId?: string): Promise<{ publicId: string, url: string }> {
         const formData = new FormData();
         formData.append('file', file);
-        if (fileName) {
-            formData.append('fileName', fileName);
+        if (blogId) {
+            formData.append('blogId', blogId);
         }
 
         return post<{ publicId: string, url: string }>('/admin/blog/upload-image', formData);

@@ -181,7 +181,7 @@ public sealed class AdminGalleryServiceTests
         public bool FailUpload { get; init; }
         public bool FailDelete { get; init; }
         public Action? AfterUpload { get; init; }
-        public Task<BlobUploadResult> UploadImageAsync(Stream stream, string fileName, string contentType, string? blobName = null, CancellationToken cancellationToken = default)
+        public Task<BlobUploadResult> UploadImageAsync(Stream stream, string fileName, string contentType, string? blobName = null, CancellationToken cancellationToken = default, bool overwrite = true)
         {
             Uploads++;
             if (FailUpload) throw new IOException("Upload failed");
