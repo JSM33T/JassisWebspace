@@ -284,34 +284,35 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext, IArtifactA
         if (term.Length < 2)
             return [];
 
-        // Hybrid: FTS match OR trigram similarity above threshold, ranked by weighted score.
-        // Title weight 3x, FTS rank 2x, Description 1x, Slug 0.5x.
-        // websearch_to_tsquery handles phrases/negation and is safe with arbitrary user input.
-        var rows = await ApplyArtifactVisibility(_dbContext.Contents
-            .FromSqlInterpolated($"""
-                SELECT *
-                FROM "Contents"
-                WHERE
-                    "SearchVector" @@ websearch_to_tsquery('english', {term})
-                    OR similarity("Title", {term}) > 0.2
-                    OR similarity(coalesce("Description", ''), {term}) > 0.15
-                    OR similarity("Slug", {term}) > 0.2
-                ORDER BY (
-                    similarity("Title", {term}) * 3 +
-                    ts_rank("SearchVector", websearch_to_tsquery('english', {term})) * 2 +
-                    similarity(coalesce("Description", ''), {term}) +
-                    similarity("Slug", {term}) * 0.5
-                ) DESC
-                LIMIT 50
-                """))
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-
+        var contents = VisibleContents().AsNoTracking();
         if (!string.IsNullOrWhiteSpace(contentType) &&
             Enum.TryParse<ContentType>(contentType, true, out var parsedType))
         {
-            rows = rows.Where(r => r.ContentType == parsedType).ToList();
+            contents = contents.Where(c => c.ContentType == parsedType);
         }
+
+        // Match by full-text search or trigram similarity and retain the weighted score for ordering.
+        var matches = _dbContext.Database.SqlQuery<ContentSearchMatch>($"""
+            SELECT "Id", (
+                similarity("Title", {term}) * 3 +
+                ts_rank("SearchVector", websearch_to_tsquery('english', {term})) * 2 +
+                similarity(coalesce("Description", ''), {term}) +
+                similarity("Slug", {term}) * 0.5
+            )::double precision AS "Score"
+            FROM "Contents"
+            WHERE
+                "SearchVector" @@ websearch_to_tsquery('english', {term})
+                OR similarity("Title", {term}) > 0.2
+                OR similarity(coalesce("Description", ''), {term}) > 0.15
+                OR similarity("Slug", {term}) > 0.2
+            """);
+
+        var rows = await (
+            from content in contents
+            join match in matches on content.Id equals match.Id
+            orderby match.Score descending, content.Id
+            select content
+        ).Take(50).ToListAsync(cancellationToken);
 
         return rows.Select(r => new AdminContentSearchResultResponse(
             r.Id,
@@ -325,4 +326,6 @@ public sealed class AdminContentService(JassSpaceDbContext dbContext, IArtifactA
             r.CreatedAt
         )).ToList();
     }
+
+    private sealed record ContentSearchMatch(Guid Id, double Score);
 }

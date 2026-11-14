@@ -62,7 +62,8 @@ namespace JassSpace.Infra
             string fileName,
             string contentType,
             string? blobName = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool overwrite = true)
         {
             if (fileStream is null)
             {
@@ -104,7 +105,7 @@ namespace JassSpace.Infra
                     new BlobUploadOptions
                     {
                         HttpHeaders = blobHttpHeaders,
-                        Conditions = null // Allow overwrite
+                        Conditions = overwrite ? null : new BlobRequestConditions { IfNoneMatch = ETag.All }
                     },
                     cancellationToken);
 

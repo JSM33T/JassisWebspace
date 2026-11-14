@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -51,7 +52,7 @@ export default function ServicesPage() {
                 badge="Services"
                 badgeIcon={Briefcase}
                 title="Focused engineering support"
-                description="I take on bounded automation, AI product and assistant, portfolio, and .NET architecture work with a clear scope and next step."
+                description="I take on focused projects across web development, AI and automation, data and IoT, and software delivery."
                 maxWidth="max-w-7xl"
             />
 
@@ -67,7 +68,7 @@ export default function ServicesPage() {
                         }
                         className="pb-12 md:pb-16"
                     >
-                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                             {availableServices.map((service, index) => (
                                 <motion.div
                                     key={service.slug}
@@ -81,7 +82,18 @@ export default function ServicesPage() {
                                         onClick={() => setServiceParam(service.slug)}
                                         className="group flex h-full w-full flex-col overflow-hidden rounded-3xl border border-primary/20 bg-card/55 p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:bg-card/85 hover:shadow-lg focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                     >
-                                        <VisualFallback kind="service" title={service.title} eyebrow="Available" icon={Briefcase} className="aspect-[16/10] min-h-0 rounded-2xl border" />
+                                        {service.thumbnail ? (
+                                            <Image
+                                                src={service.thumbnail}
+                                                alt=""
+                                                width={960}
+                                                height={600}
+                                                sizes="(min-width: 1280px) 380px, (min-width: 768px) 50vw, 100vw"
+                                                className="aspect-[16/10] w-full rounded-2xl border object-cover"
+                                            />
+                                        ) : (
+                                            <VisualFallback kind="service" title={service.title} eyebrow="Available" icon={Briefcase} className="aspect-[16/10] min-h-0 rounded-2xl border" />
+                                        )}
                                         <div className="mt-4 flex items-center justify-between gap-3">
                                             <Badge className="rounded-full px-3">Available</Badge>
                                             <Info className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
@@ -99,36 +111,38 @@ export default function ServicesPage() {
                         </div>
                     </ContentRail>
 
-                    <ContentRail
-                        header={
-                            <SectionHeader
-                                eyebrow="Not Currently Offered"
-                                title="Capabilities outside the current service list."
-                                description="These areas remain part of my experience, but I am not accepting them as standalone engagements right now."
-                            />
-                        }
-                        className="pb-0"
-                    >
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            {unavailableServices.map((service, index) => (
-                                <motion.div key={service.slug} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.03 }}>
-                                    <button
-                                        type="button"
-                                        data-service-availability="unavailable"
-                                        className="group flex h-full w-full flex-col rounded-2xl border bg-card/35 p-4 text-left transition-colors hover:bg-card/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                        onClick={() => setServiceParam(service.slug)}
-                                    >
-                                        <div className="mb-4 flex items-center justify-between gap-3">
-                                            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border bg-background/55 text-muted-foreground"><Briefcase className="h-4 w-4" /></span>
-                                            <Badge variant="secondary" className="rounded-full px-3">Unavailable</Badge>
-                                        </div>
-                                        <h2 className="text-base font-semibold tracking-tight group-hover:text-primary">{service.title}</h2>
-                                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{service.summary}</p>
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </ContentRail>
+                    {unavailableServices.length > 0 && (
+                        <ContentRail
+                            header={
+                                <SectionHeader
+                                    eyebrow="Not Currently Offered"
+                                    title="Capabilities outside the current service list."
+                                    description="These areas remain part of my experience, but I am not accepting them as standalone engagements right now."
+                                />
+                            }
+                            className="pb-0"
+                        >
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                {unavailableServices.map((service, index) => (
+                                    <motion.div key={service.slug} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: index * 0.03 }}>
+                                        <button
+                                            type="button"
+                                            data-service-availability="unavailable"
+                                            className="group flex h-full w-full flex-col rounded-2xl border bg-card/35 p-4 text-left transition-colors hover:bg-card/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                            onClick={() => setServiceParam(service.slug)}
+                                        >
+                                            <div className="mb-4 flex items-center justify-between gap-3">
+                                                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border bg-background/55 text-muted-foreground"><Briefcase className="h-4 w-4" /></span>
+                                                <Badge variant="secondary" className="rounded-full px-3">Unavailable</Badge>
+                                            </div>
+                                            <h2 className="text-base font-semibold tracking-tight group-hover:text-primary">{service.title}</h2>
+                                            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{service.summary}</p>
+                                        </button>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </ContentRail>
+                    )}
                 </div>
             </main>
 

@@ -111,25 +111,26 @@ export default function PortfolioPage() {
                     <motion.div variants={itemVariants} className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
                         <Card className="rounded-3xl border bg-card/55 backdrop-blur-sm">
                             <CardHeader className="space-y-4 p-6 md:p-7">
-                                <Badge variant="secondary" className="w-fit rounded-full px-4 py-1.5">
-                                    Portfolio
-                                </Badge>
-                                <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-5xl">
-                                    Hi, I&apos;m <span className="text-primary">Jassi</span>.
-                                </h1>
+                                <div className="space-y-2">
+                                    <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-5xl">
+                                        Hi, I&apos;m <span className="text-primary">Jassi</span>.
+                                    </h1>
+                                    <p className="text-sm font-medium text-foreground/80">Senior Software Engineer</p>
+                                </div>
                                 <CardDescription className="max-w-2xl text-sm leading-relaxed md:text-base">
-                                    I build modern digital products across web engineering, UI systems,
-                                    content experiences, and platform workflows.
+                                    I like building software and keeping a record of what I discover along the way.
+                                    This is where I share my projects, write about what I&apos;m learning, and collect
+                                    the music, photos, and ideas I keep coming back to.
                                 </CardDescription>
                                 <div className="flex flex-wrap gap-3 pt-2">
                                     <Button asChild size="lg" className="rounded-full px-7">
-                                        <Link href="/contact">
-                                            Work with me
+                                        <Link href="/projects">
+                                            Explore my work
                                             <ArrowRight className="ml-2 h-4 w-4" />
                                         </Link>
                                     </Button>
                                     <Button asChild size="lg" variant="outline" className="rounded-full px-7">
-                                        <Link href="/projects">View projects</Link>
+                                        <Link href="/contact">Say hello</Link>
                                     </Button>
                                     {resumeUrl ? (
                                         <Button asChild size="lg" variant="outline" className="rounded-full px-7">

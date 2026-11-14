@@ -231,9 +231,7 @@ export function BlogForm({
 
             if (selectedImage) {
                 try {
-                    // Use a unique file name per upload so cover URL changes immediately.
-                    const coverFileName = `blog-cover-${blogId}-${Date.now()}`;
-                    const { url } = await adminBlogService.uploadImage(selectedImage, coverFileName);
+                    const { url } = await adminBlogService.uploadImage(selectedImage, initialData?.id);
                     featuredImageUrl = url;
                 } catch (error) {
                     console.error("Failed to upload image", error);
@@ -343,18 +341,13 @@ export function BlogForm({
 
                                                                 try {
                                                                     setUploading(true);
-                                                                    // Use the existing blog ID from initialData
-                                                                    // Generate custom filename: blog-{blogId}-{random/timestamp}
                                                                     const blogId = initialData?.id;
                                                                     if (!blogId) {
                                                                         toast.error("Error: Missing blog ID");
                                                                         return;
                                                                     }
 
-                                                                    const timestamp = Date.now();
-                                                                    const fileName = `blog-${blogId}-${timestamp}`;
-
-                                                                    const { url } = await adminBlogService.uploadImage(file, fileName);
+                                                                    const { url } = await adminBlogService.uploadImage(file, blogId);
 
                                                                     // Insert markdown into textarea
                                                                     const textarea = document.getElementById("content-textarea") as HTMLTextAreaElement;

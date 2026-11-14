@@ -1,5 +1,6 @@
 import slateClassic from "./slate-classic.json";
 import sunsetCopper from "./sunset-copper.json";
+import crimsonRed from "./crimson-red.json";
 import lilacSoft from "./lilac-soft.json";
 import emeraldGreen from "./emerald-green.json";
 import ivoryTeal from "./ivory-teal.json";
@@ -9,6 +10,7 @@ export const themeSets: ThemeSet[] = [
   slateClassic as ThemeSet,
   ivoryTeal as ThemeSet,
   sunsetCopper as ThemeSet,
+  crimsonRed as ThemeSet,
   lilacSoft as ThemeSet,
   emeraldGreen as ThemeSet,
 ];

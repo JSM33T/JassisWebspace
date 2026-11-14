@@ -70,7 +70,8 @@ public interface IAdminBlogService
         CancellationToken cancellationToken = default);
 
     Task<MediaUploadResponse> UploadBlogImageAsync(
-        AdminMediaUploadInput file,
+        Stream content,
+        string originalFileName,
         string mediaBaseUrl,
         CancellationToken cancellationToken = default);
 
