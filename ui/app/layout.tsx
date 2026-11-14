@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import "./override.css";
 import { Toaster } from "sonner";
@@ -12,15 +12,19 @@ import { buildMetadata } from "@/lib/seo";
 import { BackToTopProgress } from "@/components/back-to-top-progress";
 import { AppShell } from "@/components/app-shell";
 
-const inter = Inter({
+const inter = localFont({
+  src: "./fonts/inter.woff2",
+  weight: "100 900",
+  display: "swap",
   variable: "--font-inter",
-  subsets: ["latin"],
 });
 
-const cormorant = Cormorant_Garamond({
+const cormorant = localFont({
+  src: "./fonts/cormorant-garamond.woff2",
+  weight: "300 700",
+  display: "swap",
+  adjustFontFallback: "Times New Roman",
   variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = buildMetadata();
