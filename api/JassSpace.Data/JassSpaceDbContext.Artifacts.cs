@@ -6,6 +6,7 @@ namespace JassSpace.Data;
 public partial class JassSpaceDbContext
 {
     public DbSet<Artifact> Artifacts => Set<Artifact>();
+    public DbSet<ArtifactCover> ArtifactCovers => Set<ArtifactCover>();
     public DbSet<ArtifactShareLink> ArtifactShareLinks => Set<ArtifactShareLink>();
     public DbSet<ArtifactDownloadGrant> ArtifactDownloadGrants => Set<ArtifactDownloadGrant>();
 
@@ -16,6 +17,8 @@ public partial class JassSpaceDbContext
         artifact.HasKey(x => x.Id);
         artifact.Property(x => x.Title).HasMaxLength(200).IsRequired();
         artifact.Property(x => x.PrivateNote).HasMaxLength(4000);
+        artifact.Property(x => x.Category).HasMaxLength(80);
+        artifact.Property(x => x.Tags).HasColumnType("text[]");
         artifact.Property(x => x.OriginalFileName).HasMaxLength(255).IsRequired();
         artifact.Property(x => x.StorageKey).HasMaxLength(128).IsRequired();
         artifact.Property(x => x.MediaType).HasMaxLength(128).IsRequired();
@@ -25,6 +28,12 @@ public partial class JassSpaceDbContext
         artifact.HasIndex(x => x.State);
         artifact.HasOne(x => x.Content).WithOne().HasForeignKey<Artifact>(x => x.ContentId).OnDelete(DeleteBehavior.Restrict);
         artifact.HasOne(x => x.OwnerUser).WithMany().HasForeignKey(x => x.OwnerUserId).OnDelete(DeleteBehavior.SetNull);
+
+        var cover = builder.Entity<ArtifactCover>();
+        cover.ToTable("ArtifactCovers");
+        cover.HasKey(x => x.ArtifactId);
+        cover.Property(x => x.ArtifactId).ValueGeneratedNever();
+        artifact.HasOne(x => x.CoverImage).WithOne().HasForeignKey<ArtifactCover>(x => x.ArtifactId).OnDelete(DeleteBehavior.Cascade);
 
         var link = builder.Entity<ArtifactShareLink>();
         link.ToTable("ArtifactShareLinks", table => {

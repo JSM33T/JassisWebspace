@@ -59,7 +59,7 @@ export default function ArtifactsPage() {
         setUploading(true); setProgress(0);
         try {
             const result = await artifactService.upload(file, title, note, setProgress, controller.signal);
-            toast.success('Artifact uploaded. Create a link to share it.');
+            toast.success('Artifact uploaded. Add a download article or create a share link.');
             router.push(`/admin/artifacts/${result.artifact.id}`);
         } catch (e) { toast.error(e instanceof Error ? e.message : 'Upload failed.'); }
         finally { setUploading(false); uploadController.current = null; }

@@ -62,13 +62,22 @@ public sealed class ArtifactService(
         return new(rows.Select(a => Map(a, DateTimeOffset.UtcNow)).ToList(), total, page, pageSize, settings.MaxUploadBytes, settings.OwnerQuotaBytes, owners);
     }
 
-    public async Task<PublicArtifactPageResponse> ListPublishedAsync(string? search, int page, int pageSize, CancellationToken ct)
+    public async Task<PublicArtifactPageResponse> ListPublishedAsync(string? search, string? category, int page, int pageSize, CancellationToken ct)
     {
         var query = PublishedQuery();
+        var publishedCategories = await query.Where(a => a.Category != null).Select(a => a.Category!).Distinct().ToListAsync(ct);
+        var categories = publishedCategories.OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var value = category.Trim().ToLowerInvariant();
+            query = query.Where(a => a.Category != null && a.Category.ToLower() == value);
+        }
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim().ToLowerInvariant();
-            query = query.Where(a => a.Title.ToLower().Contains(term) || a.OriginalFileName.ToLower().Contains(term));
+            query = query.Where(a => a.Title.ToLower().Contains(term) || a.OriginalFileName.ToLower().Contains(term) ||
+                (a.Content.SearchBody ?? "").ToLower().Contains(term));
         }
 
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -76,9 +85,25 @@ public sealed class ArtifactService(
         page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / (double)pageSize)));
         var items = await query.OrderByDescending(a => a.Content.PublishedAt).ThenBy(a => a.Id)
             .Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(a => new PublicArtifactItemResponse(a.Id, a.Title, a.OriginalFileName, a.SizeBytes))
+            .Select(a => new PublicArtifactItemResponse(a.Id, a.Title, a.OriginalFileName, a.SizeBytes,
+                a.Content.Description, a.Category, a.Tags, a.CoverImage != null))
             .ToListAsync(ct);
-        return new(items, total, page, pageSize);
+        return new(items, total, page, pageSize, categories);
+    }
+
+    public async Task<PublicArtifactDetailResponse> GetPublishedAsync(Guid id, CancellationToken ct) =>
+        await PublishedQuery().Where(a => a.Id == id)
+            .Select(a => new PublicArtifactDetailResponse(
+                new PublicArtifactItemResponse(a.Id, a.Title, a.OriginalFileName, a.SizeBytes,
+                    a.Content.Description, a.Category, a.Tags, a.CoverImage != null),
+                a.ListingBody))
+            .SingleOrDefaultAsync(ct) ?? throw NotFound();
+
+    public async Task<byte[]> GetCoverAsync(Guid id, bool publishedOnly, CancellationToken ct)
+    {
+        var query = publishedOnly ? PublishedQuery() : ManagedQuery().AsNoTracking();
+        return await query.Where(a => a.Id == id && a.CoverImage != null)
+            .Select(a => a.CoverImage!.Image).SingleOrDefaultAsync(ct) ?? throw NotFound();
     }
 
     public async Task<ArtifactDetailResponse> GetByContentAsync(Guid contentId, CancellationToken ct)
@@ -91,9 +116,11 @@ public sealed class ArtifactService(
     {
         var artifact = await ManagedQuery().AsNoTracking().Include(a => a.Content).Include(a => a.OwnerUser).Include(a => a.Links)
             .SingleOrDefaultAsync(a => a.Id == id, ct) ?? throw NotFound();
+        var hasCover = await db.ArtifactCovers.AnyAsync(cover => cover.ArtifactId == id, ct);
         var now = DateTimeOffset.UtcNow;
         return new(Map(artifact, now), artifact.PrivateNote,
-            artifact.Links.OrderByDescending(l => l.CreatedAt).Select(l => MapLink(l, now)).ToList(), settings.MaxUploadBytes);
+            artifact.Links.OrderByDescending(l => l.CreatedAt).Select(l => MapLink(l, now)).ToList(), settings.MaxUploadBytes,
+            new ArtifactListingResponse(artifact.Content.Description, artifact.ListingBody, artifact.Category, artifact.Tags, hasCover));
     }
 
     public async Task<ArtifactDetailResponse> UploadAsync(Stream stream, string filename, string mediaType, long length, string? title, string? note, CancellationToken ct)
@@ -250,18 +277,58 @@ public sealed class ArtifactService(
     public async Task<ArtifactDetailResponse> UpdateAsync(Guid id, ArtifactUpdateRequest request, CancellationToken ct)
     {
         RequireManager();
-        ValidateText(request.Title, request.PrivateNote);
         await TransactionAsync(async () =>
         {
             var a = await LockArtifactAsync(id, true, ct);
-            a.Title = request.Title.Trim();
+            ValidateText(request.Title ?? a.Title, request.PrivateNote);
+            if (request.Title is not null) a.Title = request.Title.Trim();
             a.PrivateNote = NormalizeNote(request.PrivateNote);
             a.UpdatedAt = await DatabaseNowAsync(ct);
             var content = await db.Contents.SingleAsync(c => c.Id == a.ContentId, ct);
             content.Title = a.Title;
-            content.SearchBody = a.Title;
+            content.SearchBody = ListingSearchText(a, content.Description);
             content.UpdatedAt = a.UpdatedAt;
             Audit("ArtifactUpdated", id);
+            return true;
+        }, ct);
+        return await GetAsync(id, ct);
+    }
+
+    public async Task<ArtifactDetailResponse> UpdateListingAsync(Guid id, ArtifactListingRequest request, byte[]? cover, CancellationToken ct)
+    {
+        RequireManager();
+        ValidateText(request.Title, null);
+        var tags = (request.Tags ?? []).Select(tag => tag?.Trim()).OfType<string>()
+            .Where(tag => tag.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (tags.Length > 12 || tags.Any(tag => tag.Length > 40))
+            throw new ArtifactException(400, "Use up to 12 tags with no more than 40 characters each.");
+        if (request.RemoveCover && cover is not null)
+            throw new ArtifactException(400, "Choose a new cover or remove the existing cover.");
+
+        await TransactionAsync(async () =>
+        {
+            var artifact = await LockArtifactAsync(id, true, ct);
+            var content = await db.Contents.SingleAsync(c => c.Id == artifact.ContentId, ct);
+            artifact.Title = content.Title = request.Title.Trim();
+            content.Description = NormalizeNote(request.Description);
+            artifact.ListingBody = NormalizeNote(request.Body);
+            artifact.Category = NormalizeNote(request.Category);
+            artifact.Tags = tags;
+            content.SearchBody = ListingSearchText(artifact, content.Description);
+            content.UpdatedAt = artifact.UpdatedAt = await DatabaseNowAsync(ct);
+
+            if (cover is not null || request.RemoveCover)
+            {
+                var existing = await db.ArtifactCovers.FindAsync([id], ct);
+                if (cover is not null)
+                {
+                    if (existing is null) db.ArtifactCovers.Add(new ArtifactCover { ArtifactId = id, Image = cover });
+                    else existing.Image = cover;
+                }
+                else if (existing is not null) db.ArtifactCovers.Remove(existing);
+            }
+
+            Audit("ArtifactListingUpdated", id);
             return true;
         }, ct);
         return await GetAsync(id, ct);
@@ -605,6 +672,9 @@ public sealed class ArtifactService(
             throw new ArtifactException(400, "Use a title of 1–200 characters and a note of at most 4000 characters.");
     }
     private static string? NormalizeNote(string? note) => string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+    private static string ListingSearchText(Artifact artifact, string? description) =>
+        string.Join(" ", new[] { artifact.Title, artifact.Category, description, artifact.ListingBody }.Concat(artifact.Tags)
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
     private static string SafeFileName(string name)
     {
         name = name.Replace('\\', '/').Split('/').Last();

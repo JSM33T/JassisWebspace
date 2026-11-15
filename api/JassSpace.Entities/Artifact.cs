@@ -9,6 +9,10 @@ public sealed class Artifact
     public User? OwnerUser { get; set; }
     public required string Title { get; set; }
     public string? PrivateNote { get; set; }
+    public string? Category { get; set; }
+    public string[] Tags { get; set; } = [];
+    public string? ListingBody { get; set; }
+    public ArtifactCover? CoverImage { get; set; }
     public required string OriginalFileName { get; set; }
     public required string StorageKey { get; set; }
     public required string MediaType { get; set; }

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArtifactListingForm } from '@/components/admin/artifact-listing-form';
 import { ArtifactLinkForm } from '@/components/admin/artifact-link-form';
 import { ArtifactFileActions } from '@/components/admin/artifact-file-actions';
 import { artifactService, formatArtifactSize } from '@/lib/api/artifact.service';
@@ -30,7 +31,6 @@ export default function ArtifactDetailPage() {
     const router = useRouter();
     const [data, setData] = useState<ArtifactDetail | null>(null);
     const [error, setError] = useState('');
-    const [title, setTitle] = useState('');
     const [note, setNote] = useState('');
     const [busy, setBusy] = useState(false);
     const [linkEditor, setLinkEditor] = useState<'new' | ArtifactLink | null>(null);
@@ -42,12 +42,12 @@ export default function ArtifactDetailPage() {
     const load = useCallback(async (reset = false) => {
         const result = await artifactService.get(id);
         setData(result); setError(''); setNow(Date.now());
-        if (reset) { setTitle(result.artifact.title); setNote(result.privateNote ?? ''); }
+        if (reset) setNote(result.privateNote ?? '');
     }, [id]);
     useEffect(() => {
         let active = true;
         artifactService.get(id).then(result => {
-            if (active) { setData(result); setTitle(result.artifact.title); setNote(result.privateNote ?? ''); setError(''); setNow(Date.now()); }
+            if (active) { setData(result); setNote(result.privateNote ?? ''); setError(''); setNow(Date.now()); }
         }).catch(e => { if (active) setError(e instanceof Error ? e.message : 'Artifact could not be loaded.'); });
         return () => { active = false; };
     }, [id]);
@@ -109,33 +109,36 @@ export default function ArtifactDetailPage() {
             { label: 'Active links', value: data.links.filter(l => status(l, now) === 'Active').length },
             { label: 'Downloads across saved links', value: a.totalDownloads },
         ].map(item => <Card key={item.label}><CardContent className="flex items-center gap-3 pt-6"><FileBox className="size-5 text-primary" /><div><p className="text-xs text-muted-foreground">{item.label}</p><p className="font-semibold">{item.value}</p></div></CardContent></Card>)}</div>
-        <ArtifactFileActions key={a.id} detail={data} busy={busy} onBusyChange={setBusy} onReplaced={result => { setData(result); setNow(Date.now()); }} />
-        <Card><CardHeader><CardTitle>Artifact details</CardTitle></CardHeader><CardContent><form className="space-y-4" onSubmit={async event => {
-            event.preventDefault(); setBusy(true);
-            try { setData(await artifactService.update(id, title, note)); toast.success('Artifact updated.'); }
-            catch (e) { toast.error(e instanceof Error ? e.message : 'Unable to save artifact.'); }
-            finally { setBusy(false); }
-        }}>
-            <div><Label htmlFor="title">Title</Label><Input id="title" required maxLength={200} value={title} onChange={e => setTitle(e.target.value)} /></div>
-            <div><Label htmlFor="private-note">Private note</Label><Textarea id="private-note" maxLength={4000} value={note} onChange={e => setNote(e.target.value)} /><p className="mt-1 text-xs text-muted-foreground">Recipients never see this note.</p></div>
-            <div className="flex flex-wrap items-center gap-3"><Button disabled={busy}>Save details</Button><Button asChild variant="outline"><Link href={`/admin/content/${a.contentId}`}>View content record</Link></Button><span className="text-xs text-muted-foreground">Uploaded {new Date(a.createdAt).toLocaleString()}</span></div>
-        </form></CardContent></Card>
+        <Card>
+            <CardHeader><CardTitle>Download article</CardTitle></CardHeader>
+            <CardContent><ArtifactListingForm key={a.id} detail={data} busy={busy} onBusyChange={setBusy} onSaved={setData} /></CardContent>
+        </Card>
         <Card>
             <CardHeader><CardTitle>Downloads listing</CardTitle></CardHeader>
             <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                     {a.isPublished
                         ? 'Anyone can download this file from Downloads. Removing it from the listing keeps existing share links active.'
-                        : 'Publish this file to let anyone find and download it. The listing shows its title, filename, and size.'}
+                        : 'Publish this file to let anyone find and download it. Its title, description, category, tags, and cover appear in the catalog.'}
                 </p>
                 <div className="flex flex-wrap gap-2">
                     <Button variant={a.isPublished ? 'outline' : 'default'} disabled={busy} onClick={() => void setPublication(!a.isPublished)}>
                         {a.isPublished ? 'Remove from Downloads' : 'Publish to Downloads'}
                     </Button>
-                    {a.isPublished && <Button variant="ghost" asChild><Link href="/downloads">View Downloads</Link></Button>}
+                    {a.isPublished && <Button variant="ghost" asChild><Link href={`/downloads/${a.id}`}>View download article</Link></Button>}
                 </div>
             </CardContent>
         </Card>
+        <ArtifactFileActions key={a.id} detail={data} busy={busy} onBusyChange={setBusy} onReplaced={result => { setData(result); setNow(Date.now()); }} />
+        <Card><CardHeader><CardTitle>Private notes</CardTitle></CardHeader><CardContent><form className="space-y-4" onSubmit={async event => {
+            event.preventDefault(); setBusy(true);
+            try { setData(await artifactService.updatePrivateNote(id, note)); toast.success('Artifact updated.'); }
+            catch (e) { toast.error(e instanceof Error ? e.message : 'Unable to save artifact.'); }
+            finally { setBusy(false); }
+        }}>
+            <div><Label htmlFor="private-note">Private note</Label><Textarea id="private-note" maxLength={4000} value={note} onChange={e => setNote(e.target.value)} /><p className="mt-1 text-xs text-muted-foreground">Recipients never see this note.</p></div>
+            <div className="flex flex-wrap items-center gap-3"><Button disabled={busy}>Save note</Button><Button asChild variant="outline"><Link href={`/admin/content/${a.contentId}`}>View content record</Link></Button><span className="text-xs text-muted-foreground">Uploaded {new Date(a.createdAt).toLocaleString()}</span></div>
+        </form></CardContent></Card>
         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">Share links</h2><p className="text-sm text-muted-foreground">Anyone holding an active link can download without signing in.</p></div><div className="flex gap-2"><Button variant="outline" size="icon" aria-label="Refresh share links" disabled={busy} onClick={() => load().catch(e => toast.error(e.message))}><RefreshCw className="size-4" /></Button><Button disabled={busy} onClick={() => setLinkEditor('new')}><Plus className="mr-2 size-4" />Create link</Button></div></div>
         {!data.links.length ? <Card><CardContent className="py-12 text-center"><Link2 className="mx-auto mb-3 size-8 text-muted-foreground" /><p className="font-medium">Ready when you are</p><p className="mt-2 text-sm text-muted-foreground">Create your first link to share this artifact.</p></CardContent></Card> :
             <div className="space-y-3">{data.links.map((link, index) => <Card key={link.id}><CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6"><div className="space-y-2"><div className="flex items-center gap-3"><h3 className="font-semibold">Share link {data.links.length - index}</h3><Badge variant={status(link, now) === 'Active' ? 'default' : 'secondary'}>{status(link, now)}</Badge></div><p className="text-sm text-muted-foreground">{link.downloadCount} / {link.maxDownloads ?? 'unlimited'} downloads · {link.expiresAt ? `Expires ${new Date(link.expiresAt).toLocaleString()}` : 'No expiry'}</p><p className="text-xs text-muted-foreground">Created {new Date(link.createdAt).toLocaleString()}</p></div><div className="flex gap-2"><Button variant="outline" disabled={busy || !!link.revokedAt} onClick={() => setLinkEditor(link)}>Edit limits</Button>{link.revokedAt

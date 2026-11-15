@@ -21,22 +21,38 @@ public sealed class ArtifactPublicationTests
         var published = AddArtifact(db, "Public template", "Ready", true);
         var unpublished = AddArtifact(db, "Private template", "Ready", false);
         var pending = AddArtifact(db, "Pending template", "DeletionPending", true);
+        published.Content.Description = "A printable planning template";
+        published.Content.SearchBody = "printable template pdf";
+        published.ListingBody = "Print at actual size.";
+        published.Category = "Templates";
+        published.Tags = ["PDF"];
+        published.CoverImage = new ArtifactCover { ArtifactId = published.Id, Image = [42] };
+        unpublished.Category = "Unpublished";
+        unpublished.CoverImage = new ArtifactCover { ArtifactId = unpublished.Id, Image = [17] };
         await db.SaveChangesAsync();
 
         var storage = new TestStorage();
         var service = new ArtifactService(db, storage, new AnonymousAccess(), null!,
             Options.Create(new ArtifactSettings()), NullLogger<ArtifactService>.Instance);
 
-        var catalog = await service.ListPublishedAsync("template", 1, 24, default);
+        var catalog = await service.ListPublishedAsync("pdf", "templates", 1, 24, default);
         Assert.Equal(1, catalog.Total);
         var item = Assert.Single(catalog.Items);
         Assert.Equal(published.Id, item.Id);
         Assert.Equal(published.OriginalFileName, item.FileName);
+        Assert.Equal("A printable planning template", item.Description);
+        Assert.Equal("PDF", Assert.Single(item.Tags));
+        Assert.Equal("Templates", Assert.Single(catalog.Categories));
+        Assert.True(item.HasCover);
+        Assert.Equal("Print at actual size.", (await service.GetPublishedAsync(published.Id, default)).Body);
+        Assert.Equal(new byte[] { 42 }, await service.GetCoverAsync(published.Id, publishedOnly: true, default));
 
         foreach (var id in new[] { unpublished.Id, pending.Id })
         {
             var error = await Assert.ThrowsAsync<ArtifactException>(() => service.OpenPublishedDownloadAsync(id, default));
             Assert.Equal(404, error.StatusCode);
+            Assert.Equal(404, (await Assert.ThrowsAsync<ArtifactException>(() => service.GetPublishedAsync(id, default))).StatusCode);
+            Assert.Equal(404, (await Assert.ThrowsAsync<ArtifactException>(() => service.GetCoverAsync(id, publishedOnly: true, default))).StatusCode);
         }
         Assert.Empty(storage.OpenedKeys);
 
@@ -50,7 +66,7 @@ public sealed class ArtifactPublicationTests
 
         published.Content.IsPublished = false;
         await db.SaveChangesAsync();
-        Assert.Empty((await service.ListPublishedAsync(null, 1, 24, default)).Items);
+        Assert.Empty((await service.ListPublishedAsync(null, null, 1, 24, default)).Items);
         var removed = await Assert.ThrowsAsync<ArtifactException>(() => service.OpenPublishedDownloadAsync(published.Id, default));
         Assert.Equal(404, removed.StatusCode);
         Assert.Single(storage.OpenedKeys);

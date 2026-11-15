@@ -31,7 +31,10 @@ public interface IArtifactService
     Task<ArtifactFileDownload> OpenManagerDownloadAsync(Guid id, CancellationToken ct);
     Task<ArtifactDetailResponse> UpdateAsync(Guid id, ArtifactUpdateRequest request, CancellationToken ct);
     Task<ArtifactDetailResponse> SetPublicationAsync(Guid id, bool isPublished, CancellationToken ct);
-    Task<PublicArtifactPageResponse> ListPublishedAsync(string? search, int page, int pageSize, CancellationToken ct);
+    Task<ArtifactDetailResponse> UpdateListingAsync(Guid id, ArtifactListingRequest request, byte[]? cover, CancellationToken ct);
+    Task<byte[]> GetCoverAsync(Guid id, bool publishedOnly, CancellationToken ct);
+    Task<PublicArtifactPageResponse> ListPublishedAsync(string? search, string? category, int page, int pageSize, CancellationToken ct);
+    Task<PublicArtifactDetailResponse> GetPublishedAsync(Guid id, CancellationToken ct);
     Task<ArtifactFileDownload> OpenPublishedDownloadAsync(Guid id, CancellationToken ct);
     Task DeleteAsync(Guid id, CancellationToken ct);
     Task<ArtifactCreatedLinkResponse> CreateLinkAsync(Guid id, ArtifactLinkSettingsRequest request, CancellationToken ct);
