@@ -102,9 +102,10 @@ public sealed class AdminBlogController(
     public async Task<IActionResult> GetAuthors(
         [FromQuery] string? search = null,
         [FromQuery] int take = 100,
+        [FromQuery] int skip = 0,
         CancellationToken cancellationToken = default)
     {
-        var authors = await adminBlogService.GetAuthorsAsync(search, take, cancellationToken);
+        var authors = await adminBlogService.GetAuthorsAsync(search, take, skip, cancellationToken);
         return OkEnvelope(authors);
     }
 

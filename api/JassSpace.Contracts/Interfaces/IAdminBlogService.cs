@@ -57,6 +57,7 @@ public interface IAdminBlogService
     Task<List<ContentAuthorResponse>> GetAuthorsAsync(
         string? search = null,
         int take = 100,
+        int skip = 0,
         CancellationToken cancellationToken = default);
 
     Task<List<BlogListItemResponse>> GetBlogsAsync(

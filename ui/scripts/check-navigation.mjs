@@ -44,7 +44,7 @@ try {
     assert.deepEqual(
         primaryNavigation.filter((entry) => 'items' in entry).map((entry) => [entry.label, entry.items.map((item) => item.label)]),
         [
-            ['Explore', ['Blog', 'Gallery', 'Music']],
+            ['Explore', ['Blog', 'Gallery', 'Music', 'Downloads']],
             ['Work', ['Projects', 'Services']],
             ['About', ['About', 'Contact']],
         ],

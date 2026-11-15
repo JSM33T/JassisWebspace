@@ -25,9 +25,10 @@ public sealed class AdminGalleryController(
     public async Task<IActionResult> GetAuthors(
         [FromQuery] string? search = null,
         [FromQuery] int take = 100,
+        [FromQuery] int skip = 0,
         CancellationToken cancellationToken = default)
     {
-        var authors = await adminGalleryService.GetAuthorsAsync(search, take, cancellationToken);
+        var authors = await adminGalleryService.GetAuthorsAsync(search, take, skip, cancellationToken);
         return OkEnvelope(authors);
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,6 +11,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { ImageCropper } from "@/components/ui/image-cropper";
 
+import { AuthorPicker, authorSelectionSchema } from "@/components/admin/author-picker";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -26,13 +27,12 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { adminGalleryService } from "@/lib/api/admin-gallery.service";
-import { GalleryAuthor } from "@/lib/api/gallery.types";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required"),
     slug: z.string().optional(),
     description: z.string().optional(),
-    authorIds: z.array(z.string()).optional(),
+    authors: authorSelectionSchema,
     isActive: z.boolean(),
     sortOrder: z.string().optional().refine(
         (value) => {
@@ -50,8 +50,6 @@ export default function CreateAlbumPage() {
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
     const [selectedImages, setSelectedImages] = useState<Array<{ id: string; file: File; preview: string }>>([]);
     const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
-    const [authors, setAuthors] = useState<GalleryAuthor[]>([]);
-    const [authorSearch, setAuthorSearch] = useState("");
 
     // Cropper state
     const [cropperOpen, setCropperOpen] = useState(false);
@@ -63,24 +61,11 @@ export default function CreateAlbumPage() {
             name: "",
             slug: "",
             description: "",
-            authorIds: [],
+            authors: [],
             isActive: true,
             sortOrder: "",
         },
     });
-
-    useEffect(() => {
-        const timeoutId = setTimeout(async () => {
-            try {
-                const data = await adminGalleryService.getPotentialAuthors(authorSearch.trim() || undefined);
-                setAuthors(data);
-            } catch (error) {
-                console.error("Failed to load authors", error);
-            }
-        }, 250);
-
-        return () => clearTimeout(timeoutId);
-    }, [authorSearch]);
 
     const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -138,7 +123,7 @@ export default function CreateAlbumPage() {
                 name: values.name,
                 slug: values.slug,
                 description: values.description,
-                authorIds: values.authorIds || [],
+                authorIds: values.authors.map((author) => author.userId),
                 isActive: values.isActive,
                 sortOrder,
                 coverImage: coverFile || undefined,
@@ -286,44 +271,16 @@ export default function CreateAlbumPage() {
 
                             <FormField
                                 control={form.control}
-                                name="authorIds"
+                                name="authors"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Authors</FormLabel>
-                                        <FormControl>
-                                            <div className="border rounded-md p-4 space-y-3 max-h-56 overflow-y-auto">
-                                                <Input
-                                                    placeholder="Search authors..."
-                                                    value={authorSearch}
-                                                    onChange={(e) => setAuthorSearch(e.target.value)}
-                                                    className="h-8"
-                                                />
-                                                {authors.map((author) => (
-                                                    <div key={author.userId} className="flex items-center space-x-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={field.value?.includes(author.userId) || false}
-                                                            onChange={(e) => {
-                                                                const checked = e.target.checked;
-                                                                const current = field.value || [];
-                                                                const updated = checked
-                                                                    ? [...current, author.userId]
-                                                                    : current.filter((id) => id !== author.userId);
-                                                                field.onChange(updated);
-                                                            }}
-                                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                                                        />
-                                                        <label className="text-sm font-medium leading-none">
-                                                            {author.displayName || author.username}
-                                                        </label>
-                                                    </div>
-                                                ))}
-                                                {authors.length === 0 && (
-                                                    <p className="text-xs text-muted-foreground">No authors found.</p>
-                                                )}
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
+                                        <AuthorPicker
+                                            authors={field.value}
+                                            onApply={field.onChange}
+                                            loadAuthors={adminGalleryService.getPotentialAuthors}
+                                            subject="album"
+                                            disabled={loading}
+                                        />
                                     </FormItem>
                                 )}
                             />

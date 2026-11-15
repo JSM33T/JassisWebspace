@@ -2,6 +2,7 @@ using System.Data.Common;
 using JassSpace.Api.Extensions;
 using JassSpace.Contracts.Interfaces;
 using JassSpace.Contracts.Requests;
+using JassSpace.Infra;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -37,6 +38,9 @@ public sealed class ArtifactExceptionFilter(ILogger<ArtifactExceptionFilter> log
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class AdminArtifactController(IArtifactService artifacts) : BaseApiController
 {
+    private const int CoverUploadLimit = 8 * 1024 * 1024;
+    private const int ProcessedCoverLimit = 2 * 1024 * 1024;
+
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? search, [FromQuery] Guid? owner,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
@@ -63,6 +67,57 @@ public sealed class AdminArtifactController(IArtifactService artifacts) : BaseAp
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] ArtifactUpdateRequest request, CancellationToken ct) =>
         OkEnvelope(await artifacts.UpdateAsync(id, request, ct));
+
+    [HttpPut("{id:guid}/publication")]
+    public async Task<IActionResult> SetPublication(Guid id, [FromBody] ArtifactPublicationRequest request, CancellationToken ct) =>
+        OkEnvelope(await artifacts.SetPublicationAsync(id, request.IsPublished, ct));
+
+    [HttpPut("{id:guid}/listing")]
+    [RequestSizeLimit(CoverUploadLimit + 256 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = CoverUploadLimit + 256 * 1024)]
+    public async Task<IActionResult> UpdateListing(Guid id, [FromForm] ArtifactListingRequest request,
+        [FromForm] IFormFile? coverImage, [FromServices] IImageProcessingService images, CancellationToken ct)
+    {
+        byte[]? cover = null;
+        if (coverImage is not null)
+        {
+            if (coverImage.Length == 0 || coverImage.Length > CoverUploadLimit ||
+                coverImage.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))
+                return BadRequestProblem("Choose a JPEG, PNG, or WebP cover up to 8 MiB.");
+
+            try
+            {
+                await using var input = coverImage.OpenReadStream();
+                var header = new byte[12];
+                if (await input.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false, cancellationToken: ct) != header.Length ||
+                    !IsSupportedCover(header))
+                    return BadRequestProblem("The cover must be a JPEG, PNG, or WebP image.");
+                input.Position = 0;
+                await using var converted = await images.ProcessImageAsync(input, ct);
+                if (converted.CanSeek && converted.Length > ProcessedCoverLimit)
+                    return BadRequestProblem("The processed cover is too large. Try a smaller image.");
+                using var buffer = new MemoryStream();
+                await converted.CopyToAsync(buffer, ct);
+                if (buffer.Length is 0 or > ProcessedCoverLimit)
+                    return BadRequestProblem("The processed cover is too large. Try a smaller image.");
+                cover = buffer.ToArray();
+            }
+            catch (InvalidOperationException)
+            {
+                return BadRequestProblem("The cover could not be read as an image.");
+            }
+        }
+        return OkEnvelope(await artifacts.UpdateListingAsync(id, request, cover, ct));
+    }
+
+    private static bool IsSupportedCover(ReadOnlySpan<byte> header) =>
+        header.StartsWith(new byte[] { 0xFF, 0xD8, 0xFF }) ||
+        header.StartsWith(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }) ||
+        (header.StartsWith("RIFF"u8) && header[8..].SequenceEqual("WEBP"u8));
+
+    [HttpGet("{id:guid}/cover")]
+    public async Task<IActionResult> CoverPreview(Guid id, CancellationToken ct) =>
+        OkEnvelope(await artifacts.GetCoverAsync(id, publishedOnly: false, ct));
 
     [HttpPost("{id:guid}/file")]
     [RateLimit("artifact-upload", Partition = RateLimitPartitionStrategy.UserId)]
@@ -104,6 +159,44 @@ public sealed class AdminArtifactController(IArtifactService artifacts) : BaseAp
     [HttpDelete("{id:guid}/links/{linkId:guid}")]
     public async Task<IActionResult> DeleteLink(Guid id, Guid linkId, CancellationToken ct)
     { await artifacts.DeleteLinkAsync(id, linkId, ct); return NoContent(); }
+}
+
+[Route("public-artifacts")]
+[AllowAnonymous]
+[TypeFilter(typeof(ArtifactExceptionFilter))]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+public sealed class PublicArtifactController(IArtifactService artifacts) : BaseApiController
+{
+    [HttpGet]
+    [RateLimit("artifact-share-read")]
+    public async Task<IActionResult> List([FromQuery] string? search, [FromQuery] string? category, [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 24, CancellationToken ct = default) =>
+        OkEnvelope(await artifacts.ListPublishedAsync(search, category, page, pageSize, ct));
+
+    [HttpGet("{id:guid}")]
+    [RateLimit("artifact-share-read")]
+    public async Task<IActionResult> Details(Guid id, CancellationToken ct) =>
+        OkEnvelope(await artifacts.GetPublishedAsync(id, ct));
+
+    [HttpGet("{id:guid}/cover")]
+    [RateLimit("artifact-share-read")]
+    public async Task<IActionResult> Cover(Guid id, CancellationToken ct)
+    {
+        var image = await artifacts.GetCoverAsync(id, publishedOnly: true, ct);
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(image, "image/webp");
+    }
+
+    [HttpGet("{id:guid}/download")]
+    [RateLimit("artifact-download")]
+    [Produces("application/octet-stream")]
+    public async Task<IActionResult> Download(Guid id, CancellationToken ct)
+    {
+        var file = await artifacts.OpenPublishedDownloadAsync(id, ct);
+        Response.Headers["Cache-Control"] = "no-store";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(file.Stream, "application/octet-stream", file.FileName);
+    }
 }
 
 [AllowAnonymous]

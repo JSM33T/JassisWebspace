@@ -1,5 +1,5 @@
 import {
-    Briefcase, FileText, FolderCode, HelpCircle, House, Image,
+    Briefcase, Download, FileText, FolderCode, HelpCircle, House, Image,
     Mail, Music, Shield, UserCircle, Wrench, type LucideIcon,
 } from 'lucide-react';
 
@@ -24,6 +24,7 @@ export const siteDestinations = {
     blog: { href: '/blog', label: 'Blog', description: 'Read my latest posts and updates', icon: FileText },
     gallery: { href: '/gallery', label: 'Gallery', description: 'Explore my photography and artwork', icon: Image },
     music: { href: '/music', label: 'Music', description: 'Listen to my music collection', icon: Music },
+    downloads: { href: '/downloads', label: 'Downloads', description: 'Browse files available to download', icon: Download },
     about: { href: '/about', label: 'About', description: 'Learn about me and my work', icon: UserCircle },
     uses: { href: '/uses', label: 'Uses', description: 'Tools, gear, and software I use daily', icon: Wrench },
     contact: { href: '/contact', label: 'Contact', description: 'Get in touch about a project or say hello', icon: Mail },
@@ -38,7 +39,7 @@ const work: NavigationGroup = {
 
 const explore: NavigationGroup = {
     id: 'explore', label: 'Explore', icon: FileText,
-    items: [siteDestinations.blog, siteDestinations.gallery, siteDestinations.music],
+    items: [siteDestinations.blog, siteDestinations.gallery, siteDestinations.music, siteDestinations.downloads],
 };
 
 const about: NavigationGroup = {

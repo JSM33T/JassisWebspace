@@ -1,12 +1,14 @@
 # Artifacts
 
-Artifacts are private uploaded files registered as `ContentType.Artifact` (enum value 5). Every Artifact has a shared Content record and uploader author association. Artifacts appear in the admin Content library and have links to their management screen. Their content records stay unpublished, and public search explicitly excludes this type. Private notes are never copied into shared content metadata. Public likes, comments, and anonymous view recording are disabled for Artifacts; share download counts are tracked independently.
+Artifacts are uploaded files registered as `ContentType.Artifact` (enum value 5). Every Artifact has a shared Content record and uploader author association. Uploads start private. Managers can create a download article with a title, summary, Markdown instructions, category, tags, and an optional cover, then publish it to **Explore → Downloads**. The cover and the downloadable file are uploaded separately. Private notes and share-link settings stay in management.
 
 ## Permissions and routes
 
 - Admins manage every artifact; moderators manage their own artifacts and links. Other accounts have no management access. Ownership is enforced by the API, including the Content library and admin content search.
 - `/admin/artifacts`: paginated list, search, uploader filtering for admins, and upload with progress/cancellation.
 - `/admin/artifacts/{id}`: details, private note, content record, file replacement, personal download, link creation/settings/revocation, usage and deletion.
+- `/downloads`: searchable catalog of published artifacts. Removing an artifact from Downloads blocks new public downloads and preserves existing share links.
+- `/downloads/{id}`: published article, cover, and original downloadable file.
 - `/artifacts/share#<secret>`: recipient page, usable without an account. The URL fragment is not sent to web servers or in referrers. Link previews contain generic page metadata and never consume a use.
 - Share links cannot be recovered from their stored hashes. Copy the URL immediately after creation; otherwise create a new link. New links do not revoke existing links.
 
@@ -48,7 +50,9 @@ Management endpoints require bearer authentication and the current `admin` or `m
 | POST | `/admin/artifacts` | Multipart `file`, optional `title`, `privateNote` |
 | GET | `/admin/artifacts/{id}` | Artifact and share link details |
 | GET | `/admin/artifacts/content/{contentId}` | Resolve an authorized content record to its artifact |
-| PUT | `/admin/artifacts/{id}` | `{ title, privateNote }` |
+| PUT | `/admin/artifacts/{id}` | `{ privateNote }`, with optional `title` |
+| PUT | `/admin/artifacts/{id}/listing` | Multipart title, description, body, category, tags, and optional cover image or removal flag |
+| PUT | `/admin/artifacts/{id}/publication` | `{ isPublished }` controls the Downloads listing |
 | POST | `/admin/artifacts/{id}/file` | Multipart `file`; replace bytes while preserving identity and links |
 | GET | `/admin/artifacts/{id}/download` | Authorized manager download; bearer authentication, no share allowance |
 | DELETE | `/admin/artifacts/{id}` | Disable access, then remove stored bytes |
@@ -56,6 +60,8 @@ Management endpoints require bearer authentication and the current `admin` or `m
 | PUT | `/admin/artifacts/{id}/links/{linkId}` | Update expiry/allowance |
 | POST | `/admin/artifacts/{id}/links/{linkId}/revoke` | Permanently revoke |
 | DELETE | `/admin/artifacts/{id}/links/{linkId}` | Permanently remove a revoked link and its grants |
+
+The public catalog uses `GET /public-artifacts?search=&category=&page=1&pageSize=24`. The article, cover, and file are served by `GET /public-artifacts/{id}`, `GET /public-artifacts/{id}/cover`, and `GET /public-artifacts/{id}/download`. Public access requires a ready, published artifact. Catalog downloads do not consume share-link allowances.
 
 Anonymous capability endpoints:
 

@@ -1,5 +1,5 @@
 import { del, get, post, put } from './client';
-import type { ArtifactDetail, ArtifactGrant, ArtifactLink, ArtifactLinkSettings, ArtifactPage, ArtifactPublic } from './artifact.types';
+import type { ArtifactDetail, ArtifactGrant, ArtifactLink, ArtifactLinkSettings, ArtifactPage, ArtifactPublic, UpdateArtifactListing } from './artifact.types';
 
 export function formatArtifactSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -16,7 +16,21 @@ export const artifactService = {
     },
     get: (id: string) => get<ArtifactDetail>(`/admin/artifacts/${id}`),
     byContent: (id: string) => get<ArtifactDetail>(`/admin/artifacts/content/${id}`),
-    update: (id: string, title: string, privateNote: string) => put<ArtifactDetail>(`/admin/artifacts/${id}`, { title, privateNote }),
+    updatePrivateNote: (id: string, privateNote: string) => put<ArtifactDetail>(`/admin/artifacts/${id}`, { privateNote }),
+    setPublication: (id: string, isPublished: boolean) =>
+        put<ArtifactDetail>(`/admin/artifacts/${id}/publication`, { isPublished }),
+    coverPreview: (id: string) => get<string>(`/admin/artifacts/${id}/cover`, { cache: 'no-store' }),
+    updateListing: (id: string, listing: UpdateArtifactListing) => {
+        const body = new FormData();
+        body.set('title', listing.title);
+        body.set('description', listing.description);
+        body.set('body', listing.body);
+        body.set('category', listing.category);
+        body.set('removeCover', String(listing.removeCover));
+        listing.tags.forEach(tag => body.append('tags', tag));
+        if (listing.coverImage) body.set('coverImage', listing.coverImage);
+        return put<ArtifactDetail>(`/admin/artifacts/${id}/listing`, body);
+    },
     delete: (id: string) => del<void>(`/admin/artifacts/${id}`),
     createLink: (id: string, settings: ArtifactLinkSettings) => post<{ link: ArtifactLink; token: string }>(`/admin/artifacts/${id}/links`, settings),
     updateLink: (id: string, linkId: string, settings: ArtifactLinkSettings) => put<void>(`/admin/artifacts/${id}/links/${linkId}`, settings),

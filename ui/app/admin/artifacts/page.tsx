@@ -59,7 +59,7 @@ export default function ArtifactsPage() {
         setUploading(true); setProgress(0);
         try {
             const result = await artifactService.upload(file, title, note, setProgress, controller.signal);
-            toast.success('Artifact uploaded. Create a link to share it.');
+            toast.success('Artifact uploaded. Add a download article or create a share link.');
             router.push(`/admin/artifacts/${result.artifact.id}`);
         } catch (e) { toast.error(e instanceof Error ? e.message : 'Upload failed.'); }
         finally { setUploading(false); uploadController.current = null; }
@@ -67,9 +67,8 @@ export default function ArtifactsPage() {
 
     return <div className="mx-auto max-w-6xl space-y-6 p-4 pt-24 sm:p-8 sm:pt-24">
         <div className="flex flex-wrap items-start justify-between gap-4">
-            <div><p className="mb-2 flex items-center gap-2 text-sm text-primary"><FileBox className="size-4" /> Private content library</p>
-                <h1 className="text-3xl font-bold">Artifacts</h1>
-                <p className="mt-2 max-w-xl text-muted-foreground">Upload once. Share with a unique link, an expiry, and the download allowance you choose.</p>
+            <div><h1 className="text-3xl font-bold">Artifacts</h1>
+                <p className="mt-2 max-w-xl text-muted-foreground">Upload files, share them by link, or publish them to Downloads.</p>
             </div>
             <Button onClick={() => setShowUpload(!showUpload)}><Upload className="mr-2 size-4" />Upload artifact</Button>
         </div>
@@ -96,7 +95,7 @@ export default function ArtifactsPage() {
                 <Card><CardContent className="py-16 text-center"><FileBox className="mx-auto mb-4 size-10 text-muted-foreground" /><h2 className="text-lg font-semibold">{search || owner ? 'No matching artifacts' : 'Your first artifact starts here'}</h2><p className="mt-2 text-sm text-muted-foreground">{search || owner ? 'Try a different search or uploader.' : 'Upload a file, then choose how and for how long to share it.'}</p></CardContent></Card> :
                 <div className="grid gap-4 md:grid-cols-2">{data.items.map(a => <Link href={`/admin/artifacts/${a.id}`} key={a.id} className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-primary">
                     <div className="flex items-start gap-3"><FileBox className="mt-1 size-5 shrink-0 text-primary" /><div className="min-w-0 flex-1"><h2 className="truncate font-semibold">{a.title}</h2><p className="truncate text-sm text-muted-foreground">{a.originalFileName}</p></div><ArrowRight className="size-4 shrink-0 text-muted-foreground group-hover:text-primary" /></div>
-                    <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span>{formatArtifactSize(a.sizeBytes)}</span><span>{a.activeLinkCount} active links</span><span>{a.totalDownloads} downloads</span></div>
+                    <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span>{a.isPublished ? 'Published' : 'Private'}</span><span>{formatArtifactSize(a.sizeBytes)}</span><span>{a.activeLinkCount} active links</span><span>{a.totalDownloads} share-link downloads</span></div>
                     <p className="mt-3 text-xs text-muted-foreground">{a.ownerName ?? 'Former uploader'} · {new Date(a.createdAt).toLocaleDateString()}</p>
                 </Link>)}</div>}
         {data && data.total > data.pageSize && <div className="flex items-center justify-between"><Button variant="outline" disabled={loading || data.page <= 1} onClick={() => setPage(data.page - 1)}>Previous</Button><span className="text-sm text-muted-foreground">Page {data.page} of {Math.ceil(data.total / data.pageSize)}</span><Button variant="outline" disabled={loading || data.page * data.pageSize >= data.total} onClick={() => setPage(data.page + 1)}>Next</Button></div>}

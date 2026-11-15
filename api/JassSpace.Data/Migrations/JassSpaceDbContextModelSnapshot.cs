@@ -1518,6 +1518,17 @@ namespace JassSpace.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("Category")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ListingBody")
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<string[]>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
                     b.Property<string>("PrivateNote")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
@@ -1564,6 +1575,19 @@ namespace JassSpace.Data.Migrations
                     {
                         t.HasCheckConstraint("CK_Artifacts_SizeBytes", "\"SizeBytes\" > 0");
                     });
+                });
+
+            modelBuilder.Entity("JassSpace.Entities.ArtifactCover", b =>
+                {
+                    b.Property<Guid>("ArtifactId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Image")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.HasKey("ArtifactId");
+                    b.ToTable("ArtifactCovers");
                 });
 
             modelBuilder.Entity("JassSpace.Entities.ArtifactShareLink", b =>
@@ -1667,6 +1691,15 @@ namespace JassSpace.Data.Migrations
                     b.Navigation("OwnerUser");
                 });
 
+            modelBuilder.Entity("JassSpace.Entities.ArtifactCover", b =>
+                {
+                    b.HasOne("JassSpace.Entities.Artifact", null)
+                        .WithOne("CoverImage")
+                        .HasForeignKey("JassSpace.Entities.ArtifactCover", "ArtifactId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("JassSpace.Entities.ArtifactShareLink", b =>
                 {
                     b.HasOne("JassSpace.Entities.Artifact", "Artifact")
@@ -1692,7 +1725,11 @@ namespace JassSpace.Data.Migrations
                     b.Navigation("Link");
                 });
 
-            modelBuilder.Entity("JassSpace.Entities.Artifact", b => b.Navigation("Links"));
+            modelBuilder.Entity("JassSpace.Entities.Artifact", b =>
+                {
+                    b.Navigation("CoverImage");
+                    b.Navigation("Links");
+                });
             modelBuilder.Entity("JassSpace.Entities.ArtifactShareLink", b => b.Navigation("Grants"));
 
 #pragma warning restore 612, 618

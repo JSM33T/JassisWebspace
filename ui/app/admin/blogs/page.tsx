@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, Pencil, Trash, User, Calendar, Tag } from "lucide-react";
 import { BlogListItem } from "@/lib/api/blog.types";
 import { adminBlogService } from "@/lib/api/admin-blog.service";
+import { BlogCategoryDialog, useBlogCategories } from "@/components/admin/blog-category-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +16,9 @@ import { hasRole } from "@/lib/auth-roles";
 
 export default function AdminBlogsPage() {
     const { user } = useUser();
+    const canManageCategories = hasRole(user, "admin") || hasRole(user, "mod");
+    const categoryList = useBlogCategories(canManageCategories);
+    const categoryNames = new Map(categoryList.categories.map((category) => [category.id, category.name]));
     const [blogs, setBlogs] = useState<BlogListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
@@ -55,17 +59,20 @@ export default function AdminBlogsPage() {
 
     return (
         <div className="p-8 pt-24 space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Blog Management</h2>
                     <p className="text-muted-foreground">Manage your blog posts, authors, and categories.</p>
                 </div>
-                <Button asChild>
-                    <Link href="/admin/blogs/new">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Post
-                    </Link>
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                    {canManageCategories && <BlogCategoryDialog categoryList={categoryList} />}
+                    <Button asChild>
+                        <Link href="/admin/blogs/new">
+                            <Plus />
+                            Create Post
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             {loading ? (
@@ -117,7 +124,7 @@ export default function AdminBlogsPage() {
                                         {blog.category && (
                                             <div className="flex items-center gap-1">
                                                 <Tag className="h-3 w-3" />
-                                                {blog.category.name}
+                                                {categoryNames.get(blog.category.id) ?? blog.category.name}
                                             </div>
                                         )}
                                         <div className="flex items-center gap-1">
