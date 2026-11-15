@@ -85,13 +85,24 @@ export default function ArtifactDetailPage() {
         } catch (e) { toast.error(e instanceof Error ? e.message : 'Unable to delete link.'); }
         finally { setBusy(false); }
     }
+    async function setPublication(isPublished: boolean) {
+        setBusy(true);
+        try {
+            setData(await artifactService.setPublication(id, isPublished));
+            toast.success(isPublished ? 'Published to Downloads.' : 'Removed from Downloads.');
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Unable to update publication.');
+        } finally {
+            setBusy(false);
+        }
+    }
     if (error && !data) return <div className="mx-auto max-w-3xl space-y-4 p-8 pt-24"><Link href="/admin/artifacts">← Back to artifacts</Link><p role="alert">{error}</p><Button onClick={() => load(true).catch(e => setError(e.message))}>Try again</Button></div>;
     if (!data) return <p className="flex items-center gap-2 p-8 pt-24 text-muted-foreground"><Loader2 className="size-4 animate-spin" />Loading artifact…</p>;
     const a = data.artifact;
     const directUrl = newUrl ? directArtifactDownloadUrl(new URL(newUrl).hash.slice(1)) : '';
     return <div className="mx-auto max-w-5xl space-y-6 p-4 pt-24 sm:p-8 sm:pt-24">
         <Button asChild variant="ghost" size="sm"><Link href="/admin/artifacts"><ArrowLeft className="mr-2 size-4" />Artifacts</Link></Button>
-        <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><Badge variant="outline">Private artifact</Badge><h1 className="mt-3 break-words text-3xl font-bold">{a.title}</h1><p className="mt-2 break-all text-sm text-muted-foreground">{a.originalFileName} · {formatArtifactSize(a.sizeBytes)}</p></div>
+        <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><Badge variant={a.isPublished ? 'default' : 'outline'}>{a.isPublished ? 'Published' : 'Private artifact'}</Badge><h1 className="mt-3 break-words text-3xl font-bold">{a.title}</h1><p className="mt-2 break-all text-sm text-muted-foreground">{a.originalFileName} · {formatArtifactSize(a.sizeBytes)}</p></div>
             <Button variant="destructive" disabled={busy} onClick={() => setDeleteOpen(true)}><Trash2 className="mr-2 size-4" />Delete artifact</Button></div>
         <div className="grid gap-3 sm:grid-cols-3">{[
             { label: 'Uploaded by', value: a.ownerName ?? 'Former uploader' },
@@ -109,6 +120,22 @@ export default function ArtifactDetailPage() {
             <div><Label htmlFor="private-note">Private note</Label><Textarea id="private-note" maxLength={4000} value={note} onChange={e => setNote(e.target.value)} /><p className="mt-1 text-xs text-muted-foreground">Recipients never see this note.</p></div>
             <div className="flex flex-wrap items-center gap-3"><Button disabled={busy}>Save details</Button><Button asChild variant="outline"><Link href={`/admin/content/${a.contentId}`}>View content record</Link></Button><span className="text-xs text-muted-foreground">Uploaded {new Date(a.createdAt).toLocaleString()}</span></div>
         </form></CardContent></Card>
+        <Card>
+            <CardHeader><CardTitle>Downloads listing</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                    {a.isPublished
+                        ? 'Anyone can download this file from Downloads. Removing it from the listing keeps existing share links active.'
+                        : 'Publish this file to let anyone find and download it. The listing shows its title, filename, and size.'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                    <Button variant={a.isPublished ? 'outline' : 'default'} disabled={busy} onClick={() => void setPublication(!a.isPublished)}>
+                        {a.isPublished ? 'Remove from Downloads' : 'Publish to Downloads'}
+                    </Button>
+                    {a.isPublished && <Button variant="ghost" asChild><Link href="/downloads">View Downloads</Link></Button>}
+                </div>
+            </CardContent>
+        </Card>
         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">Share links</h2><p className="text-sm text-muted-foreground">Anyone holding an active link can download without signing in.</p></div><div className="flex gap-2"><Button variant="outline" size="icon" aria-label="Refresh share links" disabled={busy} onClick={() => load().catch(e => toast.error(e.message))}><RefreshCw className="size-4" /></Button><Button disabled={busy} onClick={() => setLinkEditor('new')}><Plus className="mr-2 size-4" />Create link</Button></div></div>
         {!data.links.length ? <Card><CardContent className="py-12 text-center"><Link2 className="mx-auto mb-3 size-8 text-muted-foreground" /><p className="font-medium">Ready when you are</p><p className="mt-2 text-sm text-muted-foreground">Create your first link to share this artifact.</p></CardContent></Card> :
             <div className="space-y-3">{data.links.map((link, index) => <Card key={link.id}><CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6"><div className="space-y-2"><div className="flex items-center gap-3"><h3 className="font-semibold">Share link {data.links.length - index}</h3><Badge variant={status(link, now) === 'Active' ? 'default' : 'secondary'}>{status(link, now)}</Badge></div><p className="text-sm text-muted-foreground">{link.downloadCount} / {link.maxDownloads ?? 'unlimited'} downloads · {link.expiresAt ? `Expires ${new Date(link.expiresAt).toLocaleString()}` : 'No expiry'}</p><p className="text-xs text-muted-foreground">Created {new Date(link.createdAt).toLocaleString()}</p></div><div className="flex gap-2"><Button variant="outline" disabled={busy || !!link.revokedAt} onClick={() => setLinkEditor(link)}>Edit limits</Button>{link.revokedAt

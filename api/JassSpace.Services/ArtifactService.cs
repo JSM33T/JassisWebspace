@@ -36,6 +36,9 @@ public sealed class ArtifactService(
         return db.Artifacts.Where(a => a.State == "Ready" && (actor.IsAdmin || a.OwnerUserId == actor.UserId));
     }
 
+    private IQueryable<Artifact> PublishedQuery() => db.Artifacts.AsNoTracking().Where(a =>
+        a.State == "Ready" && a.Content.ContentType == ContentType.Artifact && a.Content.IsPublished);
+
     public async Task<ArtifactPageResponse> ListAsync(string? search, Guid? owner, int page, int pageSize, CancellationToken ct)
     {
         var query = ManagedQuery().AsNoTracking();
@@ -49,7 +52,7 @@ public sealed class ArtifactService(
         pageSize = Math.Clamp(pageSize, 1, 100);
         var total = await query.CountAsync(ct);
         page = Math.Min(page, Math.Max(1, (int)Math.Ceiling(total / (double)pageSize)));
-        var rows = await query.Include(a => a.OwnerUser).Include(a => a.Links)
+        var rows = await query.Include(a => a.Content).Include(a => a.OwnerUser).Include(a => a.Links)
             .OrderByDescending(a => a.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
         var owners = actor.IsAdmin
             ? await db.Artifacts.Where(a => a.State == "Ready" && a.OwnerUserId != null)
@@ -57,6 +60,25 @@ public sealed class ArtifactService(
                 .Distinct().OrderBy(o => o.Name).Select(o => new ArtifactOwnerResponse(o.Id, o.Name)).ToListAsync(ct)
             : new List<ArtifactOwnerResponse>();
         return new(rows.Select(a => Map(a, DateTimeOffset.UtcNow)).ToList(), total, page, pageSize, settings.MaxUploadBytes, settings.OwnerQuotaBytes, owners);
+    }
+
+    public async Task<PublicArtifactPageResponse> ListPublishedAsync(string? search, int page, int pageSize, CancellationToken ct)
+    {
+        var query = PublishedQuery();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+            query = query.Where(a => a.Title.ToLower().Contains(term) || a.OriginalFileName.ToLower().Contains(term));
+        }
+
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var total = await query.CountAsync(ct);
+        page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / (double)pageSize)));
+        var items = await query.OrderByDescending(a => a.Content.PublishedAt).ThenBy(a => a.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(a => new PublicArtifactItemResponse(a.Id, a.Title, a.OriginalFileName, a.SizeBytes))
+            .ToListAsync(ct);
+        return new(items, total, page, pageSize);
     }
 
     public async Task<ArtifactDetailResponse> GetByContentAsync(Guid contentId, CancellationToken ct)
@@ -67,7 +89,7 @@ public sealed class ArtifactService(
 
     public async Task<ArtifactDetailResponse> GetAsync(Guid id, CancellationToken ct)
     {
-        var artifact = await ManagedQuery().AsNoTracking().Include(a => a.OwnerUser).Include(a => a.Links)
+        var artifact = await ManagedQuery().AsNoTracking().Include(a => a.Content).Include(a => a.OwnerUser).Include(a => a.Links)
             .SingleOrDefaultAsync(a => a.Id == id, ct) ?? throw NotFound();
         var now = DateTimeOffset.UtcNow;
         return new(Map(artifact, now), artifact.PrivateNote,
@@ -107,8 +129,7 @@ public sealed class ArtifactService(
             db.Contents.Add(new Content
             {
                 Id = contentId, ContentType = ContentType.Artifact, ContentRefId = id,
-                Title = title, Slug = $"artifact-{id:N}", IsPublished = false, CreatedAt = now,
-                Description = "Private shared artifact", SearchBody = title
+                Title = title, Slug = $"artifact-{id:N}", IsPublished = false, CreatedAt = now, SearchBody = title
             });
             db.Artifacts.Add(new Artifact
             {
@@ -210,7 +231,7 @@ public sealed class ArtifactService(
         return await GetAsync(id, ct);
     }
 
-    public async Task<ArtifactManagerDownload> OpenManagerDownloadAsync(Guid id, CancellationToken ct)
+    public async Task<ArtifactFileDownload> OpenManagerDownloadAsync(Guid id, CancellationToken ct)
     {
         var artifact = await ManagedQuery().AsNoTracking().SingleOrDefaultAsync(a => a.Id == id, ct) ?? throw NotFound();
         if (!await storage.ExistsAsync(artifact.StorageKey, ct)) throw NotFound();
@@ -239,12 +260,49 @@ public sealed class ArtifactService(
             var content = await db.Contents.SingleAsync(c => c.Id == a.ContentId, ct);
             content.Title = a.Title;
             content.SearchBody = a.Title;
-            content.IsPublished = false;
             content.UpdatedAt = a.UpdatedAt;
             Audit("ArtifactUpdated", id);
             return true;
         }, ct);
         return await GetAsync(id, ct);
+    }
+
+    public async Task<ArtifactDetailResponse> SetPublicationAsync(Guid id, bool isPublished, CancellationToken ct)
+    {
+        RequireManager();
+        await TransactionAsync(async () =>
+        {
+            var artifact = await LockArtifactAsync(id, true, ct);
+            var content = await db.Contents.SingleAsync(c => c.Id == artifact.ContentId, ct);
+            if (content.IsPublished == isPublished) return true;
+            var now = await DatabaseNowAsync(ct);
+            content.IsPublished = isPublished;
+            content.PublishedAt = isPublished ? now : null;
+            content.UpdatedAt = artifact.UpdatedAt = now;
+            Audit(isPublished ? "ArtifactPublished" : "ArtifactUnpublished", id);
+            return true;
+        }, ct);
+        return await GetAsync(id, ct);
+    }
+
+    public async Task<ArtifactFileDownload> OpenPublishedDownloadAsync(Guid id, CancellationToken ct)
+    {
+        var query = PublishedQuery().Where(a => a.Id == id);
+        var artifact = await query.Select(a => new { a.StorageKey, a.OriginalFileName }).SingleOrDefaultAsync(ct)
+            ?? throw NotFound();
+        if (!await storage.ExistsAsync(artifact.StorageKey, ct)) throw NotFound();
+
+        var stream = await storage.OpenReadAsync(artifact.StorageKey, ct);
+        try
+        {
+            if (!await query.AnyAsync(a => a.StorageKey == artifact.StorageKey, ct)) throw NotFound();
+            return new(stream, artifact.OriginalFileName);
+        }
+        catch
+        {
+            await stream.DisposeAsync();
+            throw;
+        }
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
@@ -257,6 +315,7 @@ public sealed class ArtifactService(
             a.DeletedAt = a.UpdatedAt = await DatabaseNowAsync(ct);
             var content = await db.Contents.SingleAsync(c => c.Id == a.ContentId, ct);
             content.IsPublished = false;
+            content.PublishedAt = null;
             content.UpdatedAt = a.UpdatedAt;
             Audit("ArtifactDeleted", id);
             return true;
@@ -524,7 +583,8 @@ public sealed class ArtifactService(
 
     private static ArtifactListItemResponse Map(Artifact a, DateTimeOffset now) => new(a.Id, a.ContentId, a.Title,
         a.OriginalFileName, a.MediaType, a.SizeBytes, a.OwnerUserId, a.OwnerUser?.DisplayName ?? a.OwnerUser?.Username,
-        a.CreatedAt, a.UpdatedAt, a.Links.Count(l => Status(l, now) == "Active"), a.Links.Sum(l => l.DownloadCount));
+        a.CreatedAt, a.UpdatedAt, a.Links.Count(l => Status(l, now) == "Active"), a.Links.Sum(l => l.DownloadCount),
+        a.Content.IsPublished);
     private static ArtifactLinkResponse MapLink(ArtifactShareLink l, DateTimeOffset now) => new(l.Id, l.ExpiresAt,
         l.MaxDownloads, l.DownloadCount, l.RevokedAt, l.CreatedAt, Status(l, now));
     private static string Status(ArtifactShareLink l, DateTimeOffset now) => l.RevokedAt.HasValue ? "Revoked" :

@@ -17,6 +17,8 @@ export const artifactService = {
     get: (id: string) => get<ArtifactDetail>(`/admin/artifacts/${id}`),
     byContent: (id: string) => get<ArtifactDetail>(`/admin/artifacts/content/${id}`),
     update: (id: string, title: string, privateNote: string) => put<ArtifactDetail>(`/admin/artifacts/${id}`, { title, privateNote }),
+    setPublication: (id: string, isPublished: boolean) =>
+        put<ArtifactDetail>(`/admin/artifacts/${id}/publication`, { isPublished }),
     delete: (id: string) => del<void>(`/admin/artifacts/${id}`),
     createLink: (id: string, settings: ArtifactLinkSettings) => post<{ link: ArtifactLink; token: string }>(`/admin/artifacts/${id}/links`, settings),
     updateLink: (id: string, linkId: string, settings: ArtifactLinkSettings) => put<void>(`/admin/artifacts/${id}/links/${linkId}`, settings),

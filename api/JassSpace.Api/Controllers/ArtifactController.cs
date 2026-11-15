@@ -64,6 +64,10 @@ public sealed class AdminArtifactController(IArtifactService artifacts) : BaseAp
     public async Task<IActionResult> Update(Guid id, [FromBody] ArtifactUpdateRequest request, CancellationToken ct) =>
         OkEnvelope(await artifacts.UpdateAsync(id, request, ct));
 
+    [HttpPut("{id:guid}/publication")]
+    public async Task<IActionResult> SetPublication(Guid id, [FromBody] ArtifactPublicationRequest request, CancellationToken ct) =>
+        OkEnvelope(await artifacts.SetPublicationAsync(id, request.IsPublished, ct));
+
     [HttpPost("{id:guid}/file")]
     [RateLimit("artifact-upload", Partition = RateLimitPartitionStrategy.UserId)]
     [RequestSizeLimit(101 * 1024 * 1024)]
@@ -104,6 +108,30 @@ public sealed class AdminArtifactController(IArtifactService artifacts) : BaseAp
     [HttpDelete("{id:guid}/links/{linkId:guid}")]
     public async Task<IActionResult> DeleteLink(Guid id, Guid linkId, CancellationToken ct)
     { await artifacts.DeleteLinkAsync(id, linkId, ct); return NoContent(); }
+}
+
+[Route("public-artifacts")]
+[AllowAnonymous]
+[TypeFilter(typeof(ArtifactExceptionFilter))]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+public sealed class PublicArtifactController(IArtifactService artifacts) : BaseApiController
+{
+    [HttpGet]
+    [RateLimit("artifact-share-read")]
+    public async Task<IActionResult> List([FromQuery] string? search, [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 24, CancellationToken ct = default) =>
+        OkEnvelope(await artifacts.ListPublishedAsync(search, page, pageSize, ct));
+
+    [HttpGet("{id:guid}/download")]
+    [RateLimit("artifact-download")]
+    [Produces("application/octet-stream")]
+    public async Task<IActionResult> Download(Guid id, CancellationToken ct)
+    {
+        var file = await artifacts.OpenPublishedDownloadAsync(id, ct);
+        Response.Headers["Cache-Control"] = "no-store";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(file.Stream, "application/octet-stream", file.FileName);
+    }
 }
 
 [AllowAnonymous]

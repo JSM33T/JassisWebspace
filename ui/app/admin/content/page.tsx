@@ -202,7 +202,7 @@ export default function AdminContentPage() {
                                         {item.contentType}
                                     </Badge>
                                     <Badge variant={item.isPublished ? "default" : "secondary"}>
-                                        {item.contentType === "Artifact" ? "Private" : item.isPublished ? "Published" : "Draft"}
+                                        {item.isPublished ? "Published" : item.contentType === "Artifact" ? "Private" : "Draft"}
                                     </Badge>
                                 </div>
                             </div>

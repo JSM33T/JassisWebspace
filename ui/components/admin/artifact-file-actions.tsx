@@ -75,6 +75,7 @@ export function ArtifactFileActions({ detail, busy, onBusyChange, onReplaced }: 
         <Dialog open={replaceOpen} onOpenChange={open => { if (!replacing) { setReplaceOpen(open); if (!open) setFile(null); } }}>
             <DialogContent>
                 <DialogHeader><DialogTitle>Replace artifact file</DialogTitle><DialogDescription>Existing share links will serve the new file. The title, private note, expiry settings, and download counts stay the same. Existing download sessions will need to restart.</DialogDescription></DialogHeader>
+                {a.isPublished && <p className="text-sm">This artifact is published. Downloads will serve the replacement file as soon as it finishes uploading.</p>}
                 <form onSubmit={replaceFile} className="space-y-4">
                     <div className="space-y-2"><Label htmlFor="replacement-file">Replacement file</Label><Input id="replacement-file" type="file" required disabled={busy} onChange={event => setFile(event.target.files?.[0] ?? null)} /><p className="text-xs text-muted-foreground">Up to {formatArtifactSize(maxBytes)}. The original remains available while the new file uploads; enough storage for both files is required until replacement completes.</p></div>
                     {file && <p className="break-all text-sm">{file.name} · {formatArtifactSize(file.size)}</p>}

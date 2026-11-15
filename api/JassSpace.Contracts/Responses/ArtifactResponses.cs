@@ -2,7 +2,7 @@ namespace JassSpace.Contracts.Responses;
 
 public sealed record ArtifactListItemResponse(Guid Id, Guid ContentId, string Title, string OriginalFileName,
     string MediaType, long SizeBytes, Guid? OwnerUserId, string? OwnerName, DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt, int ActiveLinkCount, int TotalDownloads);
+    DateTimeOffset? UpdatedAt, int ActiveLinkCount, int TotalDownloads, bool IsPublished);
 public sealed record ArtifactPageResponse(IReadOnlyList<ArtifactListItemResponse> Items, int Total,
     int Page, int PageSize, long MaxUploadBytes, long OwnerQuotaBytes, IReadOnlyList<ArtifactOwnerResponse> Owners);
 public sealed record ArtifactOwnerResponse(Guid Id, string Name);
@@ -14,3 +14,5 @@ public sealed record ArtifactCreatedLinkResponse(ArtifactLinkResponse Link, stri
 public sealed record ArtifactPublicResponse(string Title, string FileName, long SizeBytes,
     DateTimeOffset? ExpiresAt, int? RemainingDownloads);
 public sealed record ArtifactRedeemResponse(string GrantToken, DateTimeOffset ExpiresAt);
+public sealed record PublicArtifactItemResponse(Guid Id, string Title, string FileName, long SizeBytes);
+public sealed record PublicArtifactPageResponse(IReadOnlyList<PublicArtifactItemResponse> Items, int Total, int Page, int PageSize);

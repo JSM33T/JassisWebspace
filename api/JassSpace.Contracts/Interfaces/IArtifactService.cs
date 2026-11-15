@@ -28,8 +28,11 @@ public interface IArtifactService
     Task<ArtifactDetailResponse> GetAsync(Guid id, CancellationToken ct);
     Task<ArtifactDetailResponse> UploadAsync(Stream stream, string filename, string mediaType, long length, string? title, string? note, CancellationToken ct);
     Task<ArtifactDetailResponse> ReplaceAsync(Guid id, Stream stream, string filename, string mediaType, long length, CancellationToken ct);
-    Task<ArtifactManagerDownload> OpenManagerDownloadAsync(Guid id, CancellationToken ct);
+    Task<ArtifactFileDownload> OpenManagerDownloadAsync(Guid id, CancellationToken ct);
     Task<ArtifactDetailResponse> UpdateAsync(Guid id, ArtifactUpdateRequest request, CancellationToken ct);
+    Task<ArtifactDetailResponse> SetPublicationAsync(Guid id, bool isPublished, CancellationToken ct);
+    Task<PublicArtifactPageResponse> ListPublishedAsync(string? search, int page, int pageSize, CancellationToken ct);
+    Task<ArtifactFileDownload> OpenPublishedDownloadAsync(Guid id, CancellationToken ct);
     Task DeleteAsync(Guid id, CancellationToken ct);
     Task<ArtifactCreatedLinkResponse> CreateLinkAsync(Guid id, ArtifactLinkSettingsRequest request, CancellationToken ct);
     Task UpdateLinkAsync(Guid id, Guid linkId, ArtifactLinkSettingsRequest request, CancellationToken ct);
@@ -43,4 +46,4 @@ public interface IArtifactService
 }
 
 public sealed record ArtifactDownload(Guid GrantId, Stream Stream, string FileName, long SizeBytes);
-public sealed record ArtifactManagerDownload(Stream Stream, string FileName);
+public sealed record ArtifactFileDownload(Stream Stream, string FileName);

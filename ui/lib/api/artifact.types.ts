@@ -11,6 +11,7 @@ export interface Artifact {
     updatedAt: string | null;
     activeLinkCount: number;
     totalDownloads: number;
+    isPublished: boolean;
 }
 export interface ArtifactLink {
     id: string;
@@ -45,3 +46,17 @@ export interface ArtifactPublic {
     remainingDownloads: number | null;
 }
 export interface ArtifactGrant { grantToken: string; expiresAt: string }
+
+export interface PublicArtifactItem {
+    id: string;
+    title: string;
+    fileName: string;
+    sizeBytes: number;
+}
+
+export interface PublicArtifactPage {
+    items: PublicArtifactItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+}
