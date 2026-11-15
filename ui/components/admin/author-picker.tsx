@@ -2,24 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { Users, X } from "lucide-react";
+import * as z from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { adminBlogService } from "@/lib/api/admin-blog.service";
-import type { BlogAuthor } from "@/lib/api/blog.types";
+export const authorSelectionSchema = z.array(z.object({
+    userId: z.string(),
+    username: z.string(),
+    displayName: z.string().nullish(),
+}));
 
-type AuthorOption = Pick<BlogAuthor, "userId" | "username"> & { displayName?: string | null };
+type AuthorOption = z.infer<typeof authorSelectionSchema>[number];
+type LoadAuthors = (search: string | undefined, page: { skip: number; take: number }) => Promise<AuthorOption[]>;
 
-interface BlogAuthorDialogProps {
+interface AuthorPickerProps {
     authors: AuthorOption[];
-    onApply: (authors: AuthorOption[]) => void;
+    onApply?: (authors: AuthorOption[]) => void;
+    loadAuthors: LoadAuthors;
+    subject: "post" | "album";
     disabled?: boolean;
 }
 
 type AuthorResults = {
-    authors: BlogAuthor[];
+    authors: AuthorOption[];
     status: "loading" | "ready" | "error";
     hasMore: boolean;
 };
@@ -27,11 +34,37 @@ type AuthorResults = {
 const pageSize = 25;
 const initialResults: AuthorResults = { authors: [], status: "loading", hasMore: false };
 
-export function authorName(author: AuthorOption) {
+function authorName(author: AuthorOption) {
     return author.displayName?.trim() || author.username;
 }
 
-export function BlogAuthorDialog({ authors, onApply, disabled }: BlogAuthorDialogProps) {
+export function AuthorPicker({ authors, onApply, loadAuthors, subject, disabled }: AuthorPickerProps) {
+    return (
+        <div className="space-y-2">
+            <h4 className="text-sm font-medium">Authors</h4>
+            {authors.length > 0 ? (
+                <ul aria-label="Assigned authors" className="flex flex-wrap gap-1.5">
+                    {authors.map((author) => (
+                        <li key={author.userId} className="min-w-0 max-w-full">
+                            <Badge variant="secondary" className="h-auto max-w-full whitespace-normal wrap-anywhere">
+                                {authorName(author)}
+                            </Badge>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="text-sm text-muted-foreground">No authors assigned.</p>
+            )}
+            {onApply && (
+                <AuthorDialog authors={authors} onApply={onApply} loadAuthors={loadAuthors} subject={subject} disabled={disabled} />
+            )}
+        </div>
+    );
+}
+
+type AuthorDialogProps = AuthorPickerProps & Required<Pick<AuthorPickerProps, "onApply">>;
+
+function AuthorDialog({ authors, onApply, loadAuthors, subject, disabled }: AuthorDialogProps) {
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState<AuthorOption[]>([]);
     const [search, setSearch] = useState("");
@@ -46,7 +79,7 @@ export function BlogAuthorDialog({ authors, onApply, disabled }: BlogAuthorDialo
         const query = search.trim();
         const timeout = setTimeout(async () => {
             try {
-                const page = await adminBlogService.getPotentialAuthors(query || undefined, { skip, take: pageSize + 1 });
+                const page = await loadAuthors(query || undefined, { skip, take: pageSize + 1 });
                 if (!active) return;
 
                 setResults((current) => {
@@ -57,7 +90,7 @@ export function BlogAuthorDialog({ authors, onApply, disabled }: BlogAuthorDialo
                 });
             } catch (error) {
                 if (!active) return;
-                console.error("Failed to load blog authors", error);
+                console.error("Failed to load authors", error);
                 setResults((current) => ({ ...current, status: "error" }));
             }
         }, query && skip === 0 ? 250 : 0);
@@ -66,7 +99,7 @@ export function BlogAuthorDialog({ authors, onApply, disabled }: BlogAuthorDialo
             active = false;
             clearTimeout(timeout);
         };
-    }, [open, search, skip, retry]);
+    }, [loadAuthors, open, search, skip, retry]);
 
     function changeOpen(nextOpen: boolean) {
         if (nextOpen) {
@@ -111,7 +144,7 @@ export function BlogAuthorDialog({ authors, onApply, disabled }: BlogAuthorDialo
             <DialogContent className="max-h-[calc(100dvh-2rem)] gap-4 overflow-y-auto p-4 sm:max-w-xl sm:p-6">
                 <DialogHeader className="pr-10">
                     <DialogTitle className="text-lg font-semibold">Manage authors</DialogTitle>
-                    <DialogDescription>Choose who is credited on this post.</DialogDescription>
+                    <DialogDescription>Choose who is credited on this {subject}.</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-2">

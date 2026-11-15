@@ -7,10 +7,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Loader2, Upload, X } from "lucide-react";
 
-import { BlogAuthorDialog, authorName } from "@/components/admin/blog-author-dialog";
+import { AuthorPicker, authorSelectionSchema } from "@/components/admin/author-picker";
 import { BlogCategoryDialog, useBlogCategories } from "@/components/admin/blog-category-dialog";
 import { BlogWritingPad } from "@/components/admin/blog-writing-pad";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -44,11 +43,7 @@ const blogSchema = z.object({
     content: z.string().optional(), // Content is optional for initial creation
     featuredImage: z.string().optional(),
     categoryId: z.string().optional(),
-    authors: z.array(z.object({
-        userId: z.string(),
-        username: z.string(),
-        displayName: z.string().nullish(),
-    })),
+    authors: authorSelectionSchema,
     isPublished: z.boolean(),
 });
 
@@ -313,23 +308,13 @@ export function BlogForm({
                                     name="authors"
                                     render={({ field }) => (
                                         <FormItem className="border-t pt-4">
-                                            <h4 className="text-sm font-medium">Authors</h4>
-                                            {field.value.length > 0 ? (
-                                                <ul aria-label="Assigned authors" className="flex flex-wrap gap-1.5">
-                                                    {field.value.map((author) => (
-                                                        <li key={author.userId} className="min-w-0 max-w-full">
-                                                            <Badge variant="secondary" className="h-auto max-w-full whitespace-normal wrap-anywhere">
-                                                                {authorName(author)}
-                                                            </Badge>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground">No authors assigned.</p>
-                                            )}
-                                            {allowAuthorSelection && (
-                                                <BlogAuthorDialog authors={field.value} onApply={field.onChange} disabled={loading} />
-                                            )}
+                                            <AuthorPicker
+                                                authors={field.value}
+                                                onApply={allowAuthorSelection ? field.onChange : undefined}
+                                                loadAuthors={adminBlogService.getPotentialAuthors}
+                                                subject="post"
+                                                disabled={loading}
+                                            />
                                         </FormItem>
                                     )}
                                 />
