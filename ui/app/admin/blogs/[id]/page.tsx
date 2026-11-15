@@ -30,17 +30,17 @@ export default function EditBlogPage() {
 
     if (loading) {
         return (
-            <div className="p-8 pt-24 max-w-5xl mx-auto space-y-8">
+            <div className="mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6 xl:px-8 space-y-8">
                 <div className="space-y-2">
                     <Skeleton className="h-10 w-1/3" />
                     <Skeleton className="h-4 w-1/4" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="md:col-span-2 space-y-8">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-[400px] w-full" />
-                    </div>
-                    <div className="space-y-8">
+                <div className="@container">
+                    <div className="grid items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_19rem]">
+                        <div className="grid gap-6">
+                            <Skeleton className="h-72 w-full" />
+                            <Skeleton className="h-[400px] w-full" />
+                        </div>
                         <Skeleton className="h-64 w-full" />
                     </div>
                 </div>
@@ -58,7 +58,7 @@ export default function EditBlogPage() {
     }
 
     return (
-        <div className="p-8 pt-24 max-w-5xl mx-auto">
+        <div className="mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6 xl:px-8">
             <div className="mb-8">
                 <h2 className="text-3xl font-bold tracking-tight">Edit Post</h2>
                 <p className="text-muted-foreground">Update content for &quot;{blog.title}&quot;</p>
