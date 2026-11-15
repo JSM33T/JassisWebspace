@@ -128,6 +128,7 @@ public sealed class AdminBlogService(
     public Task<List<ContentAuthorResponse>> GetAuthorsAsync(
         string? search = null,
         int take = 100,
+        int skip = 0,
         CancellationToken cancellationToken = default)
     {
         take = Math.Clamp(take, 1, 200);
@@ -149,6 +150,8 @@ public sealed class AdminBlogService(
         return query
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
+            .ThenBy(u => u.Id)
+            .Skip(Math.Max(skip, 0))
             .Take(take)
             .Select(u => new ContentAuthorResponse(
                 u.Id,

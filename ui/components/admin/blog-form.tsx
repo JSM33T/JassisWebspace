@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ChevronDown, Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 
+import { BlogAuthorDialog, authorName } from "@/components/admin/blog-author-dialog";
+import { BlogCategoryDialog, useBlogCategories } from "@/components/admin/blog-category-dialog";
 import { BlogWritingPad } from "@/components/admin/blog-writing-pad";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -28,8 +31,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { BlogAuthor, BlogCategory, BlogDetail, CreateBlogRequest } from "@/lib/api/blog.types";
+import { BlogDetail, CreateBlogRequest } from "@/lib/api/blog.types";
 import { adminBlogService } from "@/lib/api/admin-blog.service";
 import Image from "next/image";
 import { ImageCropper } from "@/components/ui/image-cropper";
@@ -42,7 +44,11 @@ const blogSchema = z.object({
     content: z.string().optional(), // Content is optional for initial creation
     featuredImage: z.string().optional(),
     categoryId: z.string().optional(),
-    authorIds: z.array(z.string()).optional(),
+    authors: z.array(z.object({
+        userId: z.string(),
+        username: z.string(),
+        displayName: z.string().nullish(),
+    })),
     isPublished: z.boolean(),
 });
 
@@ -61,15 +67,13 @@ export function BlogForm({
 }: BlogFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [categories, setCategories] = useState<BlogCategory[]>([]);
-    const [authors, setAuthors] = useState<BlogAuthor[]>([]);
-    const [authorSearch, setAuthorSearch] = useState("");
-    const [categoryEditorName, setCategoryEditorName] = useState("");
-    const [categoryEditorDescription, setCategoryEditorDescription] = useState("");
-    const [savingCategory, setSavingCategory] = useState(false);
+    const categoryList = useBlogCategories();
 
     // Determine if we are in "Edit" mode (have an existing blog ID)
     const isEditing = !!initialData?.id;
+    const categories = categoryList.status !== "ready" && initialData?.category
+        ? [initialData.category]
+        : categoryList.categories;
 
     const form = useForm<BlogFormValues>({
         resolver: zodResolver(blogSchema),
@@ -81,114 +85,10 @@ export function BlogForm({
             content: initialData?.content || "",
             featuredImage: initialData?.featuredImage || "",
             categoryId: initialData?.category?.id || undefined,
-            authorIds: initialData?.authors?.map((a) => a.userId) || [],
+            authors: initialData?.authors?.map(({ userId, username, displayName }) => ({ userId, username, displayName })) ?? [],
             isPublished: initialData?.isPublished || false,
         },
     });
-
-    useEffect(() => {
-        const loadCategories = async () => {
-            try {
-                const cats = await adminBlogService.getAllCategories();
-                setCategories(cats);
-            } catch (error) {
-                console.error("Failed to load categories", error);
-            }
-        };
-
-        loadCategories();
-    }, []);
-
-    useEffect(() => {
-        if (!allowAuthorSelection) {
-            return;
-        }
-
-        const timeoutId = setTimeout(async () => {
-            try {
-                const auths = await adminBlogService.getPotentialAuthors(authorSearch.trim() || undefined);
-                setAuthors(auths);
-            } catch (error) {
-                console.error("Failed to load authors", error);
-            }
-        }, 250);
-
-        return () => clearTimeout(timeoutId);
-    }, [allowAuthorSelection, authorSearch]);
-
-    const selectedCategoryId = form.watch("categoryId");
-
-    useEffect(() => {
-        if (!selectedCategoryId) {
-            setCategoryEditorName("");
-            setCategoryEditorDescription("");
-            return;
-        }
-
-        const selected = categories.find((c) => c.id === selectedCategoryId);
-        if (!selected) return;
-        setCategoryEditorName(selected.name);
-        setCategoryEditorDescription(selected.description || "");
-    }, [selectedCategoryId, categories]);
-
-    const reloadCategories = async () => {
-        const cats = await adminBlogService.getAllCategories();
-        setCategories(cats);
-        return cats;
-    };
-
-    const handleCreateCategory = async () => {
-        if (!categoryEditorName.trim()) {
-            toast.error("Category name is required");
-            return;
-        }
-
-        try {
-            setSavingCategory(true);
-            const created = await adminBlogService.createCategory({
-                name: categoryEditorName.trim(),
-                description: categoryEditorDescription.trim() || undefined,
-            });
-            const cats = await reloadCategories();
-            form.setValue("categoryId", created.id, { shouldDirty: true });
-            const selected = cats.find((c) => c.id === created.id);
-            setCategoryEditorName(selected?.name || created.name);
-            setCategoryEditorDescription(selected?.description || "");
-            toast.success("Category created");
-        } catch (error) {
-            console.error("Failed to create category", error);
-            toast.error("Failed to create category");
-        } finally {
-            setSavingCategory(false);
-        }
-    };
-
-    const handleUpdateCategory = async () => {
-        if (!selectedCategoryId) {
-            toast.error("Select a category to update");
-            return;
-        }
-
-        if (!categoryEditorName.trim()) {
-            toast.error("Category name is required");
-            return;
-        }
-
-        try {
-            setSavingCategory(true);
-            await adminBlogService.updateCategory(selectedCategoryId, {
-                name: categoryEditorName.trim(),
-                description: categoryEditorDescription.trim() || undefined,
-            });
-            await reloadCategories();
-            toast.success("Category updated");
-        } catch (error) {
-            console.error("Failed to update category", error);
-            toast.error("Failed to update category");
-        } finally {
-            setSavingCategory(false);
-        }
-    };
 
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -219,7 +119,7 @@ export function BlogForm({
         reader.readAsDataURL(file);
     };
 
-    const onSubmit = async (data: BlogFormValues) => {
+    const onSubmit = async ({ authors, ...data }: BlogFormValues) => {
         try {
             setLoading(true);
 
@@ -250,7 +150,7 @@ export function BlogForm({
                 excerpt: data.excerpt || undefined,
                 featuredImage: featuredImageUrl || undefined,
                 categoryId: data.categoryId || undefined,
-                authorIds: data.authorIds || [],
+                authorIds: authors.map((author) => author.userId),
             };
 
             if (initialData) {
@@ -386,7 +286,9 @@ export function BlogForm({
                                             >
                                                 <FormControl>
                                                     <SelectTrigger className="w-full">
-                                                        <SelectValue placeholder="Select a category" />
+                                                        <SelectValue placeholder={
+                                                            categoryList.status === "loading" ? "Loading categories…" : "Select a category"
+                                                        } />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
@@ -403,93 +305,34 @@ export function BlogForm({
                                 />
 
                                 {allowCategoryManagement && (
-                                    <details className="group/category rounded-lg border bg-muted/25">
-                                        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-                                            Manage categories
-                                            <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform group-open/category:rotate-180" />
-                                        </summary>
-                                        <div className="space-y-3 border-t p-3">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="blog-category-name">Name</Label>
-                                                <Input
-                                                    id="blog-category-name"
-                                                    value={categoryEditorName}
-                                                    onChange={(e) => setCategoryEditorName(e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="blog-category-description">Description (optional)</Label>
-                                                <Textarea
-                                                    id="blog-category-description"
-                                                    value={categoryEditorDescription}
-                                                    onChange={(e) => setCategoryEditorDescription(e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={handleCreateCategory}
-                                                    disabled={savingCategory}
-                                                >
-                                                    Create category
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={handleUpdateCategory}
-                                                    disabled={savingCategory || !selectedCategoryId}
-                                                >
-                                                    Update selected
-                                                </Button>
-                                            </div>
-                                            {savingCategory && (
-                                                <p role="status" className="text-xs text-muted-foreground">Saving category…</p>
-                                            )}
-                                        </div>
-                                    </details>
+                                    <BlogCategoryDialog categoryList={categoryList} />
                                 )}
 
-                                {allowAuthorSelection && (
-                                    <FormField
-                                        control={form.control}
-                                        name="authorIds"
-                                        render={({ field }) => (
-                                            <fieldset className="min-w-0 space-y-3">
-                                                <legend className="mb-2 text-sm font-medium">Authors</legend>
-                                                <Input
-                                                    aria-label="Search authors"
-                                                    placeholder="Search authors…"
-                                                    value={authorSearch}
-                                                    onChange={(e) => setAuthorSearch(e.target.value)}
-                                                />
-                                                <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border p-1">
-                                                    {authors.map((author) => (
-                                                        <label key={author.userId} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={field.value?.includes(author.userId) || false}
-                                                                onChange={(e) => {
-                                                                    const current = field.value || [];
-                                                                    field.onChange(e.target.checked
-                                                                        ? [...current, author.userId]
-                                                                        : current.filter((id) => id !== author.userId));
-                                                                }}
-                                                                className="mt-0.5 size-4 shrink-0 accent-primary"
-                                                            />
-                                                            <span className="wrap-anywhere">{author.displayName || author.username}</span>
-                                                        </label>
+                                <FormField
+                                    control={form.control}
+                                    name="authors"
+                                    render={({ field }) => (
+                                        <FormItem className="border-t pt-4">
+                                            <h4 className="text-sm font-medium">Authors</h4>
+                                            {field.value.length > 0 ? (
+                                                <ul aria-label="Assigned authors" className="flex flex-wrap gap-1.5">
+                                                    {field.value.map((author) => (
+                                                        <li key={author.userId} className="min-w-0 max-w-full">
+                                                            <Badge variant="secondary" className="h-auto max-w-full whitespace-normal wrap-anywhere">
+                                                                {authorName(author)}
+                                                            </Badge>
+                                                        </li>
                                                     ))}
-                                                    {authors.length === 0 && (
-                                                        <p className="px-2 py-1.5 text-xs text-muted-foreground">No authors found.</p>
-                                                    )}
-                                                </div>
-                                            </fieldset>
-                                        )}
-                                    />
-                                )}
+                                                </ul>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">No authors assigned.</p>
+                                            )}
+                                            {allowAuthorSelection && (
+                                                <BlogAuthorDialog authors={field.value} onApply={field.onChange} disabled={loading} />
+                                            )}
+                                        </FormItem>
+                                    )}
+                                />
                             </CardContent>
                         </Card>
 
