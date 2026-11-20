@@ -4,6 +4,7 @@
   "description": "Deep crimson on warm ivory in light mode, with rose accents on burgundy in dark mode.",
   "tokens": {
     "light": {
+      "radius": "0px",
       "background": "#fff8f6",
       "foreground": "#30171c",
       "card": "#fffcfa",
