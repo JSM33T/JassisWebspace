@@ -1,0 +1,66 @@
+/* Theme-scoped details beyond the shared color and shadow tokens. */
+:root[data-theme-set="retro-nes"],
+:root[data-theme-set="retro-nes"] *,
+:root[data-theme-set="retro-nes"] *::before,
+:root[data-theme-set="retro-nes"] *::after {
+  border-radius: 0 !important;
+}
+
+:root[data-theme-set="retro-nes"] body {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--foreground) 10%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 8px 8px;
+}
+
+:root[data-theme-set="retro-nes"] :is(h1, h2, h3, h4, h5, h6, .font-serif, .editorial-display, [data-editorial-display="true"]) {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+:root[data-theme-set="retro-nes"] :is(.editorial-kicker, [data-slot="button"], [data-slot="badge"], [data-slot="dropdown-menu-label"]) {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+:root[data-theme-set="retro-nes"] :is(.editorial-shell, .editorial-card, .editorial-card-soft, [data-slot="card"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="dialog-content"], [data-slot="popover-content"]) {
+  border: 2px solid var(--border);
+  background-color: var(--card);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: none;
+}
+
+:root[data-theme-set="retro-nes"] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]) {
+  border: 2px solid var(--input);
+  background-color: var(--background);
+  box-shadow: inset 2px 2px 0 color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+:root[data-theme-set="retro-nes"] [data-slot="button"] {
+  border: 2px solid var(--border);
+  box-shadow: 3px 3px 0 var(--shadow-color);
+  transition: none;
+}
+
+:root[data-theme-set="retro-nes"] [data-slot="button"]:active:not(:disabled):not([aria-disabled="true"]) {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 var(--shadow-color);
+}
+
+:root[data-theme-set="retro-nes"] :is(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 4px;
+}
+
+:root[data-theme-set="retro-nes"] .editorial-illustration {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--foreground) 6%, transparent) 6px 8px
+  );
+  background-color: var(--secondary);
+}

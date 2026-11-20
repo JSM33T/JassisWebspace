@@ -5,6 +5,14 @@ html {
   overflow-y: auto;
 }
 
+/* Crimson Red uses square corners, including fixed-radius utilities and portals. */
+:root[data-theme-set="crimson-red"],
+:root[data-theme-set="crimson-red"] *,
+:root[data-theme-set="crimson-red"] *::before,
+:root[data-theme-set="crimson-red"] *::after {
+  border-radius: 0 !important;
+}
+
 html,
 body {
   -ms-overflow-style: none;

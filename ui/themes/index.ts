@@ -3,16 +3,16 @@ import sunsetCopper from "./sunset-copper.json";
 import crimsonRed from "./crimson-red.json";
 import lilacSoft from "./lilac-soft.json";
 import emeraldGreen from "./emerald-green.json";
-import ivoryTeal from "./ivory-teal.json";
+import retroNes from "./retro-nes.json";
 import type { ThemeSet } from "./types";
 
 export const themeSets: ThemeSet[] = [
   slateClassic as ThemeSet,
-  ivoryTeal as ThemeSet,
   sunsetCopper as ThemeSet,
   crimsonRed as ThemeSet,
   lilacSoft as ThemeSet,
   emeraldGreen as ThemeSet,
+  retroNes as ThemeSet,
 ];
 
 export const DEFAULT_THEME_SET_ID = "slate-classic";

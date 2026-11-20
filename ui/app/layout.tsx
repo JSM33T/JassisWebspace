@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import "./override.css";
+import "@/themes/retro-nes.css";
 import { Toaster } from "sonner";
 import { UserProvider } from "@/contexts/UserContext";
 import { SavedContentProvider } from "@/contexts/SavedContentContext";
